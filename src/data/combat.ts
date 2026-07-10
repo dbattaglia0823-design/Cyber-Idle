@@ -1,0 +1,187 @@
+import type { CombatZone, PlayerCombatStats } from "../types";
+
+export const baseCombatStats: PlayerCombatStats = {
+  maxHp: 100,
+  damage: 8,
+  attackSpeedMs: 1600,
+  armor: 2,
+};
+
+export const combatZones: CombatZone[] = [
+  {
+    id: "neon-row",
+    name: "Neon Row",
+    description: "A starter strip of flickering signs, bad tempers, and easy reputations.",
+    enemies: [
+      {
+        id: "street-punk",
+        name: "Street Punk",
+        description: "Fast, loud, and more confident than careful.",
+        hp: 24,
+        damage: 4,
+        attackSpeedMs: 1800,
+        creditsReward: 7,
+        xpReward: 14,
+        reputationReward: 1,
+        drops: [{ id: "patched-jacket", name: "Patched Jacket", chance: 0.18, quantity: 1 }],
+      },
+      {
+        id: "boosted-thug",
+        name: "Boosted Thug",
+        description: "Cheap combat stims and rented knuckle servos.",
+        hp: 42,
+        damage: 7,
+        attackSpeedMs: 2100,
+        creditsReward: 13,
+        xpReward: 26,
+        reputationReward: 2,
+        drops: [
+          { id: "servo-knuckles", name: "Servo Knuckles", chance: 0.12, quantity: 1 },
+          { id: "street-knife", name: "Street Knife", chance: 0.08, quantity: 1 },
+          { id: "cyberwareParts", name: "Cyberware Parts", chance: 0.35, quantity: 1 },
+        ],
+      },
+      {
+        id: "scrap-drone",
+        name: "Scrap Drone",
+        description: "A scavenger drone with corrupted threat filters.",
+        hp: 35,
+        damage: 5,
+        attackSpeedMs: 1400,
+        creditsReward: 10,
+        xpReward: 22,
+        reputationReward: 1,
+        drops: [
+          { id: "drone-eye", name: "Drone Eye", chance: 0.15, quantity: 1 },
+          { id: "bp-precision-grip", name: "Precision Grip Blueprint", chance: 0.05, quantity: 1 },
+          { id: "circuitBoards", name: "Circuit Boards", chance: 0.45, quantity: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rust-yards",
+    name: "Rust Yards",
+    description: "Scrap crews and broken security hardware defending vehicle graveyards.",
+    enemies: [
+      {
+        id: "yard-raider",
+        name: "Yard Raider",
+        description: "A chop-shop bruiser wearing welded plates.",
+        hp: 58,
+        damage: 9,
+        attackSpeedMs: 2200,
+        creditsReward: 18,
+        xpReward: 38,
+        reputationReward: 2,
+        drops: [
+          { id: "vehicleParts", name: "Vehicle Parts", chance: 0.32, quantity: 1 },
+          { id: "armorPlating", name: "Armor Plating", chance: 0.12, quantity: 1 },
+        ],
+      },
+      {
+        id: "scrap-hound",
+        name: "Scrap Hound",
+        description: "A yard drone rebuilt with too many teeth and no loyalty routines.",
+        hp: 66,
+        damage: 10,
+        attackSpeedMs: 1900,
+        creditsReward: 16,
+        xpReward: 42,
+        reputationReward: 2,
+        drops: [
+          { id: "scrap", name: "Scrap", chance: 0.65, quantity: 4 },
+          { id: "fuelCell", name: "Fuel Cell", chance: 0.08, quantity: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "underpass-market",
+    name: "Underpass Market",
+    description: "Contraband guards, debt crews, and market enforcers protecting supply routes.",
+    enemies: [
+      {
+        id: "market-cutthroat",
+        name: "Market Cutthroat",
+        description: "A fast blade rented by three vendors at once.",
+        hp: 74,
+        damage: 13,
+        attackSpeedMs: 1700,
+        creditsReward: 30,
+        xpReward: 56,
+        reputationReward: 3,
+        drops: [
+          { id: "market-pass", name: "Market Pass", chance: 0.08, quantity: 1 },
+          { id: "rare-blueprint-fragment", name: "Rare Blueprint Fragment", chance: 0.04, quantity: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "blacknet-quarter",
+    name: "Blacknet Quarter",
+    description: "Physical shells and hostile avatars bleeding out of compromised relay rooms.",
+    enemies: [
+      {
+        id: "trace-avatar",
+        name: "Trace Avatar",
+        description: "A security avatar puppeting disposable hardware.",
+        hp: 86,
+        damage: 14,
+        attackSpeedMs: 1800,
+        creditsReward: 28,
+        xpReward: 70,
+        reputationReward: 3,
+        drops: [
+          { id: "encryptedData", name: "Encrypted Data", chance: 0.7, quantity: 3 },
+          { id: "blacknet-cipher", name: "Blacknet Cipher", chance: 0.05, quantity: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "glassline-district",
+    name: "Glassline District",
+    description: "Corporate patrols with clean armor, expensive ammunition, and zero humor.",
+    enemies: [
+      {
+        id: "corp-response-guard",
+        name: "Corp Response Guard",
+        description: "A private-security guard with a clean badge and dirty orders.",
+        hp: 118,
+        damage: 18,
+        attackSpeedMs: 2100,
+        creditsReward: 48,
+        xpReward: 92,
+        reputationReward: 4,
+        drops: [
+          { id: "corporate-access-token", name: "Corporate Access Token", chance: 0.06, quantity: 1 },
+          { id: "cyberwareParts", name: "Cyberware Parts", chance: 0.45, quantity: 2 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "redline-blocks",
+    name: "Redline Blocks",
+    description: "Crew challengers, bounty marks, and armored street fighters.",
+    enemies: [
+      {
+        id: "redline-brawler",
+        name: "Redline Brawler",
+        description: "A crew fighter looking for a ranked name to break.",
+        hp: 132,
+        damage: 21,
+        attackSpeedMs: 1900,
+        creditsReward: 44,
+        xpReward: 102,
+        reputationReward: 5,
+        drops: [
+          { id: "bounty-token", name: "Bounty Token", chance: 0.1, quantity: 1 },
+          { id: "reinforced-hoodie", name: "Reinforced Hoodie", chance: 0.05, quantity: 1 },
+        ],
+      },
+    ],
+  },
+];
