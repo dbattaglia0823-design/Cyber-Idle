@@ -1,10 +1,15 @@
 import { skillActions } from "../data/skills";
-import { canAffordRewards, getSkillAction } from "./actionProcessing";
+import { balanceConfig } from "../data/balanceConfig";
+import { actionXpRewardWithMastery, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
-import { applyHeatModifier, applyNeuralModifier, applyRewardModifiers, applyXpModifier, getActiveModifiers } from "./modifiers";
+import { getActiveModifiers } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
+import { processBlackMarketListings } from "./blackMarketSystem";
+import { addDistrictMasteryXp } from "./districtMasteryProcessor";
+import { emitRewardPopupGroup } from "./rewardPopups";
 import type { GameState, OfflineRecap, ResourceId, RewardBundle } from "../types";
 
 const OFFLINE_CAP_MS = 1000 * 60 * 60 * 12;
@@ -14,6 +19,9 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   const capMs = Math.max(OFFLINE_CAP_MS, modifiers.offlineProgressCapHours * 60 * 60 * 1000);
   const elapsed = Math.min(capMs, Math.max(0, now - state.lastSavedAt));
   const next = cloneState(state);
+  const marketBefore = next.blackMarketCompletedSales.length;
+  const creditsBefore = next.resources.credits;
+  const heatBefore = next.resources.heat;
 
   if (elapsed < 1000) {
     next.lastSavedAt = now;
@@ -47,7 +55,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
       return next;
     }
     const available = elapsed + Math.max(0, state.lastSavedAt - next.activeCraft.startedAt);
-    const completions = Math.min(500, Math.floor(available / recipe.durationMs));
+    const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / recipe.durationMs));
     const recap = {
       timeAwayMs: elapsed,
       actionName: recipe.name,
@@ -67,19 +75,39 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
         next.activeCraft = null;
         break;
       }
-      completeCraft(next, recipe);
+      completeCraft(next, recipe, 1, true, false);
       recap.completions += 1;
       recap.xpGained += recipe.xpReward;
       recap.masteryXpGained += recipe.masteryXpReward;
     }
     if (next.activeCraft) next.activeCraft.startedAt = now - (available % recipe.durationMs);
+    processBlackMarketListings(next, now);
     next.offlineRecap = recap;
     next.lastSavedAt = now;
     pushCategorizedLog(next, "Skill", `Offline crafting: ${recipe.name} completed ${recap.completions} time${recap.completions === 1 ? "" : "s"}.`);
+    emitOfflineSummary(next, recap);
     return next;
   }
 
   if (!next.activeAction) {
+    processBlackMarketListings(next, now);
+    const marketSales = next.blackMarketCompletedSales.length - marketBefore;
+    if (marketSales > 0 || next.blackMarketListings.length !== state.blackMarketListings.length) {
+      next.offlineRecap = {
+        timeAwayMs: elapsed,
+        actionName: "Black Market Listings",
+        completions: marketSales,
+        xpGained: 0,
+        resourcesGained: { credits: Math.max(0, next.resources.credits - creditsBefore) },
+        levelsGained: 0,
+        masteryXpGained: 0,
+        masteryLevelsGained: 0,
+        heatGained: Math.max(0, next.resources.heat - heatBefore),
+        neuralInstabilityGained: 0,
+        message: `Black Market listings progressed while you were away. Completed outcomes: ${marketSales}.`,
+      };
+      emitOfflineSummary(next, next.offlineRecap);
+    }
     next.lastSavedAt = now;
     return next;
   }
@@ -92,7 +120,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   }
 
   const available = elapsed + Math.max(0, state.lastSavedAt - next.activeAction.startedAt);
-  const completions = Math.min(500, Math.floor(available / action.durationMs));
+  const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / action.durationMs));
   if (completions <= 0) {
     next.lastSavedAt = now;
     return next;
@@ -117,35 +145,48 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
       next.activeAction = null;
       break;
     }
-    const rewards = applyRewardModifiers(next, action.rewards, [action.skillId, ...(action.tags ?? [])]);
-    const xpReward = applyXpModifier(next, action.skillId, action.xpReward);
+    const rewards = calculateSkillActionRewards(next, action);
+    const xpReward = actionXpRewardWithMastery(next, action);
     applyRewardDelta(next, rewards);
     addRewardDelta(recap.resourcesGained, rewards);
     recap.xpGained += xpReward;
     recap.masteryXpGained += action.masteryXpReward;
     recap.levelsGained += addOfflineSkillXp(next, action.skillId, xpReward);
     recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, action.masteryXpReward);
+    addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + action.masteryXpReward * 0.35) * 0.5)));
     if (action.heatChange) {
-      const heat = applyHeatModifier(next, action.heatChange, action.tags);
+      const heat = calculateHeatGain(next, action.heatChange, action.tags);
       next.resources.heat = clampRiskStat(next.resources.heat + heat);
       recap.heatGained += heat;
     }
-    if (action.neuralInstabilityChange) {
-      const neural = applyNeuralModifier(next, action.neuralInstabilityChange, action.tags);
-      next.neuralInstability = clampRiskStat(next.neuralInstability + neural);
-      recap.neuralInstabilityGained += neural;
-    }
+    recap.neuralInstabilityGained += 0;
     recap.completions += 1;
   }
 
   if (next.activeAction) {
     next.activeAction.startedAt = now - (available % action.durationMs);
   }
+  processBlackMarketListings(next, now);
   next.offlineRecap = recap;
   next.lastSavedAt = now;
   applyRiskEvents(next);
   pushCategorizedLog(next, "Skill", `Offline: ${action.name} completed ${recap.completions} time${recap.completions === 1 ? "" : "s"}.`);
+  emitOfflineSummary(next, recap);
   return next;
+}
+
+function emitOfflineSummary(state: GameState, recap: OfflineRecap) {
+  emitRewardPopupGroup(state, {
+    title: "Offline Progress Complete",
+    category: "story",
+    xp: recap.xpGained ? { [state.activeAction ? getSkillAction(state.activeAction.actionId)?.skillId ?? "scavenging" : "cyberware"]: recap.xpGained } : undefined,
+    masteryXp: recap.masteryXpGained,
+    resources: recap.resourcesGained,
+    heat: recap.heatGained,
+    neuralInstability: recap.neuralInstabilityGained,
+    story: [`${recap.completions} completions`, `${recap.levelsGained} levels gained`],
+    durationMs: 5200,
+  });
 }
 
 function applyRewardDelta(state: GameState, rewards: RewardBundle) {

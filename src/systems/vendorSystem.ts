@@ -3,16 +3,25 @@ import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { addItem, removeItem } from "./collectionSystem";
 import { changeLocalStanding, discoverDistrictContent, discoverDistrictVendor } from "./districtProgression";
-import { districtThreatPenalty } from "./districtThreat";
+import { calculateSellValue, calculateVendorPrice } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
-import { factionRank, getActiveModifiers } from "./modifiers";
+import { factionRank } from "./modifiers";
 import { updateWorldUnlocks } from "./worldUnlocks";
+import { emitRewardPopupGroup } from "./rewardPopups";
 import type { FactionId, GameState, ResourceId, VendorDefinition, VendorItemEntry } from "../types";
 
 const resourceIds = new Set(Object.keys(resourceNames));
 
 export function districtVendors(districtId: string) {
-  return vendors.filter((vendor) => vendor.districtId === districtId);
+  return vendors
+    .filter((vendor) => vendor.districtId === districtId)
+    .map((vendor) => ({ ...vendor, inventory: [...vendor.inventory].sort((a, b) => vendorItemScore(a) - vendorItemScore(b) || a.price - b.price || a.itemId.localeCompare(b.itemId)) }));
+}
+
+function vendorItemScore(entry: VendorItemEntry) {
+  const rarityScore = { Common: 1, Uncommon: 2, Rare: 3, Epic: 4, Legendary: 5, Prototype: 6, Relic: 7 } as const;
+  const item = getItem(entry.itemId);
+  return (entry.stockType === "unlock" ? 1000 : entry.stockType === "limited" ? 500 : 0) + (item ? rarityScore[item.rarity] * 100 : 0);
 }
 
 export function canUseVendor(state: GameState, vendor: VendorDefinition) {
@@ -28,14 +37,12 @@ export function vendorItemUnlocked(state: GameState, entry: VendorItemEntry) {
 }
 
 export function vendorPrice(state: GameState, vendor: VendorDefinition, entry: VendorItemEntry) {
-  const threatMarkup = districtThreatPenalty(state, vendor.districtId);
-  const standingDiscount = Math.min(0.18, (state.districtStanding[vendor.districtId]?.standing ?? 0) / 600);
   const factionDiscount = Object.entries(vendor.factionDiscounts ?? {}).reduce((sum, [factionId, discount]) => {
     return sum + (factionRank(state.factions[factionId as FactionId]?.reputation ?? 0) > 0 ? discount ?? 0 : 0);
   }, 0);
   const pathDiscount = state.startingPath ? vendor.startingPathModifiers?.[state.startingPath] ?? 0 : 0;
-  const modifier = Math.max(0.35, vendor.priceModifier + threatMarkup + getActiveModifiers(state).shopPrices - standingDiscount - factionDiscount - pathDiscount);
-  return Math.max(1, Math.round(entry.price * modifier));
+  const modifier = Math.max(0.35, vendor.priceModifier - factionDiscount - pathDiscount);
+  return calculateVendorPrice(state, entry.price, vendor.districtId, modifier);
 }
 
 export function canBuyVendorItem(state: GameState, vendorId: string, itemId: string) {
@@ -63,6 +70,11 @@ export function buyVendorItem(state: GameState, vendorId: string, itemId: string
   discoverDistrictContent(next, vendor.districtId, `item:${itemId}`);
   changeLocalStanding(next, vendor.districtId, 1, `bought from ${vendor.name}`);
   pushCategorizedLog(next, "Loot", `Bought ${itemLabel(itemId)} from ${vendor.name} for ${price} Credits.`);
+  emitRewardPopupGroup(next, {
+    title: `Bought ${itemLabel(itemId)}`,
+    items: isResourceId(itemId) ? undefined : { [itemId]: 1 },
+    resources: isResourceId(itemId) ? { [itemId]: 1, credits: -price } : { credits: -price },
+  });
   updateWorldUnlocks(next);
   return next;
 }
@@ -84,15 +96,26 @@ export function sellVendorItem(state: GameState, vendorId: string, itemId: strin
   discoverDistrictVendor(next, vendorId);
   changeLocalStanding(next, vendor.districtId, 1, `sold goods to ${vendor.name}`);
   pushCategorizedLog(next, "Loot", `Sold ${itemLabel(itemId)} to ${vendor.name} for ${value} Credits.`);
+  emitRewardPopupGroup(next, {
+    title: `Sold ${itemLabel(itemId)}`,
+    resources: { credits: value },
+  });
   return next;
 }
 
 export function sellValue(state: GameState, vendor: VendorDefinition, itemId: string) {
   if (itemId === "credits" || itemId === "heat" || itemId === "reputation") return 0;
-  const base = isResourceId(itemId) ? Math.max(1, Math.floor((resourceBaseValue(itemId) ?? 1) * 0.45)) : getItem(itemId)?.sellValue ?? 0;
+  if (isResourceId(itemId)) {
+    const base = Math.max(1, Math.floor((resourceBaseValue(itemId) ?? 1) * 0.45));
+    const underpassBonus = vendor.districtId === "underpassMarket" ? 1.2 : 1;
+    const standingBonus = 1 + Math.min(0.15, (state.districtStanding[vendor.districtId]?.standing ?? 0) / 800);
+    return Math.max(1, Math.round(base * underpassBonus * standingBonus));
+  }
+  const item = getItem(itemId);
+  if (!item) return 0;
   const underpassBonus = vendor.districtId === "underpassMarket" ? 1.2 : 1;
   const standingBonus = 1 + Math.min(0.15, (state.districtStanding[vendor.districtId]?.standing ?? 0) / 800);
-  return Math.max(1, Math.round(base * underpassBonus * standingBonus));
+  return calculateSellValue(state, item, underpassBonus * standingBonus);
 }
 
 export function getOwnedCount(state: GameState, itemId: string) {

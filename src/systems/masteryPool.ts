@@ -1,14 +1,15 @@
 import { skillActions } from "../data/skills";
 import { recipes } from "../data/recipes";
+import { balanceConfig } from "../data/balanceConfig";
 import { pushCategorizedLog } from "./gameState";
 import type { GameState, SkillId } from "../types";
 
-export const masteryPoolCheckpoints = [10, 25, 50, 75, 95, 100] as const;
+export const masteryPoolCheckpoints = balanceConfig.masteryPool.checkpoints;
 
 export function masteryPoolCap(state: GameState, skillId: SkillId) {
   const actions = skillActions.filter((action) => action.skillId === skillId).length;
   const recipeCount = skillId === "cyberware" ? recipes.length : 0;
-  return Math.max(500, (actions + recipeCount + 1) * state.skills[skillId].level * 120);
+  return Math.max(balanceConfig.masteryPool.minCap, (actions + recipeCount + 1) * state.skills[skillId].level * balanceConfig.masteryPool.actionWeight);
 }
 
 export function masteryPoolPercent(state: GameState, skillId: SkillId) {
@@ -39,7 +40,7 @@ export function masteryPoolBonus(state: GameState, skillId: SkillId) {
 }
 
 export function spendMasteryPool(state: GameState, skillId: SkillId, actionId: string) {
-  const cost = 100;
+  const cost = balanceConfig.masteryPool.spendBase;
   if (state.masteryPool[skillId].xp < cost) return state;
   const next = { ...state, masteryPool: { ...state.masteryPool, [skillId]: { ...state.masteryPool[skillId] } }, actionMastery: { ...state.actionMastery } };
   next.masteryPool[skillId].xp -= cost;

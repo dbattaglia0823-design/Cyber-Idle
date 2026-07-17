@@ -7,7 +7,7 @@ export function threatTier(level: number) {
   if (level >= 75) return "Hostile";
   if (level >= 50) return "Dangerous";
   if (level >= 25) return "Tense";
-  return "Controlled";
+  return "Stable";
 }
 
 export function changeDistrictThreat(state: GameState, districtId: DistrictId, amount: number) {
@@ -21,7 +21,7 @@ export function changeDistrictThreat(state: GameState, districtId: DistrictId, a
     if (afterTier === "Lockdown") triggerDistrictEvent(state, "event-lockdown");
     if (districtId === "underpassMarket" && afterTier === "Hostile") triggerDistrictEvent(state, "event-price-surge");
     if (districtId === "blacknetQuarter" && (afterTier === "Hostile" || afterTier === "Lockdown")) triggerDistrictEvent(state, "event-trace-storm");
-    if (districtId === "helixWard" && afterTier === "Controlled") triggerDistrictEvent(state, "event-ripperdoc-window");
+    if (districtId === "helixWard" && afterTier === "Stable") triggerDistrictEvent(state, "event-ripperdoc-window");
   }
 }
 

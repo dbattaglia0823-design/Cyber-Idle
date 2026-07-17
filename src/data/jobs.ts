@@ -1,4 +1,4 @@
-import type { JobContract } from "../types";
+import type { DistrictId, FactionId, JobContract, SkillId } from "../types";
 
 export const jobs: JobContract[] = [
   {
@@ -17,7 +17,7 @@ export const jobs: JobContract[] = [
     factionReputation: { ghostMarket: 4 },
     companionRelationship: { "sable-quinn": 2 },
     fixerTrustReward: 5,
-    rareReward: "Sealed Market Token",
+    rareReward: "ghost-market-token",
     repeatable: true,
     autoRepeatTrustReq: 20,
   },
@@ -39,7 +39,7 @@ export const jobs: JobContract[] = [
     factionReputation: { ghostMarket: 6, nullChoir: -1 },
     companionRelationship: { "sable-quinn": 3 },
     fixerTrustReward: 8,
-    rareReward: "Contraband Ledger",
+    rareReward: "data-job-pass",
     repeatable: true,
     autoRepeatTrustReq: 30,
     factionConflict: true,
@@ -61,7 +61,7 @@ export const jobs: JobContract[] = [
     factionReputation: { chromeJackals: 6 },
     companionRelationship: { "dex-riven": 3 },
     fixerTrustReward: 8,
-    rareReward: "Jackal Gearbox",
+    rareReward: "rust-access-key",
     repeatable: true,
     autoRepeatTrustReq: 25,
   },
@@ -81,7 +81,7 @@ export const jobs: JobContract[] = [
     factionReputation: { chromeJackals: 9, helixOrder: -2 },
     companionRelationship: { "dex-riven": 4 },
     fixerTrustReward: 12,
-    rareReward: "Chrome Jackal Plate",
+    rareReward: "armorPlating",
     repeatable: true,
     autoRepeatTrustReq: 40,
     factionConflict: true,
@@ -104,7 +104,7 @@ export const jobs: JobContract[] = [
     factionReputation: { helixOrder: 7 },
     companionRelationship: { "iris-kade": 3 },
     fixerTrustReward: 9,
-    rareReward: "Clean Stabilizer Core",
+    rareReward: "neural-stabilizer-compound",
     repeatable: true,
     autoRepeatTrustReq: 25,
   },
@@ -125,7 +125,7 @@ export const jobs: JobContract[] = [
     factionReputation: { redlineSaints: 8, chromeJackals: -1 },
     companionRelationship: { "mara-voss": 3 },
     fixerTrustReward: 10,
-    rareReward: "Redline Marker",
+    rareReward: "bounty-token",
     repeatable: true,
     autoRepeatTrustReq: 35,
     factionConflict: true,
@@ -148,7 +148,7 @@ export const jobs: JobContract[] = [
     factionReputation: { nullChoir: 8, ghostMarket: -1 },
     companionRelationship: { "nyra-vale": 4 },
     fixerTrustReward: 11,
-    rareReward: "Null Choir Route Map",
+    rareReward: "blacknet-cipher",
     repeatable: true,
     autoRepeatTrustReq: 35,
     factionConflict: true,
@@ -240,4 +240,159 @@ export const jobs: JobContract[] = [
     repeatable: true,
     autoRepeatTrustReq: 60,
   },
+  ...makeExpandedJobs(),
 ];
+
+function makeExpandedJobs(): JobContract[] {
+  return [
+  contract("job-neon-food-cart-shield", "Food Cart Shield", "neonRow", 2, "streetcraft", "Protection", ["job", "protection", "street"], { credits: 65, reputation: 2 }),
+  contract("job-neon-sign-bridge-cache", "Sign Bridge Cache", "neonRow", 6, "scavenging", "Vehicle Recovery", ["job", "scavenging", "street"], { credits: 110, scrap: 8, circuitBoards: 2 }),
+  contract("job-neon-crew-blackmail", "Crew Blackmail Packet", "neonRow", 12, "hacking", "Data Theft", ["job", "hacking", "blackmarket"], { credits: 190, encryptedData: 6, reputation: 5 }, "data-job-pass"),
+  returnContract("job-return-neon-street-coils", "Recover Street Coils", "neonRow", 10, "scavenging", { credits: 260, scrap: 30, reputation: 7 }, "street-coil"),
+  returnContract("job-return-neon-hardened-clear", "Hardened Street Clear", "neonRow", 15, "combat", { credits: 420, reputation: 12, cyberwareParts: 4 }, "urban-reflex-chip"),
+  returnContract("job-return-neon-cache-loop", "Alley Cache Loop", "neonRow", 25, "streetcraft", { credits: 620, circuitBoards: 10, reputation: 16 }, "neon-circuit-fragment"),
+
+  contract("job-rust-hauler-mark", "Hauler Mark", "rustYards", 8, "vehicleTuning", "Courier", ["job", "vehicle", "courier"], { credits: 120, vehicleParts: 6 }),
+  contract("job-rust-plate-recovery", "Plate Recovery", "rustYards", 16, "scavenging", "Vehicle Recovery", ["job", "salvage", "vehicle"], { credits: 190, armorPlating: 2, scrap: 14 }, "armorPlating"),
+  contract("job-rust-convoy-ghost", "Convoy Ghost", "rustYards", 28, "vehicleTuning", "Smuggling", ["job", "vehicle", "smuggling"], { credits: 330, vehicleParts: 14, reputation: 6 }, "smugglerCompartment"),
+  returnContract("job-return-rust-servo-order", "Servo Order", "rustYards", 15, "scavenging", { credits: 360, vehicleParts: 16, scrap: 25 }, "salvaged-servo"),
+
+  contract("job-underpass-buyer-screen", "Buyer Screen", "underpassMarket", 10, "blackMarket", "Cleanup", ["job", "blackmarket", "social"], { credits: 165, reputation: 4 }),
+  contract("job-underpass-stall-sabotage", "Stall Sabotage", "underpassMarket", 18, "streetcraft", "Sabotage", ["job", "illegal", "sabotage"], { credits: 250, scrap: 10, reputation: 6 }, "market-pass"),
+  contract("job-underpass-cold-courier", "Cold Courier", "underpassMarket", 30, "vehicleTuning", "Smuggling", ["job", "smuggling", "medical"], { credits: 420, cyberwareParts: 3, reputation: 8 }, "private-buyer-contact"),
+  contract("job-underpass-private-bid", "Private Bid", "underpassMarket", 45, "blackMarket", "Smuggling", ["job", "blackmarket", "rare"], { credits: 720, encryptedData: 10, reputation: 10 }, "rare-listing-permit"),
+  returnContract("job-return-underpass-ledger-debt", "Ledger Debt Loop", "underpassMarket", 15, "blackMarket", { credits: 480, encryptedData: 12, reputation: 10 }, "black-ledger-shard"),
+
+  contract("job-blacknet-packet-launder", "Packet Launder", "blacknetQuarter", 12, "hacking", "Data Theft", ["job", "hacking", "blacknet"], { credits: 180, encryptedData: 10 }),
+  contract("job-blacknet-trace-cleanup", "Trace Cleanup", "blacknetQuarter", 22, "hacking", "Cleanup", ["job", "trace", "safe"], { credits: 280, encryptedData: 12, reputation: 6 }, "trace-scrambler"),
+  contract("job-blacknet-daemon-snare", "Daemon Snare", "blacknetQuarter", 36, "hacking", "Sabotage", ["job", "daemon", "blacknet"], { credits: 470, encryptedData: 20, reputation: 8 }, "daemon-chain-program"),
+  contract("job-blacknet-choir-echo", "Choir Echo", "blacknetQuarter", 52, "hacking", "Extraction", ["job", "nullChoir", "blacknet"], { credits: 760, encryptedData: 32, reputation: 12 }, "blacknet-cipher"),
+
+  contract("job-glassline-badge-clone", "Badge Clone", "glasslineDistrict", 14, "hacking", "Corporate Espionage", ["job", "corporate", "hacking"], { credits: 240, encryptedData: 6 }),
+  contract("job-glassline-boardroom-bug", "Boardroom Bug", "glasslineDistrict", 28, "hacking", "Data Theft", ["job", "corporate", "stealth"], { credits: 520, encryptedData: 14, reputation: 7 }, "corporate-access-token"),
+  contract("job-glassline-prototype-escort", "Prototype Escort", "glasslineDistrict", 42, "combat", "Protection", ["job", "corporate", "combat"], { credits: 760, cyberwareParts: 10, reputation: 10 }, "stabilized-chrome-frame"),
+
+  contract("job-helix-night-triage", "Night Triage", "helixWard", 8, "medical", "Cleanup", ["job", "medical", "safe"], { credits: 110, cyberwareParts: 2, reputation: 3 }),
+  contract("job-helix-stabilizer-ledger", "Stabilizer Ledger", "helixWard", 18, "medical", "Cyberware Recovery", ["job", "medical", "helix"], { credits: 220, cyberwareParts: 5, reputation: 6 }, "advanced-stabilizer"),
+  contract("job-helix-quiet-transfer", "Quiet Transfer", "helixWard", 32, "streetcraft", "Extraction", ["job", "medical", "corporate"], { credits: 420, cyberwareParts: 4, reputation: 8 }, "medical-access-pass"),
+  contract("job-helix-prototype-consent", "Prototype Consent", "helixWard", 48, "cyberware", "Corporate Espionage", ["job", "medical", "prototype"], { credits: 680, cyberwareParts: 14, reputation: 12 }, "neural-dampener-blueprint"),
+
+  contract("job-redline-board-runner", "Board Runner", "redlineBlocks", 16, "combat", "Bounty", ["job", "bounty", "combat"], { credits: 190, reputation: 7 }),
+  contract("job-redline-arena-fix", "Arena Fix", "redlineBlocks", 28, "streetcraft", "Protection", ["job", "combat", "street"], { credits: 360, reputation: 10, cyberwareParts: 4 }, "servo-knuckles"),
+  contract("job-redline-crew-break", "Crew Break", "redlineBlocks", 44, "combat", "Sabotage", ["job", "bounty", "gang"], { credits: 620, reputation: 16 }, "faction-authorization"),
+  contract("job-redline-blood-price", "Blood Price", "redlineBlocks", 64, "combat", "Bounty", ["job", "bounty", "elite"], { credits: 980, reputation: 24, cyberwareParts: 12 }, "boss-data-key"),
+
+  contract("job-skyline-membership-audit", "Membership Audit", "skylineCore", 35, "hacking", "Corporate Espionage", ["job", "elite", "corporate"], { credits: 900, encryptedData: 18, reputation: 12 }),
+  contract("job-skyline-luxury-courier", "Luxury Courier", "skylineCore", 50, "vehicleTuning", "Courier", ["job", "vehicle", "elite"], { credits: 1300, reputation: 18 }, "district-permit"),
+  contract("job-skyline-private-extraction", "Private Extraction", "skylineCore", 70, "combat", "Extraction", ["job", "elite", "combat"], { credits: 1900, reputation: 26 }, "private-buyer-contact"),
+  contract("job-skyline-afterparty-blackout", "Afterparty Blackout", "skylineCore", 90, "hacking", "Sabotage", ["job", "elite", "blacknet"], { credits: 2800, encryptedData: 36, reputation: 38 }, "boss-data-key"),
+  ];
+}
+
+function contract(
+  id: string,
+  name: string,
+  districtId: DistrictId,
+  level: number,
+  skill: SkillId,
+  contractType: JobContract["contractType"],
+  tags: string[],
+  rewards: JobContract["rewards"],
+  rareReward?: string,
+): JobContract {
+  const factionId = districtFactionFor(districtId);
+  return {
+    id,
+    name,
+    fixerId: districtFixerFor(districtId),
+    districtId,
+    factionId,
+    contractType,
+    tags,
+    description: `${name} is a ${(contractType ?? "Courier").toLowerCase()} contract tuned for ${districtId} progression.`,
+    durationMs: 18_000 + level * 950,
+    requirements: [`${skillName(skill)} level ${level}`, `${districtName(districtId)} unlocked`],
+    baseSuccessChance: Math.max(0.48, 0.92 - level * 0.004),
+    heatChange: Math.max(0, Math.round(level / 10)),
+    neuralInstabilityChange: tags.includes("hacking") || tags.includes("prototype") ? Math.max(1, Math.round(level / 30)) : undefined,
+    rewards,
+    skillXp: { [skill]: Math.max(20, level * 5) },
+    factionReputation: { [factionId]: Math.max(4, Math.round(level / 3)) },
+    fixerTrustReward: Math.max(6, Math.round(level / 2)),
+    rareReward,
+    repeatable: true,
+    manualFirstCompletion: level >= 30,
+    autoRepeatTrustReq: Math.max(20, level),
+  };
+}
+
+function returnContract(
+  id: string,
+  name: string,
+  districtId: DistrictId,
+  masteryLevel: number,
+  skill: SkillId,
+  rewards: JobContract["rewards"],
+  rareReward: string,
+): JobContract {
+  return {
+    ...contract(id, name, districtId, Math.max(3, Math.floor(masteryLevel * 0.7)), skill, "Cleanup", ["job", "return", "districtMastery"], rewards, rareReward),
+    description: `${name} is a repeatable return contract that keeps ${districtName(districtId)} relevant through mastery, missing drops, and bulk materials.`,
+    requirements: [`${districtName(districtId)} unlocked`, `${districtName(districtId)} District Mastery level ${masteryLevel}`],
+    autoRepeatTrustReq: Math.max(20, masteryLevel),
+  };
+}
+
+function districtFixerFor(districtId: DistrictId) {
+  const fixers: Record<DistrictId, string> = {
+    neonRow: "sable-quinn-fixer",
+    rustYards: "dex-riven-fixer",
+    underpassMarket: "mara-voss-fixer",
+    blacknetQuarter: "nyra-vale-fixer",
+    glasslineDistrict: "iris-kade-fixer",
+    helixWard: "iris-kade-fixer",
+    redlineBlocks: "mara-voss-fixer",
+    skylineCore: "vale-syn-fixer",
+  };
+  return fixers[districtId];
+}
+
+function districtFactionFor(districtId: DistrictId): FactionId {
+  const factions: Record<DistrictId, FactionId> = {
+    neonRow: "ghostMarket",
+    rustYards: "chromeJackals",
+    underpassMarket: "ghostMarket",
+    blacknetQuarter: "nullChoir",
+    glasslineDistrict: "helixOrder",
+    helixWard: "helixOrder",
+    redlineBlocks: "redlineSaints",
+    skylineCore: "ghostMarket",
+  };
+  return factions[districtId];
+}
+
+function skillName(skill: SkillId) {
+  return {
+    scavenging: "Scavenging",
+    hacking: "Hacking",
+    cyberware: "Cyberware Engineering",
+    combat: "Street Combat",
+    vehicleTuning: "Vehicle Tuning",
+    blackMarket: "Black Market",
+    medical: "Medical Knowledge",
+    streetcraft: "Streetcraft",
+  }[skill];
+}
+
+function districtName(districtId: DistrictId) {
+  return {
+    neonRow: "Neon Row",
+    rustYards: "Rust Yards",
+    underpassMarket: "Underpass Market",
+    blacknetQuarter: "Blacknet Quarter",
+    glasslineDistrict: "Glassline District",
+    helixWard: "Helix Ward",
+    redlineBlocks: "Redline Blocks",
+    skylineCore: "Skyline Core",
+  }[districtId];
+}

@@ -29,10 +29,10 @@ export function applyRiskEvents(state: GameState) {
   }
 
   if (effectiveNeuralInstability(state) >= 100) {
-    state.neuralInstability = 80;
     state.resources.reputation = Math.max(0, state.resources.reputation - 5);
-    pushCategorizedLog(state, "Warning", "Neural Instability Overload triggered. Public glitches cost 5 Reputation and NI dropped to 80.");
+    state.neuralInstability = 0;
+    pushCategorizedLog(state, "Warning", "Neural Instability Overload triggered. Public glitches cost 5 Reputation. Reduce equipped cyberware load to stabilize.");
   } else {
-    state.neuralInstability = clampRiskStat(state.neuralInstability);
+    state.neuralInstability = 0;
   }
 }

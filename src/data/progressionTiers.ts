@@ -1,6 +1,7 @@
 import type { GameState } from "../types";
 import { factionRank } from "../systems/modifiers";
 import { masteryPoolPercent } from "../systems/masteryPool";
+import { effectiveNeuralInstability } from "../systems/itemFormulas";
 
 export const progressionTiers = [
   { id: "tier0", name: "Tier 0: New Save", goals: ["Choose starting path", "Complete starter skill actions", "Fight starter enemies", "Craft first basic item", "Learn Heat and Neural Instability"] },
@@ -20,7 +21,7 @@ export function tierProgress(state: GameState, tierId: string) {
   const pool50 = Object.keys(state.skills).some((skill) => masteryPoolPercent(state, skill as keyof GameState["skills"]) >= 50);
   const pool95 = Object.keys(state.skills).some((skill) => masteryPoolPercent(state, skill as keyof GameState["skills"]) >= 95);
   const checks: Record<string, boolean[]> = {
-    tier0: [Boolean(state.startingPath), actions > 0, kills > 0, Object.keys(state.manualDiscovery.recipes).length > 0, state.resources.heat > 0 || state.neuralInstability > 0],
+    tier0: [Boolean(state.startingPath), actions > 0, kills > 0, Object.keys(state.manualDiscovery.recipes).length > 0, state.resources.heat > 0 || effectiveNeuralInstability(state) > 0],
     tier1: [anySkill >= 10, actions >= 3, kills >= 25, Object.keys(state.equippedCyberware).length > 0, Object.keys(state.manualDiscovery.jobs).length > 0],
     tier2: [districts >= 2, anySkill >= 25, Object.keys(state.ownedHousing).length > 0, anyFaction >= 2, false, (state.inventory["basic-sim-cache"] ?? 0) === 0 && state.worldUnlocks.usedSimCache],
     tier3: [anySkill >= 50, Object.values(state.actionMastery).filter((m) => m.level >= 25).length >= 3, false, Object.keys(state.unlockedBlueprints).length > 0, Object.keys(state.equipmentPresets).length >= 5, pool50],

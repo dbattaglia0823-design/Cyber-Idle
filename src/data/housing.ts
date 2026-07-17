@@ -77,4 +77,67 @@ export const housingOptions: HousingOption[] = [
     neuralRecoveryBonus: 4,
     garageSlots: 4,
   },
+  ...makeExpandedHousing(),
 ];
+
+function makeExpandedHousing(): HousingOption[] {
+  return [
+  house("neon-sleeper-pod", "Sleeper Pod Stack", "neonRow", 320, ["Streetcraft level 2"], ["Cheap heat decay", "Starter stash"], 35, 1, 2, 0),
+  house("neon-signmaker-loft", "Signmaker Loft", "neonRow", 780, ["Neon Row standing 10"], ["Scavenging prep", "Better offline cap"], 55, 2, 2, 1),
+  house("neon-backroom-safehouse", "Backroom Safehouse", "neonRow", 1600, ["Sable Quinn trust 25"], ["Starter fixer safety", "Heat recovery"], 90, 3, 4, 1),
+  house("neon-rooftop-den", "Rooftop Den", "neonRow", 2800, ["Clear Neon Rooftop Chase"], ["Combat staging", "Low Heat routes"], 120, 4, 4, 2),
+
+  house("rust-container-bunk", "Container Bunk", "rustYards", 450, ["Rust Yards unlocked"], ["Vehicle salvage storage"], 70, 1, 1, 0, 1),
+  house("rust-chopshop-corner", "Chopshop Corner", "rustYards", 1400, ["Chrome Jackals reputation 15"], ["Garage slots", "Vehicle parts storage"], 110, 3, 1, 0, 2),
+  house("rust-hauler-yard", "Hauler Yard", "rustYards", 3200, ["Vehicle Tuning level 15"], ["Large vehicle storage", "Smuggling staging"], 180, 4, 2, 1, 3),
+  house("rust-fortress-bay", "Scrap Fortress Bay", "rustYards", 7200, ["Clear Warden's Scrap Fortress"], ["Premium garage", "Travel prep"], 260, 6, 3, 1, 4),
+
+  house("underpass-curtain-room", "Curtain Room", "underpassMarket", 650, ["Underpass Market unlocked"], ["Contraband cache"], 65, 2, 3, 0),
+  house("underpass-ledger-nook", "Ledger Nook", "underpassMarket", 1850, ["Ghost Market reputation 20"], ["Black Market staging", "Heat decay"], 115, 4, 4, 1),
+  house("underpass-smuggler-suite", "Smuggler Suite", "underpassMarket", 4200, ["Smuggling contracts completed"], ["Private buyer prep", "Storage"], 190, 5, 5, 1, 1),
+  house("underpass-vault-flat", "Vault Flat", "underpassMarket", 9000, ["Clear Underpass Kingpin"], ["Rare market safety", "Offline cap"], 280, 7, 6, 2, 1),
+
+  house("blacknet-router-cot", "Router Cot", "blacknetQuarter", 900, ["Blacknet Quarter unlocked"], ["Hacking rest node"], 70, 3, 1, 1),
+  house("blacknet-signal-loft", "Signal Loft", "blacknetQuarter", 2600, ["Hacking level 20"], ["Blacknet action prep"], 120, 5, 2, 2),
+  house("blacknet-dead-drop-flat", "Dead Drop Flat", "blacknetQuarter", 6200, ["Null Choir reputation 25"], ["Trace cleanup", "Encrypted storage"], 190, 6, 3, 2),
+  house("blacknet-choir-sanctum", "Choir Sanctum", "blacknetQuarter", 13500, ["Clear Deep Static Collapse"], ["Major hacking base", "Neural recovery"], 280, 9, 3, 4),
+
+  house("glassline-corporate-room", "Corporate Room", "glasslineDistrict", 1800, ["Glassline District unlocked"], ["Clean rest", "Vendor access"], 90, 3, 2, 2),
+  house("glassline-quiet-apartment", "Quiet Apartment", "glasslineDistrict", 5200, ["Helix Order reputation 20"], ["Crafting prep", "Neural recovery"], 150, 5, 3, 3),
+  house("glassline-executive-lease", "Executive Lease", "glasslineDistrict", 11000, ["Corporate Extraction cleared"], ["Corporate discounts", "Offline cap"], 230, 8, 4, 3, 1),
+  house("glassline-clean-room-suite", "Clean-Room Suite", "glasslineDistrict", 18000, ["Cyberware Engineering level 45"], ["Cyberware crafting suite", "Recovery"], 300, 10, 4, 5, 1),
+
+  house("helix-observation-bed", "Observation Bed", "helixWard", 700, ["Helix Ward unlocked"], ["Medical recovery"], 60, 2, 1, 3),
+  house("helix-recovery-capsule", "Recovery Capsule", "helixWard", 1900, ["Medical Knowledge level 8"], ["Fast recovery", "Stabilizer access"], 100, 4, 2, 4),
+  house("helix-clinic-suite", "Clinic Suite", "helixWard", 5200, ["Helix Order reputation 25"], ["Neural treatment base", "Medical stash"], 170, 6, 2, 6),
+  house("helix-private-ward", "Private Ward", "helixWard", 12500, ["Clear Neural Quietus"], ["Major recovery", "Cyberware safety"], 260, 9, 3, 8),
+  house("helix-surgical-loft", "Surgical Loft", "helixWard", 22000, ["Cyberware Engineering level 60"], ["Premium treatment", "Crafting bonus"], 320, 12, 4, 10),
+
+  house("redline-crew-bunk", "Crew Bunk", "redlineBlocks", 850, ["Redline Blocks unlocked"], ["Combat staging"], 80, 2, 1, 0),
+  house("redline-bounty-room", "Bounty Room", "redlineBlocks", 2300, ["Street Combat level 20"], ["Bounty board prep", "Armor storage"], 130, 4, 2, 1),
+  house("redline-arena-flat", "Arena Flat", "redlineBlocks", 5600, ["Redline Saints reputation 25"], ["Combat recovery", "Weapon storage"], 210, 5, 2, 2),
+  house("redline-blockhouse", "Blockhouse", "redlineBlocks", 13000, ["Clear Redline Execution"], ["High-risk combat staging"], 300, 7, 3, 3, 1),
+  house("redline-war-room", "War Room", "redlineBlocks", 21000, ["Street Combat level 80"], ["Boss prep", "Bounty logistics"], 380, 10, 4, 4, 1),
+
+  house("skyline-service-suite", "Service Suite", "skylineCore", 6500, ["Skyline Core unlocked"], ["Luxury recovery", "Executive storage"], 160, 5, 4, 3, 1),
+  house("skyline-broker-loft", "Broker Loft", "skylineCore", 15000, ["Vale Syn trust 40"], ["Private buyer prep", "Offline cap"], 260, 8, 5, 4, 2),
+  house("skyline-executive-penthouse", "Executive Penthouse", "skylineCore", 42000, ["Reputation 1500"], ["Major storage", "Luxury access"], 450, 14, 6, 6, 4),
+  house("skyline-orbital-lease", "Orbital Lease", "skylineCore", 85000, ["Clear Skyline Blackout"], ["Endgame prestige", "Massive offline cap"], 650, 18, 8, 8, 5),
+  ];
+}
+
+function house(
+  id: string,
+  name: string,
+  districtId: HousingOption["districtId"],
+  cost: number,
+  unlockRequirements: string[],
+  passiveBonuses: string[],
+  storageBonus: number,
+  offlineCapBonusHours: number,
+  heatDecayBonus: number,
+  neuralRecoveryBonus: number,
+  garageSlots?: number,
+): HousingOption {
+  return { id, name, districtId, cost, unlockRequirements, passiveBonuses, storageBonus, offlineCapBonusHours, heatDecayBonus, neuralRecoveryBonus, garageSlots };
+}

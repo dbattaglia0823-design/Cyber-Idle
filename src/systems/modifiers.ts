@@ -3,10 +3,12 @@ import { housingOptions } from "../data/housing";
 import { getItem } from "../data/items";
 import { vehicles } from "../data/vehicles";
 import { startingPaths } from "../data/startingPaths";
+import { balanceConfig } from "../data/balanceConfig";
 import { cyberwareLoad, effectiveNeuralInstability } from "./itemFormulas";
 import { heatTier, neuralInstabilityTierName } from "./riskEvents";
 import { masteryPoolBonus } from "./masteryPool";
 import { applyPerkModifiers } from "./perkSystem";
+import { streetLegendMilestones } from "../data/streetLegendData";
 import type { ActiveModifiers, GameState, RewardBundle, SkillId } from "../types";
 
 export function getActiveModifiers(state: GameState): ActiveModifiers {
@@ -16,6 +18,10 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
     actionSpeed: 0,
     combatDamage: 0,
     combatDefense: 0,
+    healingReceived: 0,
+    hpRegen: 0,
+    damageReduction: 0,
+    dodgeChance: 0,
     combatXp: 0,
     dropChance: 0,
     creditsGained: 0,
@@ -50,9 +56,28 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyCompanion(state, modifiers);
   applyEquipment(state, modifiers);
   applyVehicle(state, modifiers);
+  applyRipperdocEffects(state, modifiers);
+  applyStreetLegend(state, modifiers);
   applyRiskState(state, modifiers);
 
   return modifiers;
+}
+
+function applyStreetLegend(state: GameState, modifiers: ActiveModifiers) {
+  streetLegendMilestones.forEach((milestone) => {
+    if (state.streetLegend.rank < milestone.rank || !milestone.modifiers) return;
+    mergeModifiers(modifiers, milestone.modifiers);
+    modifiers.activeSources.push(`Street Legend ${milestone.rank}`);
+  });
+}
+
+function applyRipperdocEffects(state: GameState, modifiers: ActiveModifiers) {
+  const now = Date.now();
+  (state.activeRipperdocEffects ?? []).forEach((effect) => {
+    if (effect.expiresAt && effect.expiresAt <= now) return;
+    mergeModifiers(modifiers, effect.modifiers);
+    modifiers.activeSources.push(effect.name);
+  });
 }
 
 function applyMasteryPools(state: GameState, modifiers: ActiveModifiers) {
@@ -89,14 +114,17 @@ export function applyRewardModifiers(state: GameState, rewards: RewardBundle, ta
 
 export function applyHeatModifier(state: GameState, heat: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
-  const smugglingRelief = tags.includes("smuggling") ? -0.05 : 0;
-  return Math.max(0, Math.round(heat * (1 + modifiers.heatGain + smugglingRelief)));
+  const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
+  const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
+  return Math.round(heat * multiplier);
 }
 
 export function applyNeuralModifier(state: GameState, amount: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
   const prototypePenalty = state.startingPath === "corporateDefector" && tags.includes("prototype") ? 0.05 : 0;
-  return Math.max(0, Math.round(amount * (1 + modifiers.neuralInstabilityGain + prototypePenalty)));
+  const recoveryBonus = amount < 0 ? modifiers.neuralInstabilityRecovery : 0;
+  const multiplier = Math.max(0.1, 1 + modifiers.neuralInstabilityGain + prototypePenalty + recoveryBonus);
+  return Math.round(amount * multiplier);
 }
 
 export function adjustedDurationMs(state: GameState, durationMs: number, tags: string[] = []) {
@@ -109,9 +137,10 @@ export function jobSuccessChance(state: GameState, baseChance: number, tags: str
   const modifiers = getActiveModifiers(state);
   let chance = baseChance + modifiers.jobSuccessChance;
   if (state.startingPath === "streetborn" && tags.includes("corporate")) chance -= 0.05;
-  if (state.neuralInstability >= 25 && tags.includes("hacking")) chance -= state.neuralInstability >= 75 ? 0.1 : state.neuralInstability >= 50 ? 0.05 : 0.02;
-  if (state.neuralInstability >= 75 && tags.includes("corporate")) chance -= 0.1;
-  return Math.max(0.05, Math.min(0.98, chance));
+  const instability = effectiveNeuralInstability(state);
+  if (instability >= 25 && tags.includes("hacking")) chance -= instability >= 75 ? 0.1 : instability >= 50 ? 0.05 : 0.02;
+  if (instability >= 75 && tags.includes("corporate")) chance -= balanceConfig.jobs.corporateInstabilityPenalty;
+  return Math.max(balanceConfig.jobs.minSuccess, Math.min(balanceConfig.jobs.maxSuccess, chance));
 }
 
 function applyStartingPath(state: GameState, modifiers: ActiveModifiers) {
@@ -240,10 +269,20 @@ function applyRiskState(state: GameState, modifiers: ActiveModifiers) {
 function applyEquipment(state: GameState, modifiers: ActiveModifiers) {
   Object.values(state.equippedCyberware).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
   Object.values(state.equippedGear).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  const weaponLoadout = state.weaponLoadouts[state.equippedGear.weapon ?? ""];
+  Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
   if (cyberwareLoad(state) > 0) modifiers.activeSources.push(`Cyberware load +${cyberwareLoad(state)} NI`);
 }
 
 function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
+  const fleetSpeed = vehicles
+    .filter((vehicle) => state.ownedVehicles[vehicle.id])
+    .reduce((sum, vehicle) => sum + vehicleFleetSpeedBonus(vehicle), 0);
+  if (fleetSpeed > 0) {
+    modifiers.actionSpeed += fleetSpeed;
+    modifiers.activeSources.push(`Vehicle fleet +${Math.round(fleetSpeed * 1000) / 10}% speed`);
+  }
   const vehicle = vehicles.find((entry) => entry.id === state.activeVehicle);
   if (!vehicle) return;
   const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
@@ -258,7 +297,11 @@ function mergeItemModifiers(modifiers: ActiveModifiers, itemId?: string) {
   if (!itemId) return;
   const item = getItem(itemId);
   if (!item?.modifiers) return;
-  const itemMods = item.modifiers;
+  mergeModifiers(modifiers, item.modifiers);
+  modifiers.activeSources.push(item.name);
+}
+
+function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModifiers>) {
   Object.entries(itemMods.skillXp ?? {}).forEach(([skill, value]) => {
     modifiers.skillXp[skill as keyof ActiveModifiers["skillXp"]] =
       (modifiers.skillXp[skill as keyof ActiveModifiers["skillXp"]] ?? 0) + (value ?? 0);
@@ -283,7 +326,6 @@ function mergeItemModifiers(modifiers: ActiveModifiers, itemId?: string) {
   ] as const).forEach((key) => {
     modifiers[key] += itemMods[key] ?? 0;
   });
-  modifiers.activeSources.push(item.name);
 }
 
 export function factionRank(reputation: number) {
@@ -292,4 +334,18 @@ export function factionRank(reputation: number) {
 
 function vehicleSpeedBonus(state: GameState) {
   return state.startingPath === "outrider" ? 0.1 : 0;
+}
+
+function vehicleFleetSpeedBonus(vehicle: (typeof vehicles)[number]) {
+  const rarityBonus = {
+    Common: 0.001,
+    Uncommon: 0.0015,
+    Rare: 0.0025,
+    Epic: 0.0035,
+    Legendary: 0.005,
+    Prototype: 0.006,
+    Relic: 0.008,
+  }[vehicle.rarity] ?? 0.001;
+  const priceBonus = (vehicle.cost.credits ?? 0) / 2_000_000;
+  return rarityBonus + priceBonus;
 }

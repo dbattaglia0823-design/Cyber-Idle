@@ -1,12 +1,15 @@
 import { simCacheTypes } from "../data/simCache";
-import { addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { balanceConfig } from "../data/balanceConfig";
+import { actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { addMasteryPoolXp } from "./masteryPool";
-import { applyHeatModifier, applyNeuralModifier, applyRewardModifiers, applyXpModifier } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
 import { getSimulationEfficiency } from "./simulationEfficiency";
+import { emitRewardPopupGroup } from "./rewardPopups";
+import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import type { GameState, ResourceId, RewardBundle, SimulationRecap } from "../types";
 
 export function simCacheEligibility(state: GameState) {
@@ -17,7 +20,6 @@ export function simCacheEligibility(state: GameState) {
     if (!action) return { eligible: false, reason: "Current action is missing." };
     if (!state.manualDiscovery.skillActions[action.id]) return { eligible: false, reason: "Complete this skill action manually once first." };
     if (action.tags?.includes("hacking") && state.resources.heat >= 75) return { eligible: false, reason: "Heat safety stop: Hunted or higher." };
-    if ((action.neuralInstabilityChange ?? 0) > 0 && state.neuralInstability >= 75) return { eligible: false, reason: "Neural Instability safety stop: Critical or higher." };
     return { eligible: true, reason: `Eligible: repeat ${action.name}.` };
   }
   if (state.activeCraft) {
@@ -64,6 +66,19 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   next.worldUnlocks.usedSimCache = true;
   next.simulationRecap = recap;
   pushCategorizedLog(next, "World", `Sim Cache used: ${recap.completions} completions. ${recap.stoppedReason}`);
+  emitRewardPopupGroup(next, {
+    title: "Sim Cache Complete",
+    category: "story",
+    xp: recap.xpGained ? { [next.activeAction ? getSkillAction(next.activeAction.actionId)?.skillId ?? "scavenging" : "cyberware"]: recap.xpGained } : undefined,
+    masteryXp: recap.masteryXpGained,
+    poolXp: recap.poolXpGained,
+    resources: recap.resourcesGained,
+    items: recap.dropsGained,
+    heat: recap.heatChange,
+    neuralInstability: recap.neuralInstabilityChange,
+    warnings: recap.warnings,
+    durationMs: 5000,
+  });
   return next;
 }
 
@@ -71,7 +86,7 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
   const action = getSkillAction(state.activeAction!.actionId)!;
   const efficiency = recap.efficiency;
   recap.activityName = action.name;
-  const loops = Math.floor(simulatedMs / state.activeAction!.durationMs);
+  const loops = Math.min(balanceConfig.simCache.maxLoops, Math.floor(simulatedMs / state.activeAction!.durationMs));
   for (let i = 0; i < loops; i += 1) {
     if (!canAffordRewards(state, action.rewards)) {
       recap.stoppedReason = "Stopped early: missing required resources.";
@@ -81,12 +96,8 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
       recap.stoppedReason = "Stopped early: Heat safety threshold.";
       break;
     }
-    if (state.neuralInstability >= 90) {
-      recap.stoppedReason = "Stopped early: Neural Instability safety threshold.";
-      break;
-    }
-    const rewards = scaleRewards(applyRewardModifiers(state, action.rewards, [action.skillId, ...(action.tags ?? [])]), efficiency);
-    const xp = Math.round(applyXpModifier(state, action.skillId, action.xpReward) * efficiency.skillXp);
+    const rewards = scaleRewards(calculateSkillActionRewards(state, action), efficiency);
+    const xp = Math.round(actionXpRewardWithMastery(state, action) * efficiency.skillXp);
     const mastery = Math.round(action.masteryXpReward * efficiency.masteryXp);
     applyRewards(state, rewards);
     addRewardDelta(recap.resourcesGained, rewards);
@@ -94,18 +105,14 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     const pool = Math.ceil(mastery * 0.25);
     addMasteryXp(state, action.id, mastery);
     addMasteryPoolXp(state, action.skillId, pool);
+    addDistrictMasteryXp(state, action.districtReq ?? state.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + action.masteryXpReward * 0.35) * 0.45)));
     recap.xpGained += xp;
     recap.masteryXpGained += mastery;
     recap.poolXpGained += pool;
     if (action.heatChange) {
-      const heat = Math.round(applyHeatModifier(state, action.heatChange, action.tags) * efficiency.heat);
+      const heat = Math.round(calculateHeatGain(state, action.heatChange, action.tags) * efficiency.heat);
       state.resources.heat += heat;
       recap.heatChange += heat;
-    }
-    if (action.neuralInstabilityChange) {
-      const ni = Math.round(applyNeuralModifier(state, action.neuralInstabilityChange, action.tags) * efficiency.neuralInstability);
-      state.neuralInstability += ni;
-      recap.neuralInstabilityChange += ni;
     }
     recap.completions += 1;
     applyRiskEvents(state);
@@ -121,7 +128,7 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
       recap.stoppedReason = "Stopped early: missing materials.";
       break;
     }
-    completeCraft(state, recipe, recap.efficiency.masteryXp, false);
+    completeCraft(state, recipe, recap.efficiency.masteryXp, false, false);
     recap.completions += 1;
     recap.xpGained += recipe.xpReward;
     recap.masteryXpGained += Math.round(recipe.masteryXpReward * recap.efficiency.masteryXp);

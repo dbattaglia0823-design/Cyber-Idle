@@ -14,43 +14,41 @@ export function updateWorldUnlocks(state: GameState) {
   unlockDistrict(
     state,
     "underpassMarket",
-    state.resources.reputation >= 100 ||
+    state.skills.streetcraft.level >= 12 ||
       factionRank(state.factions.ghostMarket.reputation) >= 2 ||
       (state.fixerTrust["sable-quinn-fixer"]?.completedJobs ?? 0) >= 3,
   );
   unlockDistrict(
     state,
     "blacknetQuarter",
-    state.skills.hacking.level >= 15 ||
+    state.skills.hacking.level >= 18 ||
       factionRank(state.factions.nullChoir.reputation) >= 2 ||
       (state.inventory["blacknet-cipher"] ?? 0) > 0,
   );
   unlockDistrict(
     state,
     "glasslineDistrict",
-    (state.skills.hacking.level >= 25 && state.resources.reputation >= 250) ||
+    state.skills.hacking.level >= 30 ||
       (state.startingPath === "corporateDefector" && (state.inventory["corporate-access-token"] ?? 0) > 0),
   );
   unlockDistrict(
     state,
     "helixWard",
-    state.skills.cyberware.level >= 20 ||
+    state.skills.cyberware.level >= 24 ||
       factionRank(state.factions.helixOrder.reputation) >= 2 ||
       (state.inventory["medical-access-pass"] ?? 0) > 0,
   );
   unlockDistrict(
     state,
     "redlineBlocks",
-    state.skills.combat.level >= 25 ||
+    state.skills.combat.level >= 28 ||
       factionRank(state.factions.redlineSaints.reputation) >= 2 ||
       (state.inventory["bounty-token"] ?? 0) > 0,
   );
   unlockDistrict(
     state,
     "skylineCore",
-    (state.resources.reputation >= 1000 &&
-      state.districts.glasslineDistrict?.unlocked &&
-      Object.keys(state.ownedHousing).some((id) => id.includes("penthouse") || id.includes("apartment"))) ||
+    state.skills.combat.level >= 50 ||
       Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear),
   );
 

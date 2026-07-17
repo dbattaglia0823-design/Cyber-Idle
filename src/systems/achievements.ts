@@ -1,11 +1,18 @@
 import { operations } from "../data/operations";
 import { pushCategorizedLog } from "./gameState";
+import { emitRewardPopupGroup } from "./rewardPopups";
 import type { GameState } from "../types";
 
 export function unlockAchievement(state: GameState, id: string, name: string) {
   if (state.achievements[id]) return;
   state.achievements[id] = true;
   pushCategorizedLog(state, "World", `Achievement unlocked: ${name}.`);
+  emitRewardPopupGroup(state, {
+    title: "Achievement Unlocked",
+    category: "achievement",
+    achievements: [name],
+    durationMs: 5200,
+  });
 }
 
 export function updateOperationAchievements(state: GameState) {

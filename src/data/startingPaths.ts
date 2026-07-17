@@ -47,6 +47,6 @@ export const startingPaths: StartingPath[] = [
       heatGain: 0.05,
       neuralInstabilityGain: 0.05,
     },
-    startingCredits: 100,
+    startingCredits: 1000,
   },
 ];
