@@ -31,7 +31,7 @@ export function masteryPoolBonus(state: GameState, skillId: SkillId) {
   const percent = masteryPoolPercent(state, skillId);
   return {
     xp: percent >= 10 ? 0.02 : 0,
-    speed: percent >= 25 ? 0.03 : 0,
+    speed: percent >= 25 ? 0.05 : 0,
     rewards: percent >= 50 ? 0.05 : 0,
     rareDrop: percent >= 75 ? 0.05 : 0,
     automation: percent >= 95,

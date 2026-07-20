@@ -16,8 +16,10 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
     skillXp: {},
     skillRewards: 0,
     actionSpeed: 0,
+    combatMaxHp: 0,
     combatDamage: 0,
     combatDefense: 0,
+    combatAttackSpeed: 0,
     healingReceived: 0,
     hpRegen: 0,
     damageReduction: 0,
@@ -130,7 +132,17 @@ export function applyNeuralModifier(state: GameState, amount: number, tags: stri
 export function adjustedDurationMs(state: GameState, durationMs: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
   const speed = modifiers.actionSpeed + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
-  return Math.max(1000, Math.round(durationMs * (1 - Math.min(0.5, speed))));
+  return Math.max(250, Math.round(durationMs * Math.max(0.05, 1 - speed)));
+}
+
+export function actionMasterySpeedBonus(state: GameState, actionId: string) {
+  const masteryLevel = state.actionMastery[actionId]?.level ?? 1;
+  return masteryLevel >= 10 ? 0.05 : 0;
+}
+
+export function adjustedActionDurationMs(state: GameState, durationMs: number, actionId: string, tags: string[] = []) {
+  const baseDuration = adjustedDurationMs(state, durationMs, tags);
+  return Math.max(250, Math.round(baseDuration * Math.max(0.05, 1 - actionMasterySpeedBonus(state, actionId))));
 }
 
 export function jobSuccessChance(state: GameState, baseChance: number, tags: string[] = []) {
@@ -174,23 +186,8 @@ function applyHousing(state: GameState, modifiers: ActiveModifiers) {
   modifiers.offlineProgressCapHours += housing.offlineCapBonusHours;
   modifiers.heatDecay += housing.heatDecayBonus / 100;
   modifiers.neuralInstabilityRecovery += housing.neuralRecoveryBonus / 100;
-  if (housing.id === "rust-yard-garage") modifiers.skillRewards += 0.05;
-  if (housing.id === "underpass-safehouse") modifiers.heatGain -= 0.05;
-  if (housing.id === "blacknet-loft") {
-    modifiers.skillXp.hacking = (modifiers.skillXp.hacking ?? 0) + 0.05;
-    modifiers.skillRewards += 0.05;
-  }
-  if (housing.id === "glassline-apartment") {
-    modifiers.jobSuccessChance += 0.05;
-    modifiers.skillXp.cyberware = (modifiers.skillXp.cyberware ?? 0) + 0.05;
-  }
-  if (housing.id === "skyline-penthouse") {
-    modifiers.skillXp.scavenging = (modifiers.skillXp.scavenging ?? 0) + 0.05;
-    modifiers.skillXp.hacking = (modifiers.skillXp.hacking ?? 0) + 0.05;
-    modifiers.skillXp.cyberware = (modifiers.skillXp.cyberware ?? 0) + 0.05;
-    modifiers.skillXp.combat = (modifiers.skillXp.combat ?? 0) + 0.05;
-    modifiers.reputationGained += 0.05;
-  }
+  modifiers.actionSpeed += 0.02;
+  if (housing.passiveModifiers) mergeModifiers(modifiers, housing.passiveModifiers);
 }
 
 function applyFactions(state: GameState, modifiers: ActiveModifiers) {
@@ -286,10 +283,11 @@ function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
   const vehicle = vehicles.find((entry) => entry.id === state.activeVehicle);
   if (!vehicle) return;
   const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-  modifiers.actionSpeed += vehicle.stats.jobEfficiency / 100 + level * 0.003;
+  modifiers.actionSpeed += 0.02 + vehicle.stats.jobEfficiency / 100 + level * 0.003;
   modifiers.heatGain -= vehicle.stats.heatReduction / 100 + level * 0.002;
   modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + level * 0.002;
   modifiers.offlineProgressCapHours += Math.floor(vehicle.stats.storage / 20);
+  mergeModifiers(modifiers, vehicle.passiveModifiers);
   modifiers.activeSources.push(vehicle.name);
 }
 
@@ -309,8 +307,14 @@ function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModi
   ([
     "skillRewards",
     "actionSpeed",
+    "combatMaxHp",
     "combatDamage",
     "combatDefense",
+    "combatAttackSpeed",
+    "healingReceived",
+    "hpRegen",
+    "damageReduction",
+    "dodgeChance",
     "combatXp",
     "dropChance",
     "creditsGained",
@@ -323,6 +327,15 @@ function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModi
     "jobRewards",
     "shopPrices",
     "fixerTrustGain",
+    "masteryXpGain",
+    "craftingCostReduction",
+    "upgradeCostReduction",
+    "vehicleUpgradeCostReduction",
+    "ripperdocCostReduction",
+    "localStandingGain",
+    "companionRelationshipGain",
+    "factionReputationGain",
+    "simCacheEfficiency",
   ] as const).forEach((key) => {
     modifiers[key] += itemMods[key] ?? 0;
   });

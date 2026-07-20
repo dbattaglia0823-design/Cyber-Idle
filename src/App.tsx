@@ -11,6 +11,7 @@ import {
   MapPinned,
   Download,
   MoreHorizontal,
+  PackageSearch,
   Play,
   RotateCcw,
   Save,
@@ -38,9 +39,9 @@ import { districts } from "./data/districts";
 import { factions } from "./data/factions";
 import { factionMilestones } from "./data/factionMilestones";
 import { fixers } from "./data/fixers";
-import { ripperdocClinics } from "./data/ripperdocClinics";
+import { ripperdocClinics, type RipperdocClinic } from "./data/ripperdocClinics";
 import { housingOptions } from "./data/housing";
-import { cyberwareSlots, itemNames } from "./data/items";
+import { cyberwareSlots, items, itemNames } from "./data/items";
 import { cyberwareOverlaySlots, type CyberwareOverlaySlot } from "./data/cyberwareOverlayData";
 import { percentDropTables } from "./data/percentDrops";
 import { weaponClasses, weaponClassOrder } from "./data/weaponClasses";
@@ -50,6 +51,7 @@ import { startingPaths } from "./data/startingPaths";
 import {
   canAffordRewards,
   formatRewards,
+  actionMasteryXpReward,
   actionXpRewardWithMastery,
   startSkillAction,
   stopSkillAction,
@@ -63,7 +65,7 @@ import { jobs } from "./data/jobs";
 import { bosses } from "./data/bosses";
 import { operations } from "./data/operations";
 import { vehicles } from "./data/vehicles";
-import { adjustedDurationMs, getActiveModifiers } from "./systems/modifiers";
+import { adjustedActionDurationMs, adjustedDurationMs, getActiveModifiers } from "./systems/modifiers";
 import { heatTier, neuralInstabilityTierName } from "./systems/riskEvents";
 import {
   playerCombatStats,
@@ -79,9 +81,10 @@ import { recipes } from "./data/recipes";
 import { getItem, gearSlots } from "./data/items";
 import { cyberwareInstabilityLoad, cyberwareLoad, effectiveNeuralInstability, scaledStats } from "./systems/itemFormulas";
 import { equipItem, unequipCyberware, unequipGear, useItem } from "./systems/equipmentSystem";
+import { canQuickSellInventoryItem, inventoryQuickSellValue, quickSellInventoryItem } from "./systems/inventorySellSystem";
 import { canAffordItemUpgrade, itemUpgradeCost, upgradeItem } from "./systems/upgradeSystem";
 import { scaledCraftingCosts } from "./systems/craftingCosts";
-import { compatibleAttachments, compatibleMods, installAttachment, installWeaponMod, removeAttachment, removeWeaponMod, weaponXpForNextLevel } from "./systems/weaponSystem";
+import { compatibleAttachments, compatibleMods, equippedWeaponClass, installAttachment, installWeaponMod, removeAttachment, removeWeaponMod, weaponXpForNextLevel } from "./systems/weaponSystem";
 import { dropRevealState } from "./systems/percentDrops";
 import { loadPreset, savePreset } from "./systems/presetSystem";
 import { runBasicSimCache, simCacheEligibility } from "./systems/simCacheEngine";
@@ -106,6 +109,7 @@ import {
   districtSkillActions,
 } from "./systems/districtActivities";
 import { getDistrictModifiers } from "./systems/districtModifiers";
+import { districtThreatPenalty } from "./systems/districtThreat";
 import { travelToDistrict } from "./systems/travelSystem";
 import { districtActivitySummaries, districtContentMap, type DistrictActivityCategory, type DistrictCategorySummary } from "./systems/districtActivityMap";
 import { equipmentIconForItem } from "./systems/equipmentIcons";
@@ -131,6 +135,8 @@ import {
   sellValue,
   sellVendorItem,
   vendorItemUnlocked,
+  vendorLimitedStockRefreshAt,
+  vendorLimitedStockRemaining,
   vendorPrice,
 } from "./systems/vendorSystem";
 import { ActivityCard, FactionBadge, LockedOverlay, ModifierList, NeonPanel, RequirementList, TerminalLog, ThreatMeter } from "./components/cyberpunk";
@@ -138,7 +144,7 @@ import { DistrictMap } from "./components/DistrictMap";
 import { RewardPopupContainer } from "./components/RewardPopups";
 import { InfoButton, ScreenHelpPanel } from "./components/InfoPopover";
 import { ClickableItemRequirement, ItemSourcePopover, RequirementBulletList } from "./components/ItemSourcePopover";
-import { contractType, failureOutcomes, fixerTrustRank, fixerTrustRewards, fixerUnlockSummary, recommendedLoadoutTags } from "./systems/fixerContracts";
+import { contractType, failureOutcomes, fixerTrustRank, fixerTrustRewards, fixerUnlockSummary, jobRiskTier, recommendedLoadoutTags } from "./systems/fixerContracts";
 import { archetypeScores, detectedSignatureBuild } from "./systems/archetypeScoring";
 import { availablePerkPoints, buyPerk, canBuyPerk, earnedPerkPoints, respecCost, respecPerks, spentPerkPoints, treeInvestment, updatePerkProgress } from "./systems/perkSystem";
 import { combatEffectivenessForEnemy } from "./systems/combatMatchups";
@@ -150,6 +156,8 @@ import {
   calculateJobRewards,
   calculateJobSuccessChance,
   calculatePlayerCombatStats,
+  calculateRarityAdjustedShopBasePrice,
+  calculateRipperdocServiceCost,
   calculateSkillActionRewards,
   calculateSimulationEfficiency,
   calculateVendorPrice,
@@ -165,6 +173,7 @@ import {
   unlockAutoHeal,
 } from "./systems/healthSystem";
 import { balanceConfig, BALANCE_VERSION } from "./data/balanceConfig";
+import { districtLevelBandLabel, hasAnyMainSkillLevel, MAX_MAIN_SKILL_LEVEL } from "./data/levelBands";
 import { storyArcs } from "./data/storyArcs";
 import { activeStoryStep, availableStoryArcsForDistrict, chooseStoryChoice, storyArcState, storyObjectiveProgress, storyProgressForArc, updateStoryProgress } from "./systems/storySystem";
 import { getContentValidationReport, reportContentValidation } from "./systems/contentValidation";
@@ -175,7 +184,8 @@ import { highThreatOperations, legacyCraftingGoals, iconicCyberwareGoals, collec
 import { nextStreetLegendMilestone, streetLegendMilestones } from "./data/streetLegendData";
 import { actionAccessRequirementText, meetsActionAccessRequirement } from "./systems/actionAccess";
 import { updateWorldUnlocks } from "./systems/worldUnlocks";
-import type { AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, GameState, GearSlot, JobContract, OperationDefinition, OperationRoute, OperationRouteId, PerkDefinition, PerkTreeId, ResourceId, RewardBundle, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry } from "./types";
+import { getItemSources } from "./systems/itemSourceLookup";
+import type { ActiveModifiers, AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, EnemyDrop, FactionId, GameState, GearSlot, ItemDefinition, ItemRarity, ItemStats, ItemType, JobContract, OperationDefinition, OperationRoute, OperationRouteId, PerkDefinition, PerkTreeId, ResourceId, RewardBundle, RipperdocService, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry, WeaponClassId } from "./types";
 
 type TabId = "city" | "inventory" | "character" | "loadout" | "progress" | "more";
 type CharacterSectionId = "profile" | "health" | "build" | "skills";
@@ -227,7 +237,7 @@ function App() {
   const [characterSection, setCharacterSection] = useState<CharacterSectionId>("profile");
   const [moreSection, setMoreSection] = useState<MoreSection>("story");
   const [simMenuOpen, setSimMenuOpen] = useState(false);
-  const [cityOpenRequest, setCityOpenRequest] = useState<{ districtId: DistrictId; token: number } | null>(null);
+  const [cityOpenRequest, setCityOpenRequest] = useState<{ districtId: DistrictId; category?: DistrictHubCategory; token: number } | null>(null);
 
   useEffect(() => {
     if (isDevBuild) reportContentValidation();
@@ -329,7 +339,7 @@ function App() {
     });
   };
   const openCityTab = () => {
-    setCityOpenRequest(active?.districtId ? { districtId: active.districtId, token: Date.now() } : null);
+    setCityOpenRequest(active?.districtId ? { districtId: active.districtId, category: active.category, token: Date.now() } : null);
     setTab("city");
   };
 
@@ -360,10 +370,7 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Neon Row Idle</p>
-          <h1>{activeOperation ? activeOperation.name : activeCraft ? activeCraft.name : activeJob ? activeJob.name : activeEnemy ? `Fighting ${activeEnemy.name}` : activeAction?.name ?? "Ready"}</h1>
-        </div>
+        <TopbarActivityProgress activity={active} />
         <button className={`player-level-alert ${perkPointsAvailable > 0 ? "has-points" : ""}`} onClick={() => {
             setCharacterSection("build");
             setTab("character");
@@ -391,7 +398,7 @@ function App() {
       </header>
       <CompactActiveIndicator activity={active} onOpen={openCityTab} onStop={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))} />
 
-      <main>
+      <main className={`app-main app-main-${tab}`}>
         {state.offlineRecap && (
           <OfflineRecap
             state={state}
@@ -437,6 +444,7 @@ function App() {
             onUnequipGear={(slot) => setState((current) => unequipGear(current, slot))}
             onUnequipCyberware={(slot) => setState((current) => unequipCyberware(current, slot))}
             onUse={(id) => setState((current) => useItem(current, id))}
+            onSell={(id) => setState((current) => quickSellInventoryItem(current, id))}
             onUpgrade={(id) => setState((current) => upgradeItem(current, id))}
             onInstallAttachment={(weaponId, attachmentId) => setState((current) => installAttachment(current, weaponId, attachmentId))}
             onRemoveAttachment={(weaponId, category) => setState((current) => removeAttachment(current, weaponId, category))}
@@ -584,7 +592,7 @@ function loadInitialGameState(slot: SaveSlotId = getActiveSaveSlot()) {
   }
 }
 
-type MoreSection = "story" | "companions" | "simCache" | "balance" | "settings";
+type MoreSection = "story" | "companions" | "itemIndex" | "simCache" | "balance" | "settings";
 
 function tabIndicator(state: GameState, id: TabId, reviewed: Set<string>, enabled: boolean) {
   if (!enabled) return "";
@@ -783,12 +791,34 @@ function FloatingSimCacheButton({
                 </button>
               ))}
             </div>
-            {(state.resources.heat >= 75 || effectiveNeuralInstability(state) >= 75) && <p className="fine warning-text">Safety warning: Heat or equipped Neural Instability is high.</p>}
             <button className="primary-button full" onClick={onOpenFull}>Full Details</button>
           </div>
         )}
       </aside>
     </>
+  );
+}
+
+function TopbarActivityProgress({ activity }: { activity: ActiveActivity | null }) {
+  if (!activity) {
+    return (
+      <div className="topbar-activity-progress idle">
+        <p className="eyebrow">Current Job</p>
+        <h1>Ready</h1>
+      </div>
+    );
+  }
+  return (
+    <div className="topbar-activity-progress">
+      <div>
+        <p className="eyebrow">{activity.type}</p>
+        <h1>{activity.name}</h1>
+      </div>
+      <strong>{Math.round(activity.progress)}%</strong>
+      <span aria-hidden="true">
+        <b style={{ width: `${activity.progress}%` }} />
+      </span>
+    </div>
   );
 }
 
@@ -874,7 +904,7 @@ function CityTab({
   onReviewAllNotices,
 }: {
   state: GameState;
-  openRequest: { districtId: DistrictId; token: number } | null;
+  openRequest: { districtId: DistrictId; category?: DistrictHubCategory; token: number } | null;
   onSelectDistrict: (id: DistrictId) => void;
   onStartSkill: (id: string) => void;
   onStartCombat: (id: string) => void;
@@ -922,6 +952,7 @@ function CityTab({
       <DistrictHub
         state={state}
         districtId={openDistrict}
+        openCategoryRequest={openRequest?.districtId === openDistrict ? { category: openRequest.category, token: openRequest.token } : null}
         activeActivity={active}
         onBack={() => setOpenDistrict(null)}
         onStartSkill={onStartSkill}
@@ -957,6 +988,7 @@ function DistrictHub({
   state,
   districtId,
   activeActivity,
+  openCategoryRequest,
   onBack,
   onStartSkill,
   onStartCombat,
@@ -980,6 +1012,7 @@ function DistrictHub({
   state: GameState;
   districtId: DistrictId;
   activeActivity: ActiveActivity | null;
+  openCategoryRequest: { category?: DistrictHubCategory; token: number } | null;
   onBack: () => void;
   onStartSkill: (id: string) => void;
   onStartCombat: (id: string) => void;
@@ -1012,6 +1045,9 @@ function DistrictHub({
   const localStanding = state.districtStanding[districtId]?.standing ?? 0;
   const dominantFaction = district.associatedFactions[0];
   useEffect(() => setCategory("overview"), [districtId]);
+  useEffect(() => {
+    if (openCategoryRequest?.category) setCategory(openCategoryRequest.category);
+  }, [openCategoryRequest?.token]);
   return (
     <section className="district-hub stack">
       <article className={`district-header district-banner-${districtId} ${unlocked ? "" : "locked-card"}`}>
@@ -1022,7 +1058,7 @@ function DistrictHub({
         <div>
           <p className="eyebrow">District Hub</p>
           <h2>{district.name}</h2>
-          <p className="fine">{threatTier(threat)} threat / Standing {localStanding} / {completion.total}% complete</p>
+          <p className="fine">{districtLevelBandLabel(districtId)} / {threatTier(threat)} threat / Standing {localStanding} / {completion.total}% complete</p>
           <p className="fine">Dominant faction: {factions.find((faction) => faction.id === dominantFaction)?.name ?? "Contested"}</p>
           {activeActivity?.districtId === districtId && <p className="warning-badge inline">Live: {activeActivity.name}</p>}
         </div>
@@ -1038,7 +1074,7 @@ function DistrictHub({
         <div className="district-tabs district-skill-tabs">
           {skillTabs.map((skillTab) => (
             <button key={skillTab.id} className={category === skillTab.id ? "active" : ""} onClick={() => setCategory(skillTab.id)}>
-              {skillTab.label}
+              <em>{skillTab.label}</em>
               <span>Lv {state.skills[skillTab.skillId].level}</span>
             </button>
           ))}
@@ -1085,11 +1121,6 @@ function DistrictHub({
         />
       )}
 
-      <NextStepsPanel
-        state={state}
-        districtId={districtId}
-        onOpenCategory={setCategory}
-      />
     </section>
   );
 }
@@ -1129,6 +1160,7 @@ type ActiveActivity = {
   name: string;
   type: string;
   districtId: DistrictId | null;
+  category?: DistrictHubCategory;
   progress: number;
   detail?: string;
   skillId?: SkillId;
@@ -1256,24 +1288,175 @@ function LocalFactionCards({ state, districtId, context }: { state: GameState; d
       {localFactions.map((faction) => {
         const factionState = state.factions[faction.id];
         const reputation = factionState?.reputation ?? 0;
-        return (
-          <article className="compact-run-card" key={faction.id}>
-            <div>
-              <p className="eyebrow">{context}</p>
-              <h3>{faction.name}</h3>
-              <p className="fine">Rank {factionRankNumber(reputation)} {factionRankLabel(reputation)} / Rep {reputation} / Hostility {factionState?.hostility ?? 0}</p>
-              <p className="muted">{faction.uniqueBonuses.slice(0, 2).join(", ")}</p>
-              <div className="terminal-log">
-                {factionMilestones.filter((milestone) => milestone.districtId === districtId && milestone.factionId === faction.id).slice(0, 5).map((milestone) => (
-                  <p key={`${milestone.factionId}-${milestone.districtId}-${milestone.rank}`}>Rank {milestone.rank}: {milestone.title} - {milestone.reward}</p>
-                ))}
-              </div>
-            </div>
-          </article>
-        );
+        const milestones = factionMilestones.filter((milestone) => milestone.districtId === districtId && milestone.factionId === faction.id).slice(0, 5);
+        return <FactionReputationCard key={faction.id} faction={faction} reputation={reputation} hostility={factionState?.hostility ?? 0} context={context} milestones={milestones} />;
       })}
     </div>
   );
+}
+
+function FactionReputationCard({
+  faction,
+  reputation,
+  hostility,
+  context,
+  milestones,
+}: {
+  faction: (typeof factions)[number];
+  reputation: number;
+  hostility: number;
+  context: string;
+  milestones: typeof factionMilestones;
+}) {
+  const rank = factionRankNumber(reputation);
+  const nextMilestone = milestones.find((milestone) => milestone.rank > rank);
+  const currentBenefits = milestones.filter((milestone) => milestone.rank <= rank);
+  return (
+    <article className="faction-reputation-card">
+      <FactionHeader faction={faction} reputation={reputation} hostility={hostility} context={context} />
+      <RankProgressBar reputation={reputation} rank={rank} nextMilestone={nextMilestone} />
+      {currentBenefits.length > 0 && <CurrentBenefitsPanel milestones={currentBenefits} />}
+      <FactionRewardTrack milestones={milestones} currentRank={rank} reputation={reputation} />
+    </article>
+  );
+}
+
+function FactionHeader({
+  faction,
+  reputation,
+  hostility,
+  context,
+}: {
+  faction: (typeof factions)[number];
+  reputation: number;
+  hostility: number;
+  context: string;
+}) {
+  const rank = factionRankNumber(reputation);
+  return (
+    <div className="faction-header">
+      <div>
+        <p className="eyebrow">{context}</p>
+        <h3>{faction.name}</h3>
+        <p className="fine">Rank {rank} • {factionRankLabel(reputation)}</p>
+        <p className="fine">Rep {reputation} / Hostility {hostility}</p>
+      </div>
+      <div className="faction-bonus-summary">
+        <span>Bonuses</span>
+        <strong>{faction.uniqueBonuses.slice(0, 3).join(", ")}</strong>
+      </div>
+    </div>
+  );
+}
+
+function RankProgressBar({
+  reputation,
+  rank,
+  nextMilestone,
+}: {
+  reputation: number;
+  rank: number;
+  nextMilestone?: (typeof factionMilestones)[number];
+}) {
+  const nextRank = nextMilestone?.rank ?? Math.min(5, rank + 1);
+  const currentRankRep = Math.max(0, rank * 10);
+  const nextRankRep = Math.max(currentRankRep + 10, nextRank * 10);
+  const progress = nextMilestone ? ((reputation - currentRankRep) / Math.max(1, nextRankRep - currentRankRep)) * 100 : 100;
+  return (
+    <div className="rank-progress-panel">
+      <div className="rank-progress-copy">
+        <span>Rank Progress</span>
+        <strong>{nextMilestone ? `${Math.max(0, reputation - currentRankRep)} / ${nextRankRep - currentRankRep}` : "Local rewards complete"}</strong>
+      </div>
+      <Progress value={Math.max(0, Math.min(100, progress))} label={nextMilestone ? `Next Unlock: Rank ${nextMilestone.rank} - ${nextMilestone.title}` : "All listed rank rewards unlocked"} />
+      <p className="fine">Standing: {factionRankLabel(reputation)}</p>
+    </div>
+  );
+}
+
+function FactionRewardTrack({
+  milestones,
+  currentRank,
+  reputation,
+}: {
+  milestones: typeof factionMilestones;
+  currentRank: number;
+  reputation: number;
+}) {
+  return (
+    <div className="faction-reward-track">
+      {milestones.map((milestone) => (
+        <FactionRewardCard key={`${milestone.factionId}-${milestone.districtId}-${milestone.rank}`} milestone={milestone} currentRank={currentRank} reputation={reputation} />
+      ))}
+      {!milestones.length && <p className="muted">No local faction milestones are listed for this district yet.</p>}
+    </div>
+  );
+}
+
+function FactionRewardCard({
+  milestone,
+  currentRank,
+  reputation,
+}: {
+  milestone: (typeof factionMilestones)[number];
+  currentRank: number;
+  reputation: number;
+}) {
+  const status = milestone.rank <= currentRank ? "unlocked" : milestone.rank === currentRank + 1 ? "next" : "locked";
+  const categories = factionRewardCategories(milestone);
+  return (
+    <article className={`faction-reward-card ${status}`}>
+      <div className="faction-reward-icon">{status === "unlocked" ? <Unlock size={18} /> : <Lock size={18} />}</div>
+      <div className="faction-reward-body">
+        <div className="faction-reward-head">
+          <div>
+            <p className="eyebrow">Rank {milestone.rank}</p>
+            <h4>{milestone.title}</h4>
+          </div>
+          <RewardStatusBadge status={status} />
+        </div>
+        <p className="muted">{milestone.reward}</p>
+        <div className="faction-reward-foot">
+          <span className={status === "locked" ? "missing" : "met"}>{status === "unlocked" ? "Active" : `Requires ${milestone.requirement} (${reputation}/${milestone.rank * 10} rep)`}</span>
+          <div>{categories.map((category) => <RewardCategoryChip key={category} category={category} />)}</div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function RewardStatusBadge({ status }: { status: "unlocked" | "next" | "locked" }) {
+  const label = status === "unlocked" ? "Unlocked" : status === "next" ? "Next" : "Locked";
+  return <span className={`reward-status-badge ${status}`}>{label}</span>;
+}
+
+function RewardCategoryChip({ category }: { category: string }) {
+  return <span className={`reward-category-chip ${category.toLowerCase()}`}>{category}</span>;
+}
+
+function CurrentBenefitsPanel({ milestones }: { milestones: typeof factionMilestones }) {
+  return (
+    <div className="current-benefits-panel">
+      <p className="eyebrow">Current Benefits</p>
+      {milestones.map((milestone) => (
+        <span key={`${milestone.factionId}-${milestone.districtId}-${milestone.rank}`}>{milestone.title}: {milestone.reward}</span>
+      ))}
+    </div>
+  );
+}
+
+function factionRewardCategories(milestone: (typeof factionMilestones)[number]) {
+  const text = `${milestone.title} ${milestone.reward}`.toLowerCase();
+  const categories: string[] = [];
+  if (text.includes("vendor") || text.includes("shop") || text.includes("market") || text.includes("prices") || text.includes("broker")) categories.push("Vendor");
+  if (text.includes("discount") || text.includes("prices") || text.includes("cost")) categories.push("Discount");
+  if (text.includes("garage") || text.includes("vehicle") || text.includes("yard")) categories.push("Garage");
+  if (text.includes("housing")) categories.push("Housing");
+  if (text.includes("operation") || text.includes("boss")) categories.push("Operations");
+  if (text.includes("route")) categories.push("Routes");
+  if (text.includes("contract") || text.includes("bounty") || text.includes("job")) categories.push("Contracts");
+  if (text.includes("parts") || text.includes("plating") || text.includes("stabilizer") || text.includes("cipher")) categories.push("Materials");
+  return categories.length ? categories.slice(0, 3) : ["Reward"];
 }
 
 function DistrictIntelPanel({ state, districtId }: { state: GameState; districtId: DistrictId }) {
@@ -1448,6 +1631,169 @@ function DistrictSkillGrid({ state, tabs, onOpen }: { state: GameState; tabs: Re
   );
 }
 
+function OperationsPanel({
+  state,
+  districtId,
+  onStartOperation,
+  onStopActive,
+}: {
+  state: GameState;
+  districtId: DistrictId;
+  onStartOperation: (id: string, routeId?: OperationRouteId) => void;
+  onStopActive: () => void;
+}) {
+  const districtOps = districtOperations(districtId);
+  const district = getDistrict(districtId);
+  const factionIds = [...new Set(districtOps.flatMap((operation) => Object.keys(operation.factionReputation)))];
+  const operationCredits = districtOps.reduce((sum, operation) => sum + (operation.completionRewards.credits ?? 0), 0);
+  return (
+    <section className="operations-screen">
+      <div className="operations-hero">
+        <div>
+          <p className="eyebrow">{district?.name ?? "District"} / High-risk runs</p>
+          <h2>Operations</h2>
+          <p className="muted">Multi-stage boss chains with route choices, faction consequences, and first-clear rewards.</p>
+        </div>
+        <div className="operations-resource-strip">
+          <span><b>Credits</b>{state.resources.credits.toLocaleString()}</span>
+          <span><b>Rep</b>{state.resources.reputation.toLocaleString()}</span>
+          <span><b>Heat</b>{state.resources.heat.toLocaleString()}</span>
+          <span><b>Potential</b>{operationCredits.toLocaleString()}</span>
+        </div>
+      </div>
+      <div className="operations-layout">
+        <aside className="operation-faction-sidebar">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Faction Reputation</p>
+              <h3>Local Stakes</h3>
+            </div>
+            <Shield size={20} />
+          </div>
+          {factionIds.length ? factionIds.map((id) => {
+            const faction = factions.find((entry) => entry.id === id as FactionId);
+            const reputation = state.factions[id as FactionId]?.reputation ?? 0;
+            const rank = factionRankNumber(reputation);
+            return (
+              <article className="operation-faction-card" key={id}>
+                <p className="eyebrow">Rank {rank} / Rep {reputation}</p>
+                <h3>{faction?.name ?? titleCase(id)}</h3>
+                <Progress value={Math.min(100, Math.max(0, reputation))} label={`${reputation} / 100 standing`} />
+                <p className="fine">{faction?.description ?? "Operation faction pressure."}</p>
+              </article>
+            );
+          }) : <p className="muted">No faction reputation changes listed for these operations.</p>}
+        </aside>
+        <div className="operation-card-column">
+          <div className="operation-section-heading">
+            <span><Target size={18} /> Available Operations</span>
+            <b>{districtOps.length}</b>
+          </div>
+          <div className="operation-card-grid">
+            {districtOps.map((operation) => (
+              <OperationMissionCard
+                key={operation.id}
+                state={state}
+                operation={operation}
+                onStartOperation={onStartOperation}
+                onStopActive={onStopActive}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="operation-route-guide">
+        <InfoBlock title="Route Guide" lines={["Direct routes favor combat and payout.", "Silent routes lower Heat and improve stealth rewards.", "Fixer, faction, and breach routes trade requirements for better success chances."]} />
+      </div>
+    </section>
+  );
+}
+
+function OperationMissionCard({
+  state,
+  operation,
+  onStartOperation,
+  onStopActive,
+}: {
+  state: GameState;
+  operation: OperationDefinition;
+  onStartOperation: (id: string, routeId?: OperationRouteId) => void;
+  onStopActive: () => void;
+}) {
+  const boss = bosses.find((entry) => entry.id === operation.bossId);
+  const active = state.activeOperation?.operationId === operation.id;
+  const progress = active && state.activeOperation ? activityProgress(state.activeOperation.startedAt, state.activeOperation.durationMs) : null;
+  const available = canStartOperation(state, operation);
+  const log = state.operationLogs[operation.id] ?? { clears: 0, bestClearMs: null, firstClear: false, drops: {} };
+  const rewards = Object.entries(operation.completionRewards).filter(([, amount]) => Number(amount) !== 0);
+  return (
+    <article className={`operation-mission-card ${available ? "available" : "locked"} ${active ? "active-card" : ""}`}>
+      <div className="operation-card-banner">
+        <span className={log.firstClear ? "operation-state cleared" : "operation-state"}>{log.firstClear ? "Cleared" : "Uncleared"}</span>
+      </div>
+      <div className="operation-card-body">
+        <div className="operation-title-block">
+          <p className="eyebrow">{getDistrict(operation.districtId)?.name ?? operation.districtId} / Heat {formatSigned(operation.heatChange)}</p>
+          <h3>{operation.name}</h3>
+          <p className="muted">{operation.description}</p>
+        </div>
+        <div className="operation-section compact-section">
+          <p className="operation-section-title">Requirements</p>
+          <RequirementStatusList requirements={operationRequirementDetails(state, operation)} />
+        </div>
+        <div className="operation-section">
+          <p className="operation-section-title">Routes</p>
+          <div className="operation-route-list">
+            {(operation.routes ?? []).map((route) => (
+              <button key={route.id} disabled={!available || active} onClick={() => onStartOperation(operation.id, route.id)}>
+                <span>{operationRouteIcon(route.id)} {route.name}</span>
+                <strong>{Math.round(operationRouteSuccessChance(state, operation, route) * 100)}%</strong>
+              </button>
+            ))}
+            {!operation.routes?.length && (
+              <button disabled={!available || active} onClick={() => onStartOperation(operation.id)}>
+                <span>{operationRouteIcon(operation.defaultRouteId)} Start Operation</span>
+                <strong>{Math.round(operationRouteSuccessChance(state, operation) * 100)}%</strong>
+              </button>
+            )}
+          </div>
+        </div>
+        {active && (
+          <div className="operation-section">
+            <HealthBar label="Runner HP" current={state.health.currentHp} max={calculateMaxHP(state)} kind="player" />
+            <CardActionFooter active progress={progress} startLabel="Launch" stopLabel="Retreat" onStart={() => onStartOperation(operation.id)} onStop={onStopActive} />
+          </div>
+        )}
+        <div className="operation-section split">
+          <div>
+            <p className="operation-section-title">Boss</p>
+            <div className="operation-boss-chip"><ShieldAlert size={18} /> {boss?.name ?? "Unknown"}</div>
+          </div>
+          <div>
+            <p className="operation-section-title">Record</p>
+            <div className="operation-boss-chip">{log.clears} clears / {log.bestClearMs ? formatDuration(log.bestClearMs) : "--"}</div>
+          </div>
+        </div>
+        <div className="operation-section">
+          <p className="operation-section-title">Rewards</p>
+          <div className="operation-reward-grid">
+            {rewards.map(([id, amount]) => <RewardChip key={id} id={id} amount={Number(amount)} />)}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function operationRouteIcon(routeId?: string) {
+  if (routeId?.includes("silent")) return "STL";
+  if (routeId?.includes("fixer") || routeId?.includes("favor")) return "FIX";
+  if (routeId?.includes("breach") || routeId?.includes("blacknet")) return "NET";
+  if (routeId?.includes("smuggler")) return "SMG";
+  if (routeId?.includes("corporate")) return "COR";
+  return "ATK";
+}
+
 function DistrictActivityGrid({ summaries, onOpen }: { summaries: DistrictCategorySummary[]; onOpen: (category: DistrictHubCategory) => void }) {
   return (
     <div className="activity-category-grid">
@@ -1557,73 +1903,49 @@ function DistrictActivityMenu({
     );
   }
   if (category === "combat") {
-    return <FocusedPanel title="Combat">{districtCombatZones(districtId).flatMap((zone) => zone.enemies.map((enemy) => <EnemyCard key={enemy.id} state={state} zone={zone} enemy={enemy} onStart={() => onStartCombat(enemy.id)} onStop={onStopActive} onUseHealingItem={onUseHealingItem} />))}</FocusedPanel>;
+    return (
+      <CombatDashboard
+        state={state}
+        districtId={districtId}
+        zones={districtCombatZones(districtId)}
+        onStartCombat={onStartCombat}
+        onStopActive={onStopActive}
+        onUseHealingItem={onUseHealingItem}
+      />
+    );
   }
   if (category === "crafting") {
     return <FocusedPanel title="Crafting"><CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} /></FocusedPanel>;
   }
   if (category === "operations") {
     return (
-      <FocusedPanel title="Operations">
-        <LocalFactionCards state={state} districtId={districtId} context="Operation reputation" />
-        {districtOperations(districtId).map((operation) => {
-          const boss = bosses.find((entry) => entry.id === operation.bossId);
-          const active = state.activeOperation?.operationId === operation.id;
-          const progress = active && state.activeOperation ? activityProgress(state.activeOperation.startedAt, state.activeOperation.durationMs) : null;
-          const available = canStartOperation(state, operation);
-          return (
-            <article className={`action-card vertical ${active ? "active-card" : ""} ${available ? "" : "locked-card"}`} key={operation.id}>
-              <div>
-                <p className="eyebrow">Operation / {state.operationLogs[operation.id]?.firstClear ? "Cleared" : "Uncleared"}</p>
-                <h3>{operation.name}</h3>
-                <p className="muted">{operation.description}</p>
-                <p className="fine">Boss {boss?.name ?? "Unknown"} / Rewards {formatRewards(operation.completionRewards)}</p>
-                {active && <HealthBar label="Runner HP" current={state.health.currentHp} max={calculateMaxHP(state)} kind="player" />}
-                <RequirementStatusList requirements={operationRequirementDetails(state, operation)} />
-              </div>
-              <div className="card-list compact">
-                {active ? (
-                  <CardActionFooter active progress={progress} startLabel="Launch" stopLabel="Retreat" onStart={() => onStartOperation(operation.id)} onStop={onStopActive} />
-                ) : (
-                  <>
-                    {(operation.routes ?? []).map((route) => <button className="primary-button full" key={route.id} disabled={!available} onClick={() => onStartOperation(operation.id, route.id)}>{operationRouteButtonLabel(state, operation, route)}</button>)}
-                    {!operation.routes?.length && <button className="primary-button full" disabled={!available} onClick={() => onStartOperation(operation.id)}>{operationRouteButtonLabel(state, operation)}</button>}
-                  </>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </FocusedPanel>
+      <OperationsPanel
+        state={state}
+        districtId={districtId}
+        onStartOperation={onStartOperation}
+        onStopActive={onStopActive}
+      />
     );
   }
   if (category === "ripperdoc") {
     return (
-      <FocusedPanel title="Ripperdoc">
-        {ripperdocClinics.filter((clinic) => clinic.districtId === districtId).map((clinic) => (
-          <VendorLikeRipperdoc key={clinic.id} state={state} clinicId={clinic.id} onBuy={onBuyRipperdocCyberware} />
-        ))}
-        {districtRipperdocs(districtId).map((service) => (
-          <ActivityCard key={service.id} locked={!canUseRipperdocService(state, service.id)}>
-            <div>
-              <p className="eyebrow">{service.category ?? service.serviceType}</p>
-              <h3>{service.name}</h3>
-              <p className="muted">{service.description}</p>
-              <p className="fine">Cost {formatRewards(service.cost)}{service.heatChange ? ` / Heat ${service.heatChange}` : ""}</p>
-              {service.temporaryEffect && <p className="fine">Effect: {service.temporaryEffect.description}</p>}
-            </div>
-            <button className="primary-button full" disabled={!canUseRipperdocService(state, service.id)} onClick={() => onUseRipperdoc(service.id)}>Use Service</button>
-          </ActivityCard>
-        ))}
-      </FocusedPanel>
+      <RipperdocClinicScreen
+        state={state}
+        districtId={districtId}
+        onUseRipperdoc={onUseRipperdoc}
+        onBuyRipperdocCyberware={onBuyRipperdocCyberware}
+      />
     );
   }
   if (category === "market") {
     return (
-      <FocusedPanel title="Market">
-        {districtVendors(districtId).map((vendor) => <VendorCard key={vendor.id} state={state} vendor={vendor} onBuy={(itemId) => onBuyVendorItem(vendor.id, itemId)} onSell={(itemId) => onSellVendorItem(vendor.id, itemId)} />)}
-        {(districtId === "underpassMarket" || districtId === "blacknetQuarter") && <BlackMarketPanel state={state} onListItem={onListBlackMarket} />}
-      </FocusedPanel>
+      <MarketScreen
+        state={state}
+        districtId={districtId}
+        onBuyVendorItem={onBuyVendorItem}
+        onSellVendorItem={onSellVendorItem}
+        onListBlackMarket={onListBlackMarket}
+      />
     );
   }
   if (category === "housing") {
@@ -1635,6 +1957,7 @@ function DistrictActivityMenu({
               <p className="eyebrow">Housing</p>
               <h3>{housing.name}</h3>
               <p className="fine">Cost {housing.cost} Credits / {state.ownedHousing[housing.id] ? "Owned" : "For Sale"}</p>
+              <p className="fine">Active bonus: +2% action speed, {modifierSummary(housing.passiveModifiers ?? {})}</p>
               <RequirementStatusList requirements={textRequirementDetails(state, housing.unlockRequirements ?? [])} />
             </div>
             {state.ownedHousing[housing.id] ? <button className="secondary-button full" onClick={() => onSetResidence(housing.id)}>Set Active</button> : <button className="primary-button full" disabled={state.resources.credits < housing.cost} onClick={() => onBuyHousing(housing.id)}>Buy</button>}
@@ -1650,14 +1973,15 @@ function DistrictActivityMenu({
           const owned = Boolean(state.ownedVehicles[vehicle.id]);
           const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
           return (
-            <ActivityCard key={vehicle.id}>
+            <ActivityCard key={vehicle.id} className={`rarity-${vehicle.rarity.toLowerCase()}`}>
               <div>
                 <p className="eyebrow">{vehicle.rarity} / {vehicle.type}</p>
                 <h3>{vehicle.name}{owned ? ` +${level}` : ""}</h3>
                 <p className="fine">Cost {formatRewards(vehicle.cost)}</p>
+                <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
                 <RequirementStatusList requirements={textRequirementDetails(state, vehicle.unlockRequirements)} />
               </div>
-              {owned ? <div className="card-list compact"><button className="secondary-button full" onClick={() => onSetVehicle(vehicle.id)}>Set Active</button><button className="primary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>Upgrade</button></div> : <button className="primary-button full" disabled={!canBuyVehicle(state, vehicle.id)} onClick={() => onBuyVehicle(vehicle.id)}>Buy Vehicle</button>}
+              {owned ? <div className="card-list compact"><button className="secondary-button full" onClick={() => onSetVehicle(vehicle.id)}>Set Active</button><button className="primary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>{level >= vehicle.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}</button></div> : <button className="primary-button full" disabled={!canBuyVehicle(state, vehicle.id)} onClick={() => onBuyVehicle(vehicle.id)}>Buy Vehicle</button>}
             </ActivityCard>
           );
         })}
@@ -1735,19 +2059,14 @@ function DistrictSkillWorkPanel({
       )}
 
       {hasCombatWork && (
-        <FocusedPanel title="Street Combat Fights">
-          {enemies.flatMap((zone) => zone.enemies.map((enemy) => (
-            <EnemyCard
-              key={enemy.id}
-              state={state}
-              zone={zone}
-              enemy={enemy}
-              onStart={() => onStartCombat(enemy.id)}
-              onStop={onStopActive}
-              onUseHealingItem={onUseHealingItem}
-            />
-          )))}
-        </FocusedPanel>
+        <CombatDashboard
+          state={state}
+          districtId={districtId}
+          zones={enemies}
+          onStartCombat={onStartCombat}
+          onStopActive={onStopActive}
+          onUseHealingItem={onUseHealingItem}
+        />
       )}
 
       {empty && (
@@ -1773,6 +2092,597 @@ function VendorLikeRipperdoc({ state, clinicId, onBuy }: { state: GameState; cli
       </div>
     </ActivityCard>
   );
+}
+
+type RipperdocTab = "Shop" | "Treat" | "Install" | "Calibrate" | "Upgrade";
+
+const ripperdocTabs: RipperdocTab[] = ["Shop", "Treat", "Install", "Calibrate", "Upgrade"];
+
+function RipperdocClinicScreen({
+  state,
+  districtId,
+  onUseRipperdoc,
+  onBuyRipperdocCyberware,
+}: {
+  state: GameState;
+  districtId: DistrictId;
+  onUseRipperdoc: (id: string) => void;
+  onBuyRipperdocCyberware: (clinicId: string, itemId: string) => void;
+}) {
+  const clinic = ripperdocClinics.find((entry) => entry.districtId === districtId);
+  const services = districtRipperdocs(districtId);
+  const [activeTab, setActiveTab] = useState<RipperdocTab>("Shop");
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(clinic?.cyberwareInventory[0] ?? null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(services[0]?.id ?? null);
+  const tabServices = services.filter((service) => ripperdocTabForService(service) === activeTab);
+  const selectedItem = activeTab === "Shop" && selectedItemId ? getItem(selectedItemId) : null;
+  const selectedService = activeTab !== "Shop" ? tabServices.find((service) => service.id === selectedServiceId) ?? tabServices[0] ?? null : null;
+
+  if (!clinic && !services.length) {
+    return <FocusedPanel title="Ripperdoc"><p className="muted">No ripperdoc clinic is active in this district yet.</p></FocusedPanel>;
+  }
+
+  return (
+    <section className="ripperdoc-screen">
+      <RipperdocHeader state={state} clinic={clinic} districtId={districtId} />
+      <RipperdocTabs activeTab={activeTab} onTab={setActiveTab} services={services} shopCount={clinic?.cyberwareInventory.length ?? 0} />
+      <RipperdocStatusBar state={state} />
+      <ActiveEffectPanel state={state} />
+      <div className="ripperdoc-workspace">
+        <div className="ripperdoc-list-panel">
+          <div className="operation-section-heading">
+            <span>{activeTab === "Shop" ? "Cyberware Shop" : `${activeTab} Services`}</span>
+            <b>{activeTab === "Shop" ? clinic?.cyberwareInventory.length ?? 0 : tabServices.length}</b>
+          </div>
+          {activeTab === "Shop" ? (
+            <div className="ripperdoc-card-list">
+              {(clinic?.cyberwareInventory ?? []).map((itemId) => (
+                <CyberwareShopCard
+                  key={itemId}
+                  state={state}
+                  clinic={clinic!}
+                  itemId={itemId}
+                  selected={selectedItemId === itemId}
+                  onSelect={() => setSelectedItemId(itemId)}
+                  onBuy={() => onBuyRipperdocCyberware(clinic!.id, itemId)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="ripperdoc-card-list">
+              {tabServices.map((service) => (
+                <RipperdocServiceCard
+                  key={service.id}
+                  state={state}
+                  service={service}
+                  selected={(selectedService?.id ?? selectedServiceId) === service.id}
+                  onSelect={() => setSelectedServiceId(service.id)}
+                  onUse={() => onUseRipperdoc(service.id)}
+                />
+              ))}
+              {!tabServices.length && <p className="muted">No {activeTab.toLowerCase()} services available in this clinic.</p>}
+            </div>
+          )}
+        </div>
+        <RipperdocDetailPanel
+          state={state}
+          clinic={clinic}
+          item={selectedItem ?? undefined}
+          service={selectedService ?? undefined}
+          onBuy={selectedItem && clinic ? () => onBuyRipperdocCyberware(clinic.id, selectedItem.id) : undefined}
+          onUse={selectedService ? () => onUseRipperdoc(selectedService.id) : undefined}
+        />
+      </div>
+    </section>
+  );
+}
+
+function RipperdocHeader({ state, clinic, districtId }: { state: GameState; clinic?: RipperdocClinic; districtId: DistrictId }) {
+  const district = getDistrict(districtId);
+  return (
+    <article className="ripperdoc-header">
+      <div className="ripperdoc-clinic-mark"><ShieldAlert size={28} /></div>
+      <div>
+        <p className="eyebrow">Ripperdoc</p>
+        <h2>{clinic?.name ?? `${district?.name ?? "District"} Clinic`}</h2>
+        <p className="fine">{clinic?.legalOnly ? "Licensed Clinic" : "Street Clinic"} • {clinic?.specialties[0] ?? "General cyberware"}</p>
+        <p className="muted">{clinic?.description ?? "Local implant service access is limited in this district."}</p>
+      </div>
+      <div className="ripperdoc-tag-row">
+        {(clinic?.specialties ?? ["Install", "Calibrate"]).map((tag) => <span key={tag}>{tag}</span>)}
+        <span>IN {effectiveNeuralInstability(state)}</span>
+      </div>
+    </article>
+  );
+}
+
+function RipperdocTabs({ activeTab, onTab, services, shopCount }: { activeTab: RipperdocTab; onTab: (tab: RipperdocTab) => void; services: RipperdocService[]; shopCount: number }) {
+  return (
+    <div className="ripperdoc-tabs">
+      {ripperdocTabs.map((tab) => {
+        const count = tab === "Shop" ? shopCount : services.filter((service) => ripperdocTabForService(service) === tab).length;
+        return <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => onTab(tab)}>{tab}<span>{count}</span></button>;
+      })}
+    </div>
+  );
+}
+
+function CyberwareShopCard({ state, clinic, itemId, selected, onSelect, onBuy }: { state: GameState; clinic: RipperdocClinic; itemId: string; selected: boolean; onSelect: () => void; onBuy: () => void }) {
+  const item = getItem(itemId);
+  if (!item) return null;
+  const price = ripperdocBuyPrice(state, clinic.id, itemId);
+  return (
+    <article className={`ripperdoc-shop-card rarity-${item.rarity.toLowerCase()} ${selected ? "selected" : ""}`} onClick={onSelect}>
+      <EquipmentTypeIconBadge item={item} />
+      <div>
+        <h3>{item.name}</h3>
+        <p className="fine">{titleCase(String(item.slot ?? item.type))} • {item.rarity}</p>
+        <p className="muted">{item.modifiers ? formatItemModifiers(item.modifiers) : item.stats ? formatStats(item.stats) : item.description}</p>
+      </div>
+      <div className="ripperdoc-price-block">
+        <strong>{price.toLocaleString()}</strong>
+        <span>Credits</span>
+        <button className="primary-button" disabled={!canBuyCyberwareFromRipperdoc(state, clinic.id, itemId)} onClick={(event) => { event.stopPropagation(); onBuy(); }}>Buy</button>
+      </div>
+    </article>
+  );
+}
+
+function RipperdocServiceCard({ state, service, selected, onSelect, onUse }: { state: GameState; service: RipperdocService; selected: boolean; onSelect: () => void; onUse: () => void }) {
+  const canUse = canUseRipperdocService(state, service.id);
+  return (
+    <article className={`ripperdoc-service-card ${canUse ? "" : "locked"} ${selected ? "selected" : ""}`} onClick={onSelect}>
+      <div className="ripperdoc-service-head">
+        <div><p className="eyebrow">{service.category ?? service.serviceType}</p><h3>{service.name}</h3></div>
+        <span className={service.riskLevel && service.riskLevel > 2 ? "danger-text" : ""}>Risk {service.riskLevel ?? 1}</span>
+      </div>
+      <p className="muted">{service.description}</p>
+      <ServiceCostRow state={state} service={service} />
+      <ServiceEffectRow service={service} />
+      <InfoRow label="Duration" value={service.temporaryEffect?.durationMs ? formatDuration(service.temporaryEffect.durationMs) : "Immediate"} />
+      {service.requirements.length ? <InfoRow label="Requirements" value={service.requirements.join(", ")} warning={!canUse} /> : null}
+      <button className="primary-button full" disabled={!canUse} onClick={(event) => { event.stopPropagation(); onUse(); }}>Use Service</button>
+    </article>
+  );
+}
+
+function ServiceCostRow({ state, service }: { state: GameState; service: RipperdocService }) {
+  return <InfoRow label="Cost" value={formatServiceCost(state, service)} warning={!canUseRipperdocService(state, service.id)} />;
+}
+
+function ServiceEffectRow({ service }: { service: RipperdocService }) {
+  const effects = [
+    service.temporaryEffect?.description,
+    service.neuralInstabilityChange ? `IN ${formatSigned(service.neuralInstabilityChange)}` : null,
+    service.heatChange ? `Heat ${formatSigned(service.heatChange)}` : null,
+    ...(service.effects ?? []),
+  ].filter(Boolean).join(" • ");
+  return <InfoRow label="Effect" value={effects || "Service completion"} />;
+}
+
+function InfoRow({ label, value, warning }: { label: string; value: string; warning?: boolean }) {
+  return <div className={`ripperdoc-info-row ${warning ? "warning" : ""}`}><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function ActiveEffectPanel({ state }: { state: GameState }) {
+  const now = Date.now();
+  const effects = (state.activeRipperdocEffects ?? []).filter((effect) => !effect.expiresAt || effect.expiresAt > now);
+  if (!effects.length) return null;
+  return (
+    <article className="ripperdoc-active-effects">
+      <p className="eyebrow">Active Clinic Effects</p>
+      <div>
+        {effects.map((effect) => (
+          <span key={effect.serviceId}>
+            <b>{effect.name}</b>
+            <em>{effect.description}</em>
+            <strong>{effect.expiresAt ? `${formatDuration(effect.expiresAt - now)} remaining` : `${effect.remainingUses ?? 0} uses`}</strong>
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function RipperdocStatusBar({ state }: { state: GameState }) {
+  return (
+    <div className="ripperdoc-status-bar">
+      <span><b>Credits</b>{state.resources.credits.toLocaleString()}</span>
+      <span><b>Scrap</b>{state.resources.scrap.toLocaleString()}</span>
+      <span><b>Cyberware Parts</b>{state.resources.cyberwareParts.toLocaleString()}</span>
+      <span><b>IN</b>{effectiveNeuralInstability(state)}</span>
+      <span><b>Load</b>{cyberwareLoad(state)}</span>
+    </div>
+  );
+}
+
+function RipperdocDetailPanel({ state, clinic, item, service, onBuy, onUse }: { state: GameState; clinic?: RipperdocClinic; item?: ReturnType<typeof getItem>; service?: RipperdocService; onBuy?: () => void; onUse?: () => void }) {
+  if (!item && !service) return <aside className="ripperdoc-detail-panel"><p className="muted">Select a shop item or service to inspect details.</p></aside>;
+  if (item && clinic) {
+    return (
+      <aside className={`ripperdoc-detail-panel rarity-${item.rarity.toLowerCase()}`}>
+        <div className="panel-heading"><div><p className="eyebrow">{item.type} / {item.rarity}</p><h2>{item.name}</h2></div><EquipmentTypeIconBadge item={item} /></div>
+        <p className="muted">{item.description}</p>
+        <InfoRow label="Slot" value={titleCase(String(item.slot ?? "Cyberware"))} />
+        <InfoRow label="Price" value={`${ripperdocBuyPrice(state, clinic.id, item.id).toLocaleString()} Credits`} warning={!canBuyCyberwareFromRipperdoc(state, clinic.id, item.id)} />
+        {item.modifiers && <InfoRow label="Modifiers" value={formatItemModifiers(item.modifiers)} />}
+        {item.stats && <StatComparisonLine state={state} itemId={item.id} compareItemId={equippedComparisonItemId(state, item)} />}
+        <InfoRow label="Instability Load" value={formatSigned(cyberwareInstabilityLoad(item))} />
+        <button className="primary-button full" disabled={!canBuyCyberwareFromRipperdoc(state, clinic.id, item.id)} onClick={onBuy}>Buy Cyberware</button>
+      </aside>
+    );
+  }
+  return (
+    <aside className="ripperdoc-detail-panel">
+      <div className="panel-heading"><div><p className="eyebrow">{service?.category ?? service?.serviceType}</p><h2>{service?.name}</h2></div><BrainCircuit size={22} /></div>
+      <p className="muted">{service?.description}</p>
+      {service && <ServiceCostRow state={state} service={service} />}
+      {service && <ServiceEffectRow service={service} />}
+      {service?.risk && <p className="fine danger-text">{service.risk}</p>}
+      {service && <button className="primary-button full" disabled={!canUseRipperdocService(state, service.id)} onClick={onUse}>Use Service</button>}
+    </aside>
+  );
+}
+
+function ripperdocTabForService(service: RipperdocService): RipperdocTab {
+  if (service.serviceType === "treatment" || service.serviceType === "stabilizer") return "Treat";
+  if (service.serviceType === "install" || service.serviceType === "prototypeInstall" || service.serviceType === "remove" || service.serviceType === "loadReduction") return "Install";
+  if (service.serviceType === "calibration" || service.serviceType === "slotOptimization") return "Calibrate";
+  if (service.serviceType === "upgrade") return "Upgrade";
+  return "Calibrate";
+}
+
+function formatServiceCost(state: GameState, service: RipperdocService) {
+  const entries = Object.entries(service.cost).filter(([, amount]) => Number(amount) > 0).map(([id, amount]) => {
+    const adjusted = calculateRipperdocServiceCost(state, Number(amount));
+    return `${adjusted.toLocaleString()} ${resourceNames[id as ResourceId] ?? id}`;
+  });
+  return entries.length ? entries.join(", ") : "No cost";
+}
+
+type MarketTab = "Buy" | "Sell" | "Special Stock" | "Limited Stock" | "Trade Info";
+
+function MarketScreen({
+  state,
+  districtId,
+  onBuyVendorItem,
+  onSellVendorItem,
+  onListBlackMarket,
+}: {
+  state: GameState;
+  districtId: DistrictId;
+  onBuyVendorItem: (vendorId: string, itemId: string) => void;
+  onSellVendorItem: (vendorId: string, itemId: string) => void;
+  onListBlackMarket: (itemId: string, strategy: BlackMarketStrategy) => void;
+}) {
+  const vendorsForDistrict = districtVendors(districtId);
+  const [activeVendorId, setActiveVendorId] = useState(vendorsForDistrict[0]?.id ?? "");
+  const vendor = vendorsForDistrict.find((entry) => entry.id === activeVendorId) ?? vendorsForDistrict[0];
+  const tabs = marketTabsForVendor(vendor);
+  const [activeTab, setActiveTab] = useState<MarketTab>(tabs[0] ?? "Trade Info");
+  const visibleItems = vendor ? marketItemsForTab(state, vendor, activeTab) : [];
+  const [selectedItemId, setSelectedItemId] = useState(visibleItems[0]?.itemId ?? "");
+
+  useEffect(() => {
+    if (!vendor && vendorsForDistrict[0]) setActiveVendorId(vendorsForDistrict[0].id);
+  }, [vendor, vendorsForDistrict]);
+
+  useEffect(() => {
+    if (!tabs.includes(activeTab)) setActiveTab(tabs[0] ?? "Trade Info");
+  }, [activeTab, tabs]);
+
+  useEffect(() => {
+    if (!visibleItems.some((entry) => entry.itemId === selectedItemId)) setSelectedItemId(visibleItems[0]?.itemId ?? "");
+  }, [selectedItemId, visibleItems]);
+
+  if (!vendor) {
+    return (
+      <FocusedPanel title="Market">
+        <p className="muted">No vendor has set up shop in this district yet.</p>
+      </FocusedPanel>
+    );
+  }
+
+  const selectedEntry = visibleItems.find((entry) => entry.itemId === selectedItemId) ?? visibleItems[0];
+  const selectedItem = selectedEntry ? getItem(selectedEntry.itemId) : undefined;
+  const district = getDistrict(districtId);
+  const unlocked = canUseVendor(state, vendor);
+
+  return (
+    <section className="market-screen">
+      <MarketHeader state={state} vendor={vendor} districtName={district?.name ?? "District"} unlocked={unlocked} />
+      {vendorsForDistrict.length > 1 && (
+        <div className="market-vendor-selector">
+          {vendorsForDistrict.map((entry) => (
+            <button key={entry.id} className={entry.id === vendor.id ? "active" : ""} onClick={() => setActiveVendorId(entry.id)}>
+              {entry.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <MarketTabs activeTab={activeTab} tabs={tabs} onTab={setActiveTab} vendor={vendor} state={state} />
+      <MarketResourceStrip state={state} vendor={vendor} />
+      <div className="market-layout">
+        <div className="market-main-panel">
+          {activeTab === "Trade Info" ? (
+            <MarketTradeInfo state={state} vendor={vendor} />
+          ) : (
+            <div className="market-item-grid">
+              {visibleItems.map((entry) => (
+                <MarketItemCard
+                  key={`${activeTab}-${entry.itemId}`}
+                  state={state}
+                  vendor={vendor}
+                  entry={entry}
+                  mode={activeTab === "Sell" ? "sell" : "buy"}
+                  selected={entry.itemId === selectedEntry?.itemId}
+                  onSelect={() => setSelectedItemId(entry.itemId)}
+                  onBuy={() => onBuyVendorItem(vendor.id, entry.itemId)}
+                  onSell={() => onSellVendorItem(vendor.id, entry.itemId)}
+                />
+              ))}
+              {!visibleItems.length && <p className="muted">No listings match this vendor tab yet.</p>}
+            </div>
+          )}
+        </div>
+        <MarketDetailPanel
+          state={state}
+          vendor={vendor}
+          entry={selectedEntry}
+          item={selectedItem}
+          mode={activeTab === "Sell" ? "sell" : "buy"}
+          onBuy={selectedEntry ? () => onBuyVendorItem(vendor.id, selectedEntry.itemId) : undefined}
+          onSell={selectedEntry ? () => onSellVendorItem(vendor.id, selectedEntry.itemId) : undefined}
+        />
+      </div>
+      {(districtId === "underpassMarket" || districtId === "blacknetQuarter") && <BlackMarketPanel state={state} onListItem={onListBlackMarket} />}
+    </section>
+  );
+}
+
+function MarketHeader({ state, vendor, districtName, unlocked }: { state: GameState; vendor: VendorDefinition; districtName: string; unlocked: boolean }) {
+  const standing = state.districtStanding[vendor.districtId]?.standing ?? 0;
+  const threat = state.districtThreat[vendor.districtId]?.level ?? 0;
+  return (
+    <article className="market-header">
+      <div className="market-sign"><Backpack size={26} /></div>
+      <div>
+        <p className="eyebrow">District Market</p>
+        <h2>{vendor.name}</h2>
+        <p className="fine">{districtName} • {vendor.canSell ? "Buyback Desk" : "Purchasing Only"} • Standing {standing} • Threat {threat}</p>
+        <p className="muted">{vendor.description}</p>
+      </div>
+      <div className="market-header-badges">
+        <span className={unlocked ? "unlocked" : "locked"}>{unlocked ? "Unlocked" : "Locked"}</span>
+        <span>{Math.round(vendor.priceModifier * 100)}% Base</span>
+        {vendor.specialServices?.map((service) => <span key={service}>{service}</span>)}
+      </div>
+    </article>
+  );
+}
+
+function MarketTabs({ activeTab, tabs, onTab, vendor, state }: { activeTab: MarketTab; tabs: MarketTab[]; onTab: (tab: MarketTab) => void; vendor: VendorDefinition; state: GameState }) {
+  return (
+    <div className="market-tabs">
+      {tabs.map((tab) => (
+        <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => onTab(tab)}>
+          {tab}
+          <span>{marketItemsForTab(state, vendor, tab).length}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MarketResourceStrip({ state, vendor }: { state: GameState; vendor: VendorDefinition }) {
+  const resources: ResourceId[] = ["credits", "scrap", "cyberwareParts", "vehicleParts", "armorPlating", "encryptedData"];
+  return (
+    <div className="market-resource-strip">
+      {resources.filter((id) => id in state.resources).map((id) => (
+        <span key={id}>
+          <b>{resourceNames[id]}</b>
+          {state.resources[id].toLocaleString()}
+        </span>
+      ))}
+      <span><b>Standing</b>{state.districtStanding[vendor.districtId]?.standing ?? 0}</span>
+      <span><b>Threat</b>{state.districtThreat[vendor.districtId]?.level ?? 0}</span>
+    </div>
+  );
+}
+
+function MarketItemCard({
+  state,
+  vendor,
+  entry,
+  mode,
+  selected,
+  onSelect,
+  onBuy,
+  onSell,
+}: {
+  state: GameState;
+  vendor: VendorDefinition;
+  entry: VendorItemEntry;
+  mode: "buy" | "sell";
+  selected: boolean;
+  onSelect: () => void;
+  onBuy: () => void;
+  onSell: () => void;
+}) {
+  const item = getItem(entry.itemId);
+  const owned = getOwnedCount(state, entry.itemId);
+  const price = mode === "sell" ? sellValue(state, vendor, entry.itemId) : vendorPrice(state, vendor, entry);
+  const unlocked = vendorItemUnlocked(state, entry);
+  const canTrade = mode === "sell" ? canSellVendorItem(state, vendor.id, entry.itemId) : canBuyVendorItem(state, vendor.id, entry.itemId);
+  const rarity = item?.rarity ?? "Common";
+  return (
+    <article className={`market-item-card rarity-${rarity.toLowerCase()} ${selected ? "selected" : ""} ${unlocked ? "" : "locked-card"}`} onClick={onSelect}>
+      <div className="market-item-icon">{item ? <EquipmentTypeIconBadge item={item} /> : <span>{resourceIconLabel(entry.itemId)}</span>}</div>
+      <div className="market-item-copy">
+        <p className="eyebrow">{mode === "sell" ? "Sell" : marketStockLabel(state, vendor, entry)}</p>
+        <h3>{item?.name ?? resourceNames[entry.itemId as ResourceId] ?? entry.itemId}</h3>
+        <p className="fine">{item ? `${item.type} • ${rarity}` : "Resource"}</p>
+        <p className="muted">{item?.description ?? entry.sourceHint}</p>
+        {!unlocked && <p className="danger-text">Requires {vendorRequirementHint(entry)}</p>}
+      </div>
+      <div className="market-card-trade">
+        <strong>{price.toLocaleString()}</strong>
+        <span>{mode === "sell" ? "Sell Value" : "Credits"}</span>
+        <em>Owned {owned.toLocaleString()}</em>
+        <button className={mode === "sell" ? "secondary-button" : "primary-button"} disabled={!canTrade} onClick={(event) => { event.stopPropagation(); mode === "sell" ? onSell() : onBuy(); }}>
+          {mode === "sell" ? "Sell 1" : "Buy"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function MarketDetailPanel({
+  state,
+  vendor,
+  entry,
+  item,
+  mode,
+  onBuy,
+  onSell,
+}: {
+  state: GameState;
+  vendor: VendorDefinition;
+  entry?: VendorItemEntry;
+  item?: ReturnType<typeof getItem>;
+  mode: "buy" | "sell";
+  onBuy?: () => void;
+  onSell?: () => void;
+}) {
+  if (!entry) {
+    return <aside className="market-detail-panel"><p className="muted">Select a listing to inspect price, stock, requirements, and use cases.</p></aside>;
+  }
+  const unlocked = vendorItemUnlocked(state, entry);
+  const price = vendorPrice(state, vendor, entry);
+  const sell = sellValue(state, vendor, entry.itemId);
+  const owned = getOwnedCount(state, entry.itemId);
+  const limitedRestockAt = entry.stockType === "limited" ? vendorLimitedStockRefreshAt(state, vendor.id) : undefined;
+  const limitedRestockLabel = limitedRestockAt ? formatDuration(Math.max(0, limitedRestockAt - Date.now())) : "15m";
+  return (
+    <aside className={`market-detail-panel rarity-${(item?.rarity ?? "Common").toLowerCase()}`}>
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">{item?.rarity ?? "Resource"} / {item?.type ?? "Market Good"} / Owned {owned.toLocaleString()}</p>
+          <h2>{item?.name ?? resourceNames[entry.itemId as ResourceId] ?? entry.itemId}</h2>
+        </div>
+        {item ? <EquipmentTypeIconBadge item={item} /> : <span className="resource-detail-icon">{resourceIconLabel(entry.itemId)}</span>}
+      </div>
+      <p className="muted">{item?.description ?? entry.sourceHint}</p>
+      <div className="market-detail-rows">
+        <InfoRow label="Stock" value={marketStockLabel(state, vendor, entry)} warning={!unlocked} />
+        {entry.stockType === "limited" && <InfoRow label="Restock" value={limitedRestockLabel} />}
+        <InfoRow label="Source" value={entry.sourceHint} />
+        <InfoRow label="Buy Price" value={`${price.toLocaleString()} Credits`} warning={!canBuyVendorItem(state, vendor.id, entry.itemId)} />
+        <InfoRow label="Sell Value" value={`${sell.toLocaleString()} Credits`} warning={!canSellVendorItem(state, vendor.id, entry.itemId)} />
+        {!unlocked && <InfoRow label="Requirements" value={vendorRequirementHint(entry)} warning />}
+        {item?.stats && <StatComparisonLine state={state} itemId={item.id} compareItemId={equippedComparisonItemId(state, item)} />}
+        {item?.modifiers && <InfoRow label="Effects" value={formatItemModifiers(item.modifiers)} />}
+      </div>
+      <MarketPriceBreakdown state={state} vendor={vendor} entry={entry} />
+      <div className="market-detail-actions">
+        <button className="primary-button full" disabled={!canBuyVendorItem(state, vendor.id, entry.itemId)} onClick={onBuy}>Buy 1</button>
+        {vendor.canSell && <button className="secondary-button full" disabled={!canSellVendorItem(state, vendor.id, entry.itemId)} onClick={onSell}>Sell 1</button>}
+      </div>
+      {mode === "sell" && <p className="fine">Selling removes one owned copy. Equipped gear stays visible in inventory and should be unequipped there first when needed.</p>}
+    </aside>
+  );
+}
+
+function MarketPriceBreakdown({ state, vendor, entry }: { state: GameState; vendor: VendorDefinition; entry: VendorItemEntry }) {
+  const finalPrice = vendorPrice(state, vendor, entry);
+  const item = getItem(entry.itemId);
+  const adjustedBase = calculateRarityAdjustedShopBasePrice(item, entry.price);
+  const factionDiscount = Object.entries(vendor.factionDiscounts ?? {})
+    .filter(([factionId]) => factionRankNumber(state.factions[factionId as FactionId]?.reputation ?? 0) > 0)
+    .map(([factionId, discount]) => `${titleCase(factionId)} -${Math.round((discount ?? 0) * 100)}%`);
+  const pathDiscount = state.startingPath ? vendor.startingPathModifiers?.[state.startingPath] ?? 0 : 0;
+  const factionDiscountTotal = Object.entries(vendor.factionDiscounts ?? {}).reduce((sum, [factionId, discount]) => {
+    return sum + (factionRankNumber(state.factions[factionId as FactionId]?.reputation ?? 0) > 0 ? discount ?? 0 : 0);
+  }, 0);
+  const vendorRate = Math.max(0.35, vendor.priceModifier - factionDiscountTotal - pathDiscount);
+  const standingDiscount = Math.min(0.18, (state.districtStanding[vendor.districtId]?.standing ?? 0) / 600);
+  const threatMarkup = districtThreatPenalty(state, vendor.districtId);
+  const shopModifier = getActiveModifiers(state).shopPrices;
+  const districtRate = 1 + threatMarkup - standingDiscount + shopModifier;
+  return (
+    <div className="market-price-breakdown">
+      <p className="eyebrow">Price Breakdown</p>
+      <span><b>Listed Base</b>{entry.price.toLocaleString()} Credits</span>
+      {adjustedBase !== entry.price && <span><b>Rarity Floor</b>{adjustedBase.toLocaleString()} Credits</span>}
+      <span><b>Vendor Rate</b>{Math.round(vendorRate * 100)}%</span>
+      {pathDiscount > 0 && <span><b>Life Path</b>-{Math.round(pathDiscount * 100)}%</span>}
+      {factionDiscount.map((label) => <span key={label}><b>Faction</b>{label}</span>)}
+      {(standingDiscount !== 0 || threatMarkup !== 0 || shopModifier !== 0) && (
+        <span><b>District/Global</b>{Math.round(districtRate * 100)}%</span>
+      )}
+      <span><b>Final</b>{finalPrice.toLocaleString()} Credits</span>
+    </div>
+  );
+}
+
+function MarketTradeInfo({ state, vendor }: { state: GameState; vendor: VendorDefinition }) {
+  const standing = state.districtStanding[vendor.districtId]?.standing ?? 0;
+  const threat = state.districtThreat[vendor.districtId]?.level ?? 0;
+  return (
+    <div className="market-info-grid">
+      <article>
+        <p className="eyebrow">Vendor Rules</p>
+        <h3>Trading Access</h3>
+        <RequirementStatusList requirements={textRequirementDetails(state, vendor.unlockRequirements)} />
+        <p className="muted">{vendor.refreshBehavior}</p>
+      </article>
+      <article>
+        <p className="eyebrow">Pricing</p>
+        <h3>Risk and Standing</h3>
+        <p className="fine">Standing {standing} improves local trade confidence. Threat {threat} can make prices harsher through the central balance formulas.</p>
+        <p className="fine">Faction and life path discounts apply when the vendor supports them.</p>
+      </article>
+      <article>
+        <p className="eyebrow">Item Sources</p>
+        <h3>Where Stock Comes From</h3>
+        <p className="muted">Each listing keeps its source hint on the card and detail panel so the player can connect vendors to districts, unlocks, and future collection goals.</p>
+      </article>
+    </div>
+  );
+}
+
+function marketTabsForVendor(vendor?: VendorDefinition): MarketTab[] {
+  if (!vendor) return ["Trade Info"];
+  const tabs: MarketTab[] = ["Buy"];
+  if (vendor.canSell) tabs.push("Sell");
+  if (vendor.inventory.some((entry) => entry.stockType === "unlock" || entry.requiredUnlock || entry.requiredDistrictUnlock || Object.keys(entry.requiredFactionRank ?? {}).length)) tabs.push("Special Stock");
+  if (vendor.inventory.some((entry) => entry.stockType === "limited")) tabs.push("Limited Stock");
+  tabs.push("Trade Info");
+  return tabs;
+}
+
+function marketItemsForTab(state: GameState, vendor: VendorDefinition, tab: MarketTab): VendorItemEntry[] {
+  if (tab === "Trade Info") return [];
+  if (tab === "Sell") {
+    const sellableIds = [...Object.keys(state.inventory), ...resourceOrder.filter((id) => (state.resources[id] ?? 0) > 0)]
+      .filter((itemId) => canSellVendorItem(state, vendor.id, itemId));
+    return sellableIds.map((itemId) => ({ itemId, price: sellValue(state, vendor, itemId), stockType: "infinite" as const, sourceHint: "Owned item" }));
+  }
+  return vendor.inventory.filter((entry) => {
+    if (tab === "Special Stock") return entry.stockType === "unlock" || Boolean(entry.requiredUnlock || entry.requiredDistrictUnlock || Object.keys(entry.requiredFactionRank ?? {}).length);
+    if (tab === "Limited Stock") return entry.stockType === "limited";
+    return entry.stockType === "infinite";
+  });
+}
+
+function marketStockLabel(state: GameState, vendor: VendorDefinition, entry: VendorItemEntry) {
+  if (entry.stockType === "infinite") return "Infinite Stock";
+  if (entry.stockType === "unlock") return vendorItemUnlocked(state, entry) ? "Special Stock" : "Locked Stock";
+  return `${vendorLimitedStockRemaining(state, vendor.id, entry)} / ${entry.stock ?? 0} left`;
+}
+
+function resourceIconLabel(itemId: string) {
+  return (resourceNames[itemId as ResourceId] ?? itemId).slice(0, 3).toUpperCase();
 }
 
 function CompactRequirementList({ state, districtId, requirements }: { state: GameState; districtId: DistrictId; requirements: string[] }) {
@@ -1808,6 +2718,7 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
       name: action.name,
       type: skillNames[action.skillId],
       districtId: action.districtReq ?? state.selectedDistrict,
+      category: skillCategoryFor(action.skillId),
       progress: progressPercent(now, state.activeAction.startedAt, state.activeAction.durationMs),
       skillId: action.skillId,
       skillLevel: skill.level,
@@ -1818,7 +2729,7 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
   }
   if (state.activeJob) {
     const job = jobs.find((entry) => entry.id === state.activeJob?.jobId);
-    return job ? { name: job.name, type: "Contract", districtId: job.districtId, progress: progressPercent(now, state.activeJob.startedAt, state.activeJob.durationMs) } : null;
+    return job ? { name: job.name, type: "Contract", districtId: job.districtId, category: "contracts", progress: progressPercent(now, state.activeJob.startedAt, state.activeJob.durationMs) } : null;
   }
   if (state.currentCombat) {
     const enemy = getEnemy(state.currentCombat.enemyId);
@@ -1830,6 +2741,7 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
           name: enemy.name,
           type: "Combat",
           districtId: districtForEnemy(enemy.id),
+          category: skillCategoryFor("combat"),
           progress: combatAttackProgress(state.currentCombat, now),
           detail: `HP ${Math.ceil(state.health.currentHp)}/${calculateMaxHP(state)} / Enemy ${Math.ceil(enemyHp)}/${Math.ceil(enemyMaxHp)}`,
         }
@@ -1837,11 +2749,11 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
   }
   if (state.activeOperation) {
     const operation = operations.find((entry) => entry.id === state.activeOperation?.operationId);
-    return operation ? { name: operation.name, type: "Operation", districtId: operation.districtId, progress: progressPercent(now, state.activeOperation.startedAt, state.activeOperation.durationMs) } : null;
+    return operation ? { name: operation.name, type: "Operation", districtId: operation.districtId, category: "operations", progress: progressPercent(now, state.activeOperation.startedAt, state.activeOperation.durationMs) } : null;
   }
   if (state.activeCraft) {
     const recipe = recipes.find((entry) => entry.id === state.activeCraft?.recipeId);
-    return recipe ? { name: recipe.name, type: "Crafting", districtId: state.selectedDistrict, progress: progressPercent(now, state.activeCraft.startedAt, state.activeCraft.durationMs) } : null;
+    return recipe ? { name: recipe.name, type: "Crafting", districtId: state.selectedDistrict, category: "crafting", progress: progressPercent(now, state.activeCraft.startedAt, state.activeCraft.durationMs) } : null;
   }
   return null;
 }
@@ -2122,19 +3034,20 @@ function DistrictHubLegacy({
           const owned = Boolean(state.ownedVehicles[vehicle.id]);
           const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
           return (
-            <ActivityCard key={vehicle.id} locked={!unlocked}>
+            <ActivityCard key={vehicle.id} locked={!unlocked} className={`rarity-${vehicle.rarity.toLowerCase()}`}>
               <div>
                 <p className="eyebrow">{vehicle.rarity} / {vehicle.type} / Slots {garageSlots(state)}</p>
                 <h3>{vehicle.name}{owned ? ` +${level}` : ""}</h3>
                 <p className="muted">{vehicle.sourceHint}</p>
                 <p className="fine">Cost {formatRewards(vehicle.cost)}</p>
                 <p className="fine">Stats: Speed {vehicle.stats.speed}, Armor {vehicle.stats.armor}, Storage {vehicle.stats.storage}, Stealth {vehicle.stats.stealth}, Heat -{vehicle.stats.heatReduction}%</p>
+                <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
                 <RequirementStatusList requirements={textRequirementDetails(state, vehicle.unlockRequirements)} />
               </div>
               {owned ? (
                 <div className="card-list compact">
                   <button className="secondary-button full" onClick={() => onSetVehicle(vehicle.id)}>Set Active</button>
-                  <button className="primary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>Upgrade</button>
+                  <button className="primary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>{level >= vehicle.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}</button>
                 </div>
               ) : (
                 <button className="primary-button full" disabled={!unlocked || !canBuyVehicle(state, vehicle.id)} onClick={() => onBuyVehicle(vehicle.id)}>Buy Vehicle</button>
@@ -2164,6 +3077,7 @@ function DistrictHubLegacy({
               <p className="eyebrow">Housing</p>
               <h3>{housing.name}</h3>
               <p className="fine">Cost {housing.cost} Credits / {state.ownedHousing[housing.id] ? "Owned" : "For Sale"}</p>
+              <p className="fine">Active bonus: +2% action speed, {modifierSummary(housing.passiveModifiers ?? {})}</p>
               <RequirementStatusList requirements={textRequirementDetails(state, housing.unlockRequirements ?? [])} />
             </div>
             {state.ownedHousing[housing.id] ? (
@@ -2321,8 +3235,7 @@ function VendorItemRow({
   const item = getItem(entry.itemId);
   const owned = getOwnedCount(state, entry.itemId);
   const price = vendorPrice(state, vendor, entry);
-  const bought = state.vendors[vendor.id]?.purchases[entry.itemId] ?? 0;
-  const stockText = entry.stockType === "limited" ? `${Math.max(0, (entry.stock ?? 0) - bought)} left` : entry.stockType === "unlock" ? "unlock stock" : "infinite";
+  const stockText = entry.stockType === "limited" ? `${vendorLimitedStockRemaining(state, vendor.id, entry)} left` : entry.stockType === "unlock" ? "unlock stock" : "infinite";
   const unlocked = vendorItemUnlocked(state, entry);
   return (
     <article className={`enemy-card vendor-item ${unlocked ? "" : "locked-card"}`}>
@@ -2432,14 +3345,17 @@ function ActionCard({
   const locked = !accessMet || !districtUnlocked || !unlocksMet || !requiredItemsMet;
   const affordable = canAffordRewards(state, action.rewards);
   const displayedRewards = calculateSkillActionRewards(state, action);
+  const displayedCosts = actionRewardCosts(displayedRewards);
+  const positiveRewards = positiveRewardBundle(displayedRewards);
   const manuallyDone = Boolean(state.manualDiscovery.skillActions[action.id]);
   const active = state.activeAction?.actionId === action.id;
   const nextMasteryMilestone = nextActionMasteryMilestone(mastery.level);
   const progress = active && state.activeAction ? activityProgress(state.activeAction.startedAt, state.activeAction.durationMs) : null;
   const badges = actionRecommendationBadges(state, action, displayedRewards);
-  const duration = adjustedDurationMs(state, action.durationMs, [action.skillId, ...(action.tags ?? [])]);
+  const duration = adjustedActionDurationMs(state, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   const displayedXpReward = actionXpRewardWithMastery(state, action);
-  const districtMasteryXp = action.districtReq ? Math.max(4, Math.round(action.xpReward * 0.55 + action.masteryXpReward * 0.35)) : 0;
+  const displayedMasteryXpReward = Math.round(actionMasteryXpReward(state, action) * (1 + getActiveModifiers(state).masteryXpGain));
+  const districtMasteryXp = action.districtReq ? Math.max(4, Math.round(action.xpReward * 0.55 + displayedMasteryXpReward * 0.35)) : 0;
   return (
     <article className={`action-card action-mission-card ${active ? "active-card" : ""} ${locked ? "locked-card" : ""}`}>
       <div className="mission-card-frame">
@@ -2468,7 +3384,9 @@ function ActionCard({
               districtUnlocked={districtUnlocked}
               unlocksMet={unlocksMet}
               requiredItemsMet={requiredItemsMet}
+              displayedCosts={displayedCosts}
               duration={duration}
+              baseDuration={action.durationMs}
             />
           </InfoSectionRow>
 
@@ -2476,44 +3394,39 @@ function ActionCard({
             <div className="mission-gain-grid">
               <strong>+{displayedXpReward}</strong>
               <span>{skillNames[action.skillId]} XP</span>
-              <strong>+{action.masteryXpReward}</strong>
+              <strong>+{displayedMasteryXpReward}</strong>
               <span>Mastery XP</span>
             </div>
           </InfoSectionRow>
 
-          <InfoSectionRow icon={<Star size={22} />} title="Mastery">
-            <MasteryProgressBar mastery={mastery} />
-          </InfoSectionRow>
-
-          <InfoSectionRow icon={<Shield size={22} />} title="Next Milestone" tone="gold">
-            {nextMasteryMilestone ? (
-              <div className="mission-copy-block">
-                <strong>Mastery {nextMasteryMilestone.level}: {nextMasteryMilestone.name}</strong>
-                <span>{nextMasteryMilestone.description}</span>
-              </div>
-            ) : (
-              <span className="muted">All listed mastery milestones unlocked.</span>
-            )}
-          </InfoSectionRow>
-
-          <InfoSectionRow icon={<MapPinned size={22} />} title="District">
-            <span>District Mastery XP: <strong>{districtMasteryXp ? `+${districtMasteryXp}` : "None"}</strong></span>
-          </InfoSectionRow>
+          <MissionProgressSummary
+            mastery={mastery}
+            nextMasteryMilestone={nextMasteryMilestone}
+            districtMasteryXp={districtMasteryXp}
+          />
 
           <InfoSectionRow icon={<Gift size={22} />} title="Rewards">
             <div className="reward-chip-grid">
-              {Object.entries(displayedRewards).filter(([, amount]) => amount).map(([id, amount]) => (
+              {Object.entries(positiveRewards).filter(([, amount]) => amount).map(([id, amount]) => (
                 <RewardChip key={id} id={id} amount={amount ?? 0} />
               ))}
+              {!Object.values(positiveRewards).some(Boolean) && <span className="muted">No direct resource reward.</span>}
             </div>
           </InfoSectionRow>
+
+          {action.rareDrops?.length ? (
+            <InfoSectionRow icon={<PackageSearch size={22} />} title="Drops">
+              <div className="reward-chip-grid drop-chip-grid">
+                {action.rareDrops.map((drop) => <DropChip key={drop.id} drop={drop} />)}
+              </div>
+            </InfoSectionRow>
+          ) : null}
         </div>
 
         <details className="card-details mission-details">
           <summary className="details-button mission-details-button"><FileText size={16} /> Details</summary>
           <div className="mission-details-body">
             {action.requiredItems && <p className="fine">Required items: {Object.entries(action.requiredItems).map(([id, amount]) => `${amount} ${resourceNames[id as ResourceId] ?? getItem(id)?.name ?? id}`).join(", ")}</p>}
-            {action.rareDrops?.length ? <p className="fine">Drops: {action.rareDrops.map((drop) => `${drop.name} ${formatOneInChance(drop.chance)}`).join(", ")}</p> : null}
             {action.recommendedTools?.length ? <p className="fine">Tools: {action.recommendedTools.map((id) => getItem(id)?.name ?? id).join(", ")}</p> : null}
             {action.recommendedPrograms?.length ? <p className="fine">Programs: {action.recommendedPrograms.map((id) => getItem(id)?.name ?? id).join(", ")}</p> : null}
             {action.requiredUnlocks?.length ? <p className="fine">Blueprints/Unlocks: {action.requiredUnlocks.join(", ")}</p> : null}
@@ -2551,6 +3464,46 @@ function InfoSectionRow({ icon, title, tone = "cyan", children }: { icon: ReactN
   );
 }
 
+function MissionProgressSummary({
+  mastery,
+  nextMasteryMilestone,
+  districtMasteryXp,
+}: {
+  mastery: { level: number; xp: number };
+  nextMasteryMilestone?: ReturnType<typeof nextActionMasteryMilestone>;
+  districtMasteryXp: number;
+}) {
+  return (
+    <section className="mission-section mission-progress-summary">
+      <div className="mission-section-label">
+        <span className="mission-section-icon"><Star size={22} /></span>
+        <strong>Progress</strong>
+      </div>
+      <div className="mission-section-content mission-progress-summary-content">
+        <div className="mission-progress-row">
+          <span className="mission-progress-label"><Star size={15} /> Mastery</span>
+          <MasteryProgressBar mastery={mastery} />
+        </div>
+        <div className="mission-progress-row mission-progress-row-gold">
+          <span className="mission-progress-label"><Shield size={15} /> Next</span>
+          {nextMasteryMilestone ? (
+            <div className="mission-copy-block">
+              <strong>Mastery {nextMasteryMilestone.level}: {nextMasteryMilestone.name}</strong>
+              <span>{nextMasteryMilestone.description}</span>
+            </div>
+          ) : (
+            <span className="muted">All listed mastery milestones unlocked.</span>
+          )}
+        </div>
+        <div className="mission-progress-row">
+          <span className="mission-progress-label"><MapPinned size={15} /> District</span>
+          <span>District Mastery XP: <strong>{districtMasteryXp ? `+${districtMasteryXp}` : "None"}</strong></span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function StatusBadge({ locked, active }: { locked: boolean; active: boolean }) {
   return (
     <span className={`mission-badge status-badge ${active ? "active" : locked ? "locked" : "unlocked"}`}>
@@ -2577,7 +3530,7 @@ function ContractMissionCard({ state, job, onStart, onStop }: { state: GameState
         </div>
         <div className="mission-header-tools">
           <StatusBadge locked={locked} active={active} />
-          <RiskBadge action={{ heatChange: job.heatChange, traceChance: job.tags.includes("hacking") ? 0.12 : 0, skillId: "streetcraft", id: job.id, name: job.name, district: "", description: "", levelReq: 1, durationMs: job.durationMs, xpReward: 0, masteryXpReward: 0, rewards: {} }} />
+          <ContractRiskBadge job={job} />
         </div>
       </header>
       <p className="muted">{job.description}</p>
@@ -2626,6 +3579,17 @@ function RiskBadge({ action }: { action: SkillAction }) {
   );
 }
 
+function ContractRiskBadge({ job }: { job: JobContract }) {
+  const tier = jobRiskTier(job);
+  const tone = tier === "High" ? "high" : tier === "Medium" ? "medium" : "low";
+  return (
+    <span className={`mission-badge risk-badge risk-${tone}`}>
+      <ShieldAlert size={15} />
+      {tier === "Medium" ? "Med Risk" : `${tier} Risk`}
+    </span>
+  );
+}
+
 function ActionIconPlaceholder({ action }: { action: SkillAction }) {
   const initials = skillNames[action.skillId].split(/\s+/).map((word) => word[0]).join("").slice(0, 2);
   return <span className={`mission-action-icon skill-${action.skillId}`}>{initials}</span>;
@@ -2638,7 +3602,9 @@ function RequirementSummary({
   districtUnlocked,
   unlocksMet,
   requiredItemsMet,
+  displayedCosts,
   duration,
+  baseDuration,
 }: {
   state: GameState;
   action: SkillAction;
@@ -2646,8 +3612,13 @@ function RequirementSummary({
   districtUnlocked: boolean | undefined;
   unlocksMet: boolean;
   requiredItemsMet: boolean;
+  displayedCosts: RewardBundle;
   duration: number;
+  baseDuration: number;
 }) {
+  const costEntries = Object.entries(displayedCosts).filter(([, amount]) => (amount ?? 0) > 0);
+  const durationDelta = duration - baseDuration;
+  const durationModifier = baseDuration > 0 ? Math.round((durationDelta / baseDuration) * 100) : 0;
   return (
     <div className="requirement-summary">
       <span className={accessMet ? "" : "missing"}>{actionAccessRequirementText(state, action)}</span>
@@ -2655,7 +3626,19 @@ function RequirementSummary({
       {!districtUnlocked && action.districtReq && <span className="missing">Unlock {getDistrict(action.districtReq)?.name ?? action.districtReq}</span>}
       {!unlocksMet && <span className="missing">Needs {action.requiredUnlocks?.join(", ") ?? "unlock"}</span>}
       {!requiredItemsMet && action.requiredItems && <span className="missing">Missing required items</span>}
-      <span><Timer size={14} /> {formatDuration(duration)}</span>
+      {costEntries.map(([id, amount]) => {
+        const owned = getOwnedCount(state, id);
+        return (
+          <span key={id} className={owned >= (amount ?? 0) ? "" : "missing"}>
+            Cost {getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}: {owned.toLocaleString()} / {(amount ?? 0).toLocaleString()}
+          </span>
+        );
+      })}
+      <span><Timer size={14} /> Base {formatDuration(baseDuration)}</span>
+      <span className={durationModifier < 0 ? "success-text" : durationModifier > 0 ? "missing" : ""}>
+        Modifiers {durationModifier > 0 ? "+" : ""}{durationModifier}%
+      </span>
+      <span><Timer size={14} /> Final {formatDuration(duration)}</span>
     </div>
   );
 }
@@ -2684,6 +3667,8 @@ function textRequirementDetails(state: GameState, requirements: string[]) {
 
 function textRequirementMet(state: GameState, requirement: string) {
   const lower = requirement.toLowerCase();
+  const anySkillMatch = lower.match(/any main skill\s+level\s+(\d+)/);
+  if (anySkillMatch) return hasAnyMainSkillLevel(state, Number(anySkillMatch[1]));
   const skillMatch = lower.match(/(scavenging|hacking|cyberware engineering|cyberware|street combat|combat|vehicle tuning|black market trading|black market|medical knowledge|medical|streetcraft)\s+level\s+(\d+)/);
   if (skillMatch) {
     const label = skillMatch[1];
@@ -2731,6 +3716,47 @@ function RewardChip({ id, amount }: { id: string; amount: number }) {
       <em>{label}</em>
     </span>
   );
+}
+
+function DropChip({ drop }: { drop: EnemyDrop }) {
+  const item = getItem(drop.id);
+  const label = item?.name ?? drop.name;
+  return (
+    <span className={`reward-chip drop-chip rarity-${(item?.rarity ?? "Common").toLowerCase()}`}>
+      {item ? <EquipmentTypeIconBadge item={item} /> : <b className="reward-chip-icon">{itemInitials(drop.id)}</b>}
+      <strong>{formatOneInChance(drop.chance)}</strong>
+      <em>{label}{drop.quantity > 1 ? ` x${drop.quantity}` : ""}</em>
+    </span>
+  );
+}
+
+function modifierSummary(modifiers: Partial<ActiveModifiers>) {
+  const parts: string[] = [];
+  Object.entries(modifiers.skillXp ?? {}).forEach(([skill, value]) => {
+    if (value) parts.push(`+${Math.round(value * 100)}% ${skillNames[skill as SkillId]} XP`);
+  });
+  const labels: Partial<Record<keyof ActiveModifiers, string>> = {
+    skillRewards: "resources",
+    combatMaxHp: "max HP",
+    combatDamage: "damage",
+    combatDefense: "defense",
+    combatAttackSpeed: "attack speed",
+    dodgeChance: "dodge",
+    heatGain: "Heat gain",
+    jobRewards: "job rewards",
+    jobSuccessChance: "job success",
+    healingReceived: "healing",
+    craftingCostReduction: "crafting cost",
+    creditsGained: "credits",
+    reputationGained: "reputation",
+  };
+  Object.entries(labels).forEach(([key, label]) => {
+    const value = modifiers[key as keyof ActiveModifiers];
+    if (typeof value !== "number" || value === 0) return;
+    const sign = value > 0 ? "+" : "";
+    parts.push(`${sign}${Math.round(value * 100)}% ${label}`);
+  });
+  return parts.join(", ") || "unique role bonus";
 }
 
 function ActionStartStopButton({
@@ -2783,13 +3809,25 @@ function actionRecommendationBadges(state: GameState, action: SkillAction, rewar
   return badges.slice(0, 3);
 }
 
+function positiveRewardBundle(rewards: RewardBundle): RewardBundle {
+  return Object.fromEntries(Object.entries(rewards).filter(([, amount]) => (amount ?? 0) > 0)) as RewardBundle;
+}
+
+function actionRewardCosts(rewards: RewardBundle): RewardBundle {
+  return Object.fromEntries(
+    Object.entries(rewards)
+      .filter(([, amount]) => (amount ?? 0) < 0)
+      .map(([id, amount]) => [id, Math.abs(amount ?? 0)]),
+  ) as RewardBundle;
+}
+
 function actionLockHint(
   state: GameState,
   action: SkillAction,
   checks: { accessMet: boolean; districtUnlocked: boolean | undefined; unlocksMet: boolean; requiredItemsMet: boolean; affordable: boolean },
 ) {
   if (!checks.districtUnlocked && action.districtReq) return `Locked: unlock ${getDistrict(action.districtReq)?.name ?? action.districtReq}.`;
-  if (!checks.accessMet) return `Locked: raise ${skillNames[action.skillId]} to level ${action.levelReq}. Fastest path: run your best available ${skillNames[action.skillId]} action.`;
+  if (!checks.accessMet) return `Locked: raise ${skillNames[action.skillId]} to level ${action.levelReq}.`;
   if (!checks.requiredItemsMet && action.requiredItems) return `Locked: missing ${Object.entries(action.requiredItems).map(([id, amount]) => `${amount} ${resourceNames[id as ResourceId] ?? getItem(id)?.name ?? id}`).join(", ")}.`;
   if (!checks.unlocksMet) return `Locked: needs ${action.requiredUnlocks?.join(", ") ?? "another unlock"}.`;
   if (!checks.affordable) return "Locked: not enough resources to pay the action cost.";
@@ -2895,6 +3933,442 @@ function CombatTab({
   );
 }
 
+function CombatDashboard({
+  state,
+  districtId,
+  zones,
+  onStartCombat,
+  onStopActive,
+  onUseHealingItem,
+}: {
+  state: GameState;
+  districtId: DistrictId;
+  zones: CombatZone[];
+  onStartCombat: (enemyId: string) => void;
+  onStopActive: () => void;
+  onUseHealingItem: (itemId: string) => void;
+}) {
+  const enemies = zones.flatMap((zone) => zone.enemies.map((enemy) => ({ zone, enemy })));
+  const activeEnemy = state.currentCombat ? enemies.find((entry) => entry.enemy.id === state.currentCombat?.enemyId) : null;
+  const [selectedEnemyId, setSelectedEnemyId] = useState(activeEnemy?.enemy.id ?? enemies[0]?.enemy.id ?? "");
+  const selected = activeEnemy ?? enemies.find((entry) => entry.enemy.id === selectedEnemyId) ?? enemies[0] ?? null;
+  const [mobilePanel, setMobilePanel] = useState<"Enemies" | "Drops" | "Stats" | "Log">("Enemies");
+
+  if (!selected) {
+    return <FocusedPanel title="Street Combat"><p className="muted">No combat encounters are available in this district yet.</p></FocusedPanel>;
+  }
+
+  return (
+    <section className="combat-dashboard">
+      <CombatAreaHeader state={state} districtId={districtId} zones={zones} selectedEnemy={selected.enemy} />
+      <ActiveCombatPanel
+        state={state}
+        zone={selected.zone}
+        enemy={selected.enemy}
+        onStart={() => onStartCombat(selected.enemy.id)}
+        onStop={onStopActive}
+        onUseHealingItem={onUseHealingItem}
+      />
+      <div className="combat-mobile-tabs">
+        {(["Enemies", "Drops", "Stats", "Log"] as const).map((tab) => (
+          <button key={tab} className={mobilePanel === tab ? "active" : ""} onClick={() => setMobilePanel(tab)}>{tab}</button>
+        ))}
+      </div>
+      <div className="combat-dashboard-grid">
+        <div className={`combat-panel combat-enemy-panel ${mobilePanel === "Enemies" ? "mobile-open" : ""}`}>
+          <div className="combat-section-heading">
+            <span><Target size={16} /> Enemy Selection</span>
+            <b>{enemies.length}</b>
+          </div>
+          <EnemySelectionGrid
+            state={state}
+            entries={enemies}
+            selectedEnemyId={selected.enemy.id}
+            onSelect={setSelectedEnemyId}
+            onStart={onStartCombat}
+          />
+        </div>
+        <div className="combat-side-panels">
+          <div className={`combat-panel ${mobilePanel === "Drops" ? "mobile-open" : ""}`}>
+            <DropsPanel state={state} enemy={selected.enemy} />
+          </div>
+          <div className={`combat-panel ${mobilePanel === "Stats" ? "mobile-open" : ""}`}>
+            <CombatStatsPanel state={state} enemy={selected.enemy} />
+          </div>
+          <div className={`combat-panel ${mobilePanel === "Stats" ? "mobile-open" : ""}`}>
+            <LoadoutInteractionPanel state={state} enemy={selected.enemy} />
+          </div>
+          <div className={`combat-panel ${mobilePanel === "Log" ? "mobile-open" : ""}`}>
+            <CombatLogPanel state={state} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CombatAreaHeader({ state, districtId, zones, selectedEnemy }: { state: GameState; districtId: DistrictId; zones: CombatZone[]; selectedEnemy: Enemy }) {
+  const district = getDistrict(districtId);
+  const allEnemies = zones.flatMap((zone) => zone.enemies);
+  const minLevel = Math.min(...allEnemies.map((enemy) => enemy.requiredCombatLevel ?? 1));
+  const maxLevel = Math.max(...allEnemies.map((enemy) => enemy.requiredCombatLevel ?? 1));
+  const safety = estimateCombatSafety(state, selectedEnemy);
+  const playerStats = calculatePlayerCombatStats(state);
+  return (
+    <article className="combat-area-header">
+      <div>
+        <p className="eyebrow">{district?.name ?? "District"} Combat</p>
+        <h2>{zones.map((zone) => zone.name).join(" / ")}</h2>
+        <p className="muted">Street Threat {minLevel}-{maxLevel} / Recommended HP {safety.recommendedHp} / Combat Lv {minLevel}</p>
+      </div>
+      <div className="combat-summary-strip">
+        <span><b>HP</b>{Math.ceil(state.health.currentHp)}/{playerStats.maxHp}</span>
+        <span><b>Damage</b>{playerStats.damage}</span>
+        <span><b>Attack</b>{formatDuration(playerStats.attackSpeedMs)}</span>
+        <span><b>Armor</b>{playerStats.armor}</span>
+        <span className={`safety-${safety.rating.toLowerCase()}`}><b>Safety</b>{combatSafetyLabel(safety.rating)}</span>
+      </div>
+    </article>
+  );
+}
+
+function ActiveCombatPanel({
+  state,
+  zone,
+  enemy,
+  onStart,
+  onStop,
+  onUseHealingItem,
+}: {
+  state: GameState;
+  zone: CombatZone;
+  enemy: Enemy;
+  onStart: () => void;
+  onStop: () => void;
+  onUseHealingItem: (itemId: string) => void;
+}) {
+  const active = state.currentCombat?.enemyId === enemy.id;
+  const combat = active ? state.currentCombat : null;
+  const now = Date.now();
+  const respawning = Boolean(combat?.respawnAt && combat.respawnAt > now);
+  const playerStats = calculatePlayerCombatStats(state);
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const enemyMaxHp = combat?.enemyMaxHp ?? matchup.effectiveHp;
+  const enemyCurrentHp = combat?.enemyCurrentHp ?? enemyMaxHp;
+  const playerAttackProgress = combat ? timerProgress(now, combat.lastPlayerAttackAt ?? combat.startedAt, combat.nextPlayerAttackAt ?? combat.startedAt + playerStats.attackSpeedMs) : null;
+  const enemyAttackProgress = combat ? timerProgress(now, combat.lastEnemyAttackAt ?? combat.startedAt, combat.nextEnemyAttackAt ?? combat.startedAt + enemy.attackSpeedMs) : null;
+  const fightUnlocked = canFightEnemy(state, enemy);
+  const quickHealId = Object.keys(healingItems).find((id) => (state.inventory[id] ?? 0) > 0) ?? state.autoHeal.itemId ?? defaultHealingItemId;
+
+  return (
+    <article className={`active-combat-panel ${active ? "fighting" : ""}`}>
+      <div className="active-combat-title">
+        <div>
+          <p className="eyebrow">{active ? "Active Fight" : "Selected Target"} / {zone.name}</p>
+          <h2>{active ? "Engaged" : "Ready to Engage"}</h2>
+        </div>
+        <div className="combat-fight-timer">{respawning && combat?.respawnAt ? `Respawn ${formatDuration(combat.respawnAt - now)}` : active && combat ? `Fight ${formatDuration(now - combat.startedAt)}` : "Idle"}</div>
+      </div>
+      <div className="combatant-row">
+        <CombatantCard
+          title="Runner"
+          subtitle={`${equippedWeaponClass(state) ? weaponClassName(equippedWeaponClass(state)!) : "Unarmed"} / Auto Heal ${state.autoHeal.enabled ? "On" : "Off"}`}
+          hpCurrent={state.health.currentHp}
+          hpMax={playerStats.maxHp}
+          attackProgress={playerAttackProgress}
+          damage={playerStats.damage}
+          attackSpeedMs={playerStats.attackSpeedMs}
+          armor={playerStats.armor}
+          kind="player"
+          damagePopup={combat?.lastEnemyHit}
+        />
+        <div className="vs-divider">VS</div>
+        <CombatantCard
+          title={enemy.name}
+          subtitle={`${enemy.archetype ?? "Enemy"} / ${matchup.difficulty}${respawning ? " / Respawning" : ""}`}
+          hpCurrent={enemyCurrentHp}
+          hpMax={enemyMaxHp}
+          attackProgress={enemyAttackProgress}
+          damage={enemy.damage}
+          attackSpeedMs={enemy.attackSpeedMs}
+          armor={enemy.armor ?? enemy.armorType ?? "none"}
+          kind="enemy"
+          damagePopup={combat?.lastPlayerHit}
+          notes={[`Weak: ${(enemy.weaknesses ?? []).map((entry) => entry.id).join(", ") || "None"}`, `Resist: ${(enemy.resistances ?? []).map((entry) => entry.id).join(", ") || "None"}`]}
+        />
+      </div>
+      <div className="combat-utility-row">
+        <AutoHealPanel state={state} quickHealId={quickHealId} onUseHealingItem={onUseHealingItem} />
+        <FightControls active={active} selectedEnemy={enemy} fightUnlocked={fightUnlocked} onStart={onStart} onStop={onStop} />
+      </div>
+    </article>
+  );
+}
+
+function CombatantCard({
+  title,
+  subtitle,
+  hpCurrent,
+  hpMax,
+  attackProgress,
+  damage,
+  attackSpeedMs,
+  armor,
+  kind,
+  damagePopup,
+  notes = [],
+}: {
+  title: string;
+  subtitle: string;
+  hpCurrent: number;
+  hpMax: number;
+  attackProgress: ReturnType<typeof timerProgress> | null;
+  damage: number;
+  attackSpeedMs: number;
+  armor: ReactNode;
+  kind: "player" | "enemy";
+  damagePopup?: { amount: number; at: number };
+  notes?: string[];
+}) {
+  return (
+    <div className={`combatant-card ${kind}`}>
+      <div className="combatant-heading">
+        <div>
+          <strong>{title}</strong>
+          <span>{subtitle}</span>
+        </div>
+      </div>
+      <HealthBar label="HP" current={hpCurrent} max={hpMax} kind={kind} damagePopup={damagePopup} />
+      <AttackProgressBar progress={attackProgress} attackSpeedMs={attackSpeedMs} />
+      <div className="combatant-stat-grid">
+        <span><b>{damage}</b>Damage</span>
+        <span><b>{formatDuration(attackSpeedMs)}</b>Attack</span>
+        <span><b>{armor}</b>Armor</span>
+      </div>
+      {notes.length > 0 && <div className="combatant-notes">{notes.map((note) => <span key={note}>{note}</span>)}</div>}
+    </div>
+  );
+}
+
+function AttackProgressBar({ progress, attackSpeedMs }: { progress: ReturnType<typeof timerProgress> | null; attackSpeedMs: number }) {
+  return (
+    <div className="attack-progress">
+      <div className="attack-progress-label">
+        <span>Attack Bar</span>
+        <strong>{progress ? `${formatDuration(progress.remainingMs)} next` : `${formatDuration(attackSpeedMs)} speed`}</strong>
+      </div>
+      <Progress value={progress?.percent ?? 0} />
+    </div>
+  );
+}
+
+function EnemySelectionGrid({
+  state,
+  entries,
+  selectedEnemyId,
+  onSelect,
+  onStart,
+}: {
+  state: GameState;
+  entries: Array<{ zone: CombatZone; enemy: Enemy }>;
+  selectedEnemyId: string;
+  onSelect: (enemyId: string) => void;
+  onStart: (enemyId: string) => void;
+}) {
+  return (
+    <div className="enemy-selection-grid">
+      {entries.map(({ zone, enemy }) => (
+        <EnemySelectionCard
+          key={enemy.id}
+          state={state}
+          zone={zone}
+          enemy={enemy}
+          selected={selectedEnemyId === enemy.id || state.currentCombat?.enemyId === enemy.id}
+          onSelect={() => onSelect(enemy.id)}
+          onStart={() => onStart(enemy.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function EnemySelectionCard({ state, zone, enemy, selected, onSelect, onStart }: { state: GameState; zone: CombatZone; enemy: Enemy; selected: boolean; onSelect: () => void; onStart: () => void }) {
+  const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
+  const safety = estimateCombatSafety(state, enemy);
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const unlocked = canFightEnemy(state, enemy);
+  const drops = combatDisplayDrops(enemy);
+  const discovered = drops.filter((drop) => Boolean(log.discoveredDrops[drop.id])).length;
+  return (
+    <article className={`enemy-selection-card rarity-${(enemy.difficulty ?? "Common").toLowerCase()} ${selected ? "selected" : ""} ${unlocked ? "" : "locked-card"}`} onClick={onSelect}>
+      <div className="enemy-selection-top">
+        <div>
+          <p className="eyebrow">{zone.name} / {enemy.archetype ?? "Enemy"}</p>
+          <h3>{enemy.name}</h3>
+        </div>
+        <SafetyBadge safety={safety.rating} />
+      </div>
+      <div className="enemy-stat-line">
+        <span>HP {matchup.effectiveHp}</span>
+        <span>Damage {enemy.damage}</span>
+        <span>Attack {formatDuration(enemy.attackSpeedMs)}</span>
+        <span>Armor {enemy.armorType ?? enemy.armor ?? "none"}</span>
+      </div>
+      <div className="enemy-log-line">
+        <span>Kills {log.kills}</span>
+        <span>Best {log.bestKillMs ? formatDuration(log.bestKillMs) : "--"}</span>
+        <span>Drops {discovered}/{drops.length}</span>
+      </div>
+      {!unlocked && <p className="combat-lockout">Requires Street Combat level {enemy.requiredCombatLevel ?? 1}. Current {state.skills.combat.level}.</p>}
+      <button className="primary-button full" disabled={!unlocked} onClick={(event) => { event.stopPropagation(); onStart(); }}>
+        {state.currentCombat?.enemyId === enemy.id ? "Fighting" : state.currentCombat ? "Switch Enemy" : "Start Fight"}
+      </button>
+    </article>
+  );
+}
+
+function SafetyBadge({ safety }: { safety: ReturnType<typeof estimateCombatSafety>["rating"] }) {
+  return <span className={`safety-badge safety-${safety.toLowerCase()}`}>{combatSafetyLabel(safety)}</span>;
+}
+
+function DropsPanel({ state, enemy }: { state: GameState; enemy: Enemy }) {
+  const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
+  const drops = combatDisplayDrops(enemy);
+  const discovered = drops.filter((drop) => Boolean(log.discoveredDrops[drop.id])).length;
+  return (
+    <>
+      <div className="combat-section-heading">
+        <span><Gift size={16} /> Drops</span>
+        <b>{discovered}/{drops.length}</b>
+      </div>
+      <div className="drop-row-list">
+        {drops.map((drop) => {
+          const reveal = dropRevealState(state, enemy.id, { itemId: drop.id, chancePercent: drop.chance, minQuantity: drop.min, maxQuantity: drop.max, rarity: drop.rarity as never, affectedByDropModifiers: true, affectedByScenarioModifiers: true }, log.kills);
+          const found = Boolean(log.discoveredDrops[drop.id]);
+          return <DropRow key={drop.id} drop={drop} known={Boolean(reveal.known || found)} chanceKnown={Boolean(reveal.chanceKnown || found)} foundCount={log.discoveredDrops[drop.id] ?? 0} rareHint={Boolean(reveal.rareHint)} />;
+        })}
+      </div>
+    </>
+  );
+}
+
+function DropRow({ drop, known, chanceKnown, foundCount, rareHint }: { drop: CombatDisplayDrop; known: boolean; chanceKnown: boolean; foundCount: number; rareHint: boolean }) {
+  const item = getItem(drop.id);
+  return (
+    <div className={`combat-drop-row rarity-${(item?.rarity ?? drop.rarity).toLowerCase()}`}>
+      <div className="drop-icon">{item?.type?.slice(0, 3).toUpperCase() ?? "???"}</div>
+      <div>
+        <strong>{known ? drop.name : rareHint ? "Unknown rare" : "???"}</strong>
+        <span>{chanceKnown ? formatOneInChance(drop.chance / 100) : "Chance hidden"} / Qty {drop.min}-{drop.max}</span>
+      </div>
+      <b>{foundCount ? `Found x${foundCount}` : "New"}</b>
+    </div>
+  );
+}
+
+function CombatStatsPanel({ state, enemy }: { state: GameState; enemy: Enemy }) {
+  const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const safety = estimateCombatSafety(state, enemy);
+  const active = state.currentCombat?.enemyId === enemy.id ? state.currentCombat : null;
+  const currentKillMs = active ? Date.now() - active.startedAt : 0;
+  return (
+    <>
+      <div className="combat-section-heading">
+        <span><Activity size={16} /> Combat Stats</span>
+      </div>
+      <div className="combat-stat-panel-grid">
+        <Metric label="Kills" value={log.kills} />
+        <Stat label="Best" value={log.bestKillMs ? formatDuration(log.bestKillMs) : "--"} />
+        <Stat label="Current" value={active ? formatDuration(currentKillMs) : "--"} />
+        <Metric label="Kills / Min" value={Math.max(0.1, 60000 / matchup.expectedKillMs)} />
+        <Metric label="XP / Kill" value={enemy.xpReward} />
+        <Metric label="Credits / Kill" value={enemy.creditsReward} />
+        <Metric label="Est. Damage" value={safety.estimatedDamage} />
+        <Metric label="Rec. HP" value={safety.recommendedHp} />
+        <Metric label="Effective HP" value={matchup.effectiveHp} />
+      </div>
+    </>
+  );
+}
+
+function LoadoutInteractionPanel({ state, enemy }: { state: GameState; enemy: Enemy }) {
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const weaponClass = equippedWeaponClass(state);
+  const weaponLabel = weaponClass ? weaponClassName(weaponClass) : "Unarmed";
+  const weaknessClasses = [...new Set((enemy.weaknesses ?? []).flatMap((weakness) => weakness.weaponClasses ?? []))];
+  const resistanceClasses = [...new Set((enemy.resistances ?? []).flatMap((resistance) => resistance.weaponClasses ?? []))];
+  return (
+    <>
+      <div className="combat-section-heading">
+        <span><ShieldAlert size={16} /> Loadout Interaction</span>
+        <b>{matchup.rating}</b>
+      </div>
+      <div className={`loadout-matchup-card ${matchup.rating.toLowerCase().replace(/\s+/g, "-")}`}>
+        <strong>{matchup.rating}</strong>
+        <span>Current weapon class: {weaponLabel}</span>
+        <span>Enemy weakness: {weaknessClasses.length ? weaknessClasses.map(weaponClassName).join(", ") : "None listed"}</span>
+        <span>Enemy resistance: {resistanceClasses.length ? resistanceClasses.map(weaponClassName).join(", ") : "None listed"}</span>
+        <p className="fine">{matchup.notes.join(" / ")}</p>
+      </div>
+    </>
+  );
+}
+
+function CombatLogPanel({ state }: { state: GameState }) {
+  const combatLog = state.recentLog.filter((entry) => ["Combat", "Loot", "Warning"].includes(entry.category)).slice(0, 8);
+  return (
+    <details className="combat-log-panel" open>
+      <summary className="details-button">Combat Log</summary>
+      <div className="combat-log-list">
+        {combatLog.length ? combatLog.map((entry) => (
+          <p key={`${entry.timestamp}-${entry.message}`}><b>{entry.category}</b>{entry.message}</p>
+        )) : <p className="muted">Combat events will appear here once fighting starts.</p>}
+      </div>
+    </details>
+  );
+}
+
+function AutoHealPanel({ state, quickHealId, onUseHealingItem }: { state: GameState; quickHealId: string; onUseHealingItem: (itemId: string) => void }) {
+  const count = state.inventory[quickHealId] ?? 0;
+  return (
+    <div className="auto-heal-panel">
+      <div>
+        <p className="eyebrow">Combat Utility</p>
+        <h3>Auto Heal: {state.autoHeal.enabled ? "On" : "Off"}</h3>
+      </div>
+      <p className="fine">{getItem(state.autoHeal.itemId)?.name ?? state.autoHeal.itemId}: {state.inventory[state.autoHeal.itemId] ?? 0} / Threshold {state.autoHeal.threshold}%</p>
+      <button className="secondary-button full" disabled={count <= 0} onClick={() => onUseHealingItem(quickHealId)}>
+        Use {getItem(quickHealId)?.name ?? "Healing Item"} ({count})
+      </button>
+    </div>
+  );
+}
+
+function FightControls({ active, selectedEnemy, fightUnlocked, onStart, onStop }: { active: boolean; selectedEnemy: Enemy; fightUnlocked: boolean; onStart: () => void; onStop: () => void }) {
+  return (
+    <div className="fight-controls">
+      {active ? (
+        <button className="secondary-button danger-button full" onClick={onStop}>Stop Fight</button>
+      ) : (
+        <button className="primary-button full" disabled={!fightUnlocked} onClick={onStart}>Start {selectedEnemy.name}</button>
+      )}
+      <div className="combat-control-hints">
+        <span>Auto Repeat: Idle loop</span>
+        <span>Sim Cache: Manual kills first</span>
+      </div>
+    </div>
+  );
+}
+
+function combatSafetyLabel(rating: ReturnType<typeof estimateCombatSafety>["rating"]) {
+  return rating === "Deadly" ? "Lethal" : rating;
+}
+
+function weaponClassName(id: WeaponClassId) {
+  return weaponClasses.find((entry) => entry.id === id)?.name ?? titleCase(id);
+}
+
 function EnemyCard({
   state,
   zone,
@@ -2915,7 +4389,6 @@ function EnemyCard({
   const combat = active ? state.currentCombat : null;
   const matchup = combatEffectivenessForEnemy(state, enemy);
   const playerStats = calculatePlayerCombatStats(state);
-  const safety = estimateCombatSafety(state, enemy);
   const maxHp = calculateMaxHP(state);
   const quickHealId = Object.keys(healingItems).find((id) => (state.inventory[id] ?? 0) > 0) ?? state.autoHeal.itemId ?? defaultHealingItemId;
   const renderNow = Date.now();
@@ -2938,7 +4411,6 @@ function EnemyCard({
         <h3>{enemy.name}</h3>
         <p className="muted">{enemy.description}</p>
         <p className="fine">{matchup.rating} / Kill {formatDuration(matchup.expectedKillMs)} / Effective HP {matchup.effectiveHp}</p>
-        <p className={`fine safety-${safety.rating.toLowerCase()}`}>Safety {safety.rating} / Est. damage {safety.estimatedDamage} / Recommended HP {safety.recommendedHp}</p>
         <p className="fine">HP {enemy.hp} / Damage {enemy.damage} / Attack {formatDuration(enemy.attackSpeedMs)} / Armor {enemy.armorType ?? "none"}</p>
         <p className="fine">Rewards +{enemy.creditsReward} Credits, +{enemy.xpReward} XP, +{enemy.reputationReward} Rep</p>
         <p className="fine">Kills {log.kills} / Best {log.bestKillMs ? formatDuration(log.bestKillMs) : "--"}</p>
@@ -3025,7 +4497,7 @@ function rarityRank(rarity: string) {
   return inventoryRarityRanks[rarity] ?? 0;
 }
 
-type InventoryFilter = "All" | "Resources" | "Materials" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables" | "Blueprints";
+type InventoryFilter = "All" | "Resources" | "Components" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables" | "Blueprints";
 type InventorySortMode = "rarity" | "quantity" | "price";
 type InventorySortDirection = "asc" | "desc";
 type CraftingSortMode = "rarity" | "level" | "duration" | "name";
@@ -3051,6 +4523,7 @@ function InventoryTab({
   onUnequipGear,
   onUnequipCyberware,
   onUse,
+  onSell,
   onUpgrade,
   onInstallAttachment,
   onRemoveAttachment,
@@ -3065,6 +4538,7 @@ function InventoryTab({
   onUnequipGear: (slot: GearSlot) => void;
   onUnequipCyberware: (slot: CyberwareSlot) => void;
   onUse: (id: string) => void;
+  onSell: (id: string) => void;
   onUpgrade: (id: string) => void;
   onInstallAttachment: (weaponId: string, attachmentId: string) => void;
   onRemoveAttachment: (weaponId: string, category: AttachmentCategory) => void;
@@ -3090,7 +4564,7 @@ function InventoryTab({
     const item = getItem(id);
     if (filter === "All") return true;
     if (filter === "Resources") return item?.type === "Resource" && !["credits", "reputation", "heat"].includes(id);
-    if (filter === "Materials") return item?.type === "Material" || item?.type === "Component";
+    if (filter === "Components") return item?.type === "Material" || item?.type === "Component";
     if (filter === "Weapons") return item?.type === "Weapon";
     if (filter === "Attachments") return item?.type === "WeaponAttachment";
     if (filter === "Mods") return item?.type === "WeaponMod";
@@ -3123,10 +4597,18 @@ function InventoryTab({
   const selectedCount = activeId ? state.inventory[activeId] ?? 0 : 0;
   const selectedUpgradeCost = activeId && selectedItem?.maxUpgradeLevel ? itemUpgradeCost(state, activeId) : {};
   const selectedCanUpgrade = activeId ? canAffordItemUpgrade(state, activeId) : false;
-  const selectedGearSlot = selectedItem && (selectedItem.type === "Weapon" || selectedItem.type === "Armor") ? selectedItem.slot as GearSlot | undefined : undefined;
-  const selectedCyberwareSlot = selectedItem?.type === "Cyberware" ? selectedItem.slot as CyberwareSlot | undefined : undefined;
-  const equippedGearId = selectedGearSlot ? state.equippedGear[selectedGearSlot] : undefined;
-  const equippedCyberwareId = selectedCyberwareSlot ? state.equippedCyberware[selectedCyberwareSlot] : undefined;
+  const selectedQuickSellValue = activeId ? inventoryQuickSellValue(state, activeId) : 0;
+  const selectedCanSell = activeId ? canQuickSellInventoryItem(state, activeId) : false;
+  const selectedUpgradeLevel = activeId ? state.upgradeLevels[activeId] ?? 0 : 0;
+  const selectedMaxUpgrade = Boolean(selectedItem?.maxUpgradeLevel && selectedUpgradeLevel >= selectedItem.maxUpgradeLevel);
+  const selectedEquippedGearSlot = activeId ? gearSlots.find((slot) => state.equippedGear[slot.id] === activeId)?.id : undefined;
+  const selectedEquippedCyberwareSlot = activeId ? cyberwareSlots.find((slot) => state.equippedCyberware[slot.id] === activeId)?.id : undefined;
+  const selectedIsEquipped = Boolean(selectedEquippedGearSlot || selectedEquippedCyberwareSlot);
+  const selectedComparisonItemId = selectedItem && (selectedItem.type === "Weapon" || selectedItem.type === "Armor")
+    ? state.equippedGear[selectedItem.slot as GearSlot]
+    : selectedItem?.type === "Cyberware"
+      ? state.equippedCyberware[selectedItem.slot as CyberwareSlot]
+      : undefined;
   return (
     <section className="stack">
       <TabNoticePanel
@@ -3165,7 +4647,7 @@ function InventoryTab({
           </button>
         </div>
         <div className="inventory-filter-row">
-          {(["All", "Resources", "Materials", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables", "Blueprints"] as InventoryFilter[]).map((entry) => (
+          {(["All", "Resources", "Components", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables", "Blueprints"] as InventoryFilter[]).map((entry) => (
             <button key={entry} className={filter === entry ? "active" : ""} onClick={() => setFilter(entry)}>
               {entry}
             </button>
@@ -3200,17 +4682,17 @@ function InventoryTab({
             <p className="muted">{selectedItem.description}</p>
             <p className="fine">Used for: {itemUseSummary(selectedItem.id)}</p>
             <p className="fine">Source: {selectedItem.sourceHint}</p>
-            <p className="fine">Sell value: {selectedItem.sellValue}</p>
-            {selectedItem.stats && <p className="fine">Stats: {formatStats(scaledStats(state, activeId))}</p>}
+            <p className="fine">Market value: {selectedItem.sellValue} / Quick sell: {selectedQuickSellValue.toLocaleString()} Credits</p>
+            {selectedItem.stats && <StatComparisonLine state={state} itemId={activeId} compareItemId={selectedComparisonItemId} />}
             {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
             {selectedItem.maxUpgradeLevel && (
               <div className="upgrade-cost-box">
                 <p className="fine">
-                  {(state.upgradeLevels[activeId] ?? 0) >= selectedItem.maxUpgradeLevel
+                  {selectedMaxUpgrade
                     ? `Upgrade: Max level +${selectedItem.maxUpgradeLevel}`
-                    : `Upgrade +${(state.upgradeLevels[activeId] ?? 0) + 1}/${selectedItem.maxUpgradeLevel}: ${formatItemCost(selectedUpgradeCost)}`}
+                    : `Upgrade +${selectedUpgradeLevel + 1}/${selectedItem.maxUpgradeLevel}: ${formatItemCost(selectedUpgradeCost)}`}
                 </p>
-                {Object.entries(selectedUpgradeCost).map(([id, amount]) => {
+                {!selectedMaxUpgrade && Object.entries(selectedUpgradeCost).map(([id, amount]) => {
                   const required = id === activeId ? amount + 1 : amount;
                   const owned = getOwnedCount(state, id);
                   const hasRequired = owned >= required;
@@ -3229,20 +4711,28 @@ function InventoryTab({
             {selectedItem.type === "Cyberware" ? <p className="fine">Equipped Instability {formatSigned(cyberwareInstabilityLoad(selectedItem))}</p> : null}
             <div className="inventory-actions">
               {(selectedItem.type === "Weapon" || selectedItem.type === "Armor" || selectedItem.type === "Cyberware") && (
-                <button className="primary-button full" onClick={() => onEquip(activeId)}>Equip</button>
-              )}
-              {selectedGearSlot && equippedGearId && (
-                <button className="secondary-button full" onClick={() => onUnequipGear(selectedGearSlot)}>
-                  Unequip {getItem(equippedGearId)?.name ?? "current gear"}
-                </button>
-              )}
-              {selectedCyberwareSlot && equippedCyberwareId && (
-                <button className="secondary-button full" onClick={() => onUnequipCyberware(selectedCyberwareSlot)}>
-                  Unequip {getItem(equippedCyberwareId)?.name ?? "current cyberware"}
+                <button
+                  className="primary-button full"
+                  onClick={() => {
+                    if (selectedEquippedGearSlot) {
+                      onUnequipGear(selectedEquippedGearSlot);
+                      return;
+                    }
+                    if (selectedEquippedCyberwareSlot) {
+                      onUnequipCyberware(selectedEquippedCyberwareSlot);
+                      return;
+                    }
+                    onEquip(activeId);
+                  }}
+                >
+                  {selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
                 </button>
               )}
               {selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
-              {selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>Upgrade</button>}
+              <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>
+                Sell 1 for {selectedQuickSellValue.toLocaleString()} Credits
+              </button>
+              {selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : "Upgrade"}</button>}
             </div>
           </div>
         ) : (
@@ -3279,6 +4769,56 @@ function ResourceWallet({ state }: { state: GameState }) {
   );
 }
 
+const statComparisonOrder: Array<keyof ItemStats> = ["damage", "armor", "maxHp", "attackSpeed", "accuracy", "dodge", "critChance", "critDamage", "armorPenetration", "heatModifier", "neuralInstabilityModifier"];
+
+function StatComparisonLine({ state, itemId, compareItemId }: { state: GameState; itemId: string; compareItemId?: string }) {
+  const stats = scaledStats(state, itemId);
+  const compareStats = compareItemId ? scaledStats(state, compareItemId) : {};
+  const keys = statComparisonOrder.filter((key) => stats[key]);
+  if (!keys.length) return <p className="fine">Stats: None</p>;
+  return (
+    <p className="fine stat-comparison-line">
+      <span>Stats: </span>
+      {keys.map((key, index) => {
+        const value = Number(stats[key] ?? 0);
+        const compareValue = Number(compareStats[key] ?? 0);
+        const delta = value - compareValue;
+        const trend = statComparisonTrend(key, delta);
+        return (
+          <span className="stat-comparison-entry" key={key}>
+            {index > 0 ? ", " : ""}
+            {titleCase(key)} {formatStatValue(key, value)}{" "}
+            <b className={trend}>({formatDeltaValue(key, delta)})</b>
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+function formatStatValue(key: keyof ItemStats, value: number) {
+  const sign = value > 0 ? "+" : "";
+  if (statIsPercentLike(key)) return `${sign}${Math.round(value * 100)}%`;
+  return `${sign}${Number.isInteger(value) ? value : Number(value.toFixed(2))}`;
+}
+
+function formatDeltaValue(key: keyof ItemStats, value: number) {
+  if (value === 0) return "0";
+  const formatted = statIsPercentLike(key) ? `${Math.round(Math.abs(value) * 100)}%` : `${Number.isInteger(value) ? Math.abs(value) : Number(Math.abs(value).toFixed(2))}`;
+  return `${value > 0 ? "+" : "-"}${formatted}`;
+}
+
+function statIsPercentLike(key: keyof ItemStats) {
+  return ["dodge", "critChance", "critDamage", "heatModifier", "neuralInstabilityModifier"].includes(key);
+}
+
+function statComparisonTrend(key: keyof ItemStats, delta: number) {
+  if (delta === 0) return "same";
+  const lowerIsBetter: Array<keyof ItemStats> = ["attackSpeed", "heatModifier", "neuralInstabilityModifier"];
+  const beneficial = lowerIsBetter.includes(key) ? delta < 0 : delta > 0;
+  return beneficial ? "better" : "worse";
+}
+
 function itemInitials(id: string) {
   return id.split(/[-_\s]/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
 }
@@ -3289,6 +4829,13 @@ function equippedItemLabel(state: GameState, itemId: string) {
   const cyberwareSlot = cyberwareSlots.find((slot) => state.equippedCyberware[slot.id] === itemId);
   if (cyberwareSlot) return "Equipped";
   return null;
+}
+
+function equippedComparisonItemId(state: GameState, item: ItemDefinition) {
+  if (!item.slot) return undefined;
+  if (item.type === "Cyberware") return state.equippedCyberware[item.slot as CyberwareSlot] ?? undefined;
+  if (item.type === "Weapon" || item.type === "Armor") return state.equippedGear[item.slot as GearSlot] ?? undefined;
+  return undefined;
 }
 
 function itemUseSummary(itemId: string) {
@@ -3314,6 +4861,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
   const [filter, setFilter] = useState<CraftingFilter>("All");
   const [sortMode, setSortMode] = useState<CraftingSortMode>("level");
   const [sortDirection, setSortDirection] = useState<InventorySortDirection>("asc");
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const filteredRecipes = recipes.filter((recipe) => filter === "All" || recipe.category === filter);
   const sortedRecipes = [...filteredRecipes].sort((left, right) => {
     const leftItem = getItem(left.outputItemId);
@@ -3326,6 +4874,17 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
     if (!value) value = left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name);
     return sortDirection === "asc" ? value : -value;
   });
+  const selectedRecipe = (selectedRecipeId ? sortedRecipes.find((recipe) => recipe.id === selectedRecipeId) : null) ?? sortedRecipes[0] ?? null;
+  const selectedOutput = selectedRecipe ? getItem(selectedRecipe.outputItemId) : null;
+  const selectedCosts = selectedRecipe ? scaledCraftingCosts(state, selectedRecipe) : {};
+  const selectedMissingEntries = Object.entries(selectedCosts).filter(([id, amount]) => getOwnedCount(state, id) < amount);
+  const selectedLevelLocked = selectedRecipe ? state.skills[selectedRecipe.requiredSkill].level < selectedRecipe.requiredLevel : false;
+  const selectedBlueprintLocked = Boolean(selectedRecipe?.requiredBlueprint && !state.unlockedBlueprints[selectedRecipe.requiredBlueprint]);
+  const selectedLocked = selectedLevelLocked || selectedBlueprintLocked;
+  const selectedMissing = selectedMissingEntries.length > 0;
+  const selectedActive = selectedRecipe ? state.activeCraft?.recipeId === selectedRecipe.id : false;
+  const selectedProgress = selectedActive && state.activeCraft ? activityProgress(state.activeCraft.startedAt, state.activeCraft.durationMs) : null;
+  const selectedComparisonItemId = selectedOutput ? equippedComparisonItemId(state, selectedOutput) : undefined;
   return (
     <article className="panel">
       <div className="panel-heading">
@@ -3375,74 +4934,83 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
           </button>
         ))}
       </div>
-      <div className="card-list">
-        {sortedRecipes.map((recipe) => {
-          const output = getItem(recipe.outputItemId);
-          const levelLocked = state.skills[recipe.requiredSkill].level < recipe.requiredLevel;
-          const blueprintLocked = Boolean(recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]);
-          const locked = levelLocked || blueprintLocked;
-          const costs = scaledCraftingCosts(state, recipe);
-          const missingEntries = Object.entries(costs).filter(([id, amount]) => getOwnedCount(state, id) < amount);
-          const missing = missingEntries.length > 0;
-          const active = state.activeCraft?.recipeId === recipe.id;
-          const craftable = !locked && !missing;
-          const progress = active && state.activeCraft ? activityProgress(state.activeCraft.startedAt, state.activeCraft.durationMs) : null;
-          const lockReasons = [
-            levelLocked ? `Requires ${skillNames[recipe.requiredSkill]} level ${recipe.requiredLevel}. Current ${state.skills[recipe.requiredSkill].level}.` : null,
-            blueprintLocked && recipe.requiredBlueprint ? `Requires ${getItem(recipe.requiredBlueprint)?.name ?? recipe.requiredBlueprint}.` : null,
-            missing ? `Missing ${missingEntries.map(([id, amount]) => `${(amount - getOwnedCount(state, id)).toLocaleString()} ${getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}`).join(", ")}.` : null,
-          ].filter(Boolean) as string[];
-          return (
-            <article className={`action-card vertical crafting-recipe-card rarity-${(output?.rarity ?? "Common").toLowerCase()} ${active ? "active-card" : ""} ${craftable ? "craftable-card" : ""} ${locked ? "locked-card" : ""} ${missing ? "missing-card" : ""}`} key={recipe.id}>
-              <div>
-                <p className="eyebrow">{output?.rarity ?? "Common"} / {recipe.category} / {formatDuration(adjustedDurationMs(state, recipe.durationMs, recipe.tags))}</p>
-                <h3>{recipe.name}</h3>
-                <p className="muted">Creates {recipe.outputQuantity} {output?.name ?? recipe.outputItemId}.</p>
-                {lockReasons.length > 0 && (
-                  <div className="craft-lockout">
-                    {lockReasons.map((reason) => <p key={reason}>{reason}</p>)}
-                  </div>
-                )}
-                <RequirementBulletList title="Skill Requirement">
-                  <span className={levelLocked ? "requirement-row missing" : "requirement-row met"}>{skillNames[recipe.requiredSkill]} Level {state.skills[recipe.requiredSkill].level} / {recipe.requiredLevel}</span>
-                </RequirementBulletList>
-                {recipe.requiredBlueprint && (
-                  <RequirementBulletList title="Blueprint Requirement" warning={blueprintLocked}>
-                    <ClickableItemRequirement state={state} itemId={recipe.requiredBlueprint} required={1} warning={blueprintLocked} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
-                  </RequirementBulletList>
-                )}
-                <RequirementBulletList title="Required Materials">
-                  {Object.entries(costs).map(([id, amount]) => (
-                    <ClickableItemRequirement key={id} state={state} itemId={id} required={amount} warning={getOwnedCount(state, id) < amount} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
-                  ))}
-                </RequirementBulletList>
-                {missing && (
-                  <RequirementBulletList title="Missing" warning>
-                    {missingEntries.map(([id, amount]) => (
-                      <ClickableItemRequirement key={id} state={state} itemId={id} required={amount} warning onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
-                    ))}
-                  </RequirementBulletList>
-                )}
-                <RequirementBulletList title="Rewards">
-                  <span className="requirement-row">{recipe.outputQuantity} {output?.name ?? recipe.outputItemId}</span>
-                  <span className="requirement-row">+{recipe.xpReward} XP</span>
-                  <span className="requirement-row">+{recipe.masteryXpReward} Mastery XP</span>
-                </RequirementBulletList>
-                <TagList tags={recipe.tags} />
+      <div className="crafting-workbench-layout">
+        <div className="crafting-recipe-list">
+          {sortedRecipes.map((recipe) => {
+            const output = getItem(recipe.outputItemId);
+            const levelLocked = state.skills[recipe.requiredSkill].level < recipe.requiredLevel;
+            const blueprintLocked = Boolean(recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]);
+            const locked = levelLocked || blueprintLocked;
+            const costs = scaledCraftingCosts(state, recipe);
+            const missing = Object.entries(costs).some(([id, amount]) => getOwnedCount(state, id) < amount);
+            const active = state.activeCraft?.recipeId === recipe.id;
+            const craftable = !locked && !missing;
+            const selected = selectedRecipe?.id === recipe.id;
+            return (
+              <button
+                type="button"
+                className={`crafting-recipe-tile rarity-${(output?.rarity ?? "Common").toLowerCase()} ${selected ? "active" : ""} ${active ? "running" : ""} ${craftable ? "craftable-card" : ""} ${locked ? "locked-card" : ""} ${missing ? "missing-card" : ""}`}
+                key={recipe.id}
+                onClick={() => setSelectedRecipeId(recipe.id)}
+              >
+                {output ? <EquipmentTypeIconBadge item={output} /> : <span className="slot-fallback">{itemInitials(recipe.outputItemId)}</span>}
+                <span className="eyebrow">{output?.rarity ?? "Common"} / {recipe.category} / {formatDuration(adjustedDurationMs(state, recipe.durationMs, recipe.tags))}</span>
+                <strong>{recipe.name}</strong>
+                <em>{skillNames[recipe.requiredSkill]} {recipe.requiredLevel} / {missing ? "Missing" : locked ? "Locked" : active ? "Running" : "Ready"}</em>
+              </button>
+            );
+          })}
+          {!sortedRecipes.length && <p className="muted">No recipes in this filter yet.</p>}
+        </div>
+        <aside className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}>
+          {selectedRecipe ? (
+            <>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">{selectedOutput?.rarity ?? "Common"} / {selectedRecipe.category} / Owned {getOwnedCount(state, selectedRecipe.outputItemId)}</p>
+                  <h2>{selectedRecipe.name}</h2>
+                </div>
+                {selectedOutput ? <EquipmentTypeIconBadge item={selectedOutput} /> : <span className="slot-fallback">{itemInitials(selectedRecipe.outputItemId)}</span>}
               </div>
+              <p className="muted">Creates {selectedRecipe.outputQuantity} {selectedOutput?.name ?? selectedRecipe.outputItemId}.</p>
+              {selectedOutput?.description && <p className="fine">{selectedOutput.description}</p>}
+              {selectedOutput?.stats && <StatComparisonLine state={state} itemId={selectedRecipe.outputItemId} compareItemId={selectedComparisonItemId} />}
+              {selectedOutput?.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedOutput.modifiers)}</p>}
+              {selectedOutput && <p className="fine">Used for: {itemUseSummary(selectedOutput.id)}</p>}
+              <RequirementBulletList title="Skill Requirement">
+                <span className={selectedLevelLocked ? "requirement-row missing" : "requirement-row met"}>{skillNames[selectedRecipe.requiredSkill]} Level {state.skills[selectedRecipe.requiredSkill].level} / {selectedRecipe.requiredLevel}</span>
+              </RequirementBulletList>
+              {selectedRecipe.requiredBlueprint && (
+                <RequirementBulletList title="Blueprint Requirement" warning={selectedBlueprintLocked}>
+                  <ClickableItemRequirement state={state} itemId={selectedRecipe.requiredBlueprint} required={1} warning={selectedBlueprintLocked} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
+                </RequirementBulletList>
+              )}
+              <RequirementBulletList title="Required Materials" warning={selectedMissing}>
+                {Object.entries(selectedCosts).map(([id, amount]) => (
+                  <ClickableItemRequirement key={id} state={state} itemId={id} required={amount} warning={getOwnedCount(state, id) < amount} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
+                ))}
+              </RequirementBulletList>
+              <RequirementBulletList title="Rewards">
+                <span className="requirement-row">{selectedRecipe.outputQuantity} {selectedOutput?.name ?? selectedRecipe.outputItemId}</span>
+                <span className="requirement-row">+{selectedRecipe.xpReward} XP</span>
+                <span className="requirement-row">+{selectedRecipe.masteryXpReward} Mastery XP</span>
+              </RequirementBulletList>
+              <TagList tags={selectedRecipe.tags} />
               <CardActionFooter
-                active={active}
-                progress={progress}
-                locked={locked}
-                disabled={missing}
-                startLabel={locked ? "Locked" : missing ? "Missing" : "Start"}
+                active={selectedActive}
+                progress={selectedProgress}
+                locked={selectedLocked}
+                disabled={selectedMissing}
+                startLabel={selectedLocked ? "Locked" : selectedMissing ? "Missing" : "Start"}
                 stopLabel="Stop Craft"
-                onStart={() => onCraft(recipe.id)}
+                onStart={() => onCraft(selectedRecipe.id)}
                 onStop={onStopCraft}
               />
-            </article>
-          );
-        })}
+            </>
+          ) : (
+            <p className="muted">Select a recipe to inspect requirements, stats, and output details.</p>
+          )}
+        </aside>
       </div>
     </article>
   );
@@ -4329,7 +5897,9 @@ function CyberwareDetailsDrawer({
             <button className="secondary-button full" onClick={() => onUnequip(overlay.slotId)}>Unequip</button>
             {equippedItem.maxUpgradeLevel && (
               <button className="secondary-button full" disabled={!canAffordItemUpgrade(state, equippedItem.id)} onClick={() => onUpgrade(equippedItem.id)}>
-                Upgrade {formatItemCost(itemUpgradeCost(state, equippedItem.id))}
+                {(state.upgradeLevels[equippedItem.id] ?? 0) >= equippedItem.maxUpgradeLevel
+                  ? "Max Upgrade"
+                  : `Upgrade ${formatItemCost(itemUpgradeCost(state, equippedItem.id))}`}
               </button>
             )}
           </div>
@@ -4359,7 +5929,7 @@ function CyberwareDetailsDrawer({
                 </button>
                 {item.maxUpgradeLevel && (
                   <button className="secondary-button full" disabled={!canAffordItemUpgrade(state, itemId)} onClick={() => onUpgrade(itemId)}>
-                    Upgrade
+                    {(state.upgradeLevels[itemId] ?? 0) >= item.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}
                   </button>
                 )}
               </div>
@@ -4509,15 +6079,16 @@ function MoreTab({
     <section className="stack">
       <article className="panel">
         <div className="segmented">
-          {(["story", "companions", "simCache", ...(isDevBuild ? ["balance" as MoreSection] : []), "settings"] as MoreSection[]).map((id) => (
+          {(["story", "companions", "itemIndex", "simCache", ...(isDevBuild ? ["balance" as MoreSection] : []), "settings"] as MoreSection[]).map((id) => (
             <button key={id} className={section === id ? "active" : ""} onClick={() => onSection(id)}>
-              {titleCase(id)}
+              {id === "itemIndex" ? "Item Index" : titleCase(id)}
             </button>
           ))}
         </div>
       </article>
       {section === "story" && <StorySection state={state} onChoice={onStoryChoice} />}
       {section === "companions" && <CompanionsSection state={state} onGift={onGift} onSpendTime={onSpendTime} onSetCompanion={onSetCompanion} />}
+      {section === "itemIndex" && <ItemIndexPanel state={state} />}
       {section === "simCache" && <SimCacheSection state={state} onRun={onRunSimCache} />}
       {section === "balance" && isDevBuild && <BalanceDebugSection state={state} onGrantCache={onDebugGrantCache} onSetRisk={onDebugSetRisk} onGrantCredits={onDebugGrantCredits} />}
       {section === "settings" && (
@@ -4962,6 +6533,7 @@ function HousingSection({
               <h2>{housing.name}</h2>
               <p className="muted">{housing.passiveBonuses.join(", ")}</p>
               <p className="fine">Cost {housing.cost} Credits / Unlock {housing.unlockRequirements.join(", ")}</p>
+              <p className="fine">Active bonus: +2% action speed, {modifierSummary(housing.passiveModifiers ?? {})}</p>
               <p className="fine">Storage +{housing.storageBonus}, offline cap +{housing.offlineCapBonusHours}h, Heat decay +{housing.heatDecayBonus}, IN recovery +{housing.neuralRecoveryBonus}</p>
             </div>
             {owned ? (
@@ -5014,6 +6586,7 @@ function GarageSection({
               <p className="fine">Cost: {formatRewards(vehicle.cost)}</p>
               <p className="fine">Speed {vehicle.stats.speed}, Armor {vehicle.stats.armor}, Storage {vehicle.stats.storage}, Stealth {vehicle.stats.stealth}</p>
               <p className="fine">Heat Reduction {vehicle.stats.heatReduction}%, Job Efficiency {vehicle.stats.jobEfficiency}%, Smuggling Bonus {vehicle.stats.smugglingRewardBonus}%</p>
+              <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
             </div>
             <div className="card-list compact">
               {owned ? (
@@ -5022,7 +6595,7 @@ function GarageSection({
                     {active ? "Active" : "Set Active"}
                   </button>
                   <button className="secondary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>
-                    Upgrade
+                    {level >= vehicle.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}
                   </button>
                 </>
               ) : (
@@ -5193,6 +6766,254 @@ function ProgressDropdown({
       <div className="progress-dropdown-body">{children}</div>
     </details>
   );
+}
+
+type ItemIndexCategory = "Resources" | "Components" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables";
+type ItemIndexSortMode = "name" | "rarity" | "price" | "tier" | "requiredLevel" | "owned" | "category" | "slot" | "instability" | "damage" | "armor";
+type ItemIndexSortDirection = "asc" | "desc";
+
+const itemIndexCategories: ItemIndexCategory[] = ["Resources", "Components", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables"];
+const itemIndexSortModes: ItemIndexSortMode[] = ["name", "rarity", "price", "tier", "requiredLevel", "owned", "category", "slot", "instability", "damage", "armor"];
+const itemIndexValidation = getContentValidationReport();
+
+function ItemIndexPanel({ state }: { state: GameState }) {
+  const [category, setCategory] = useState<ItemIndexCategory>("Resources");
+  const [secondary, setSecondary] = useState("All");
+  const [sortMode, setSortMode] = useState<ItemIndexSortMode>("rarity");
+  const [sortDirection, setSortDirection] = useState<ItemIndexSortDirection>("desc");
+  const [query, setQuery] = useState("");
+  const [showHidden, setShowHidden] = useState(isDevBuild);
+  const [showIds, setShowIds] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const categoryItems = items.filter((item) => itemIndexCategoryFor(item) === category);
+  const secondaryOptions = itemIndexSecondaryFilters(category, categoryItems);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = categoryItems
+    .filter((item) => secondary === "All" || itemIndexSecondaryValue(item, category) === secondary)
+    .filter((item) => showHidden || itemDiscoveredForIndex(state, item))
+    .filter((item) => !normalizedQuery || itemIndexSearchText(item, state).includes(normalizedQuery));
+  const sorted = [...filtered].sort((left, right) => itemIndexSortValue(left, state, sortMode).localeCompare(itemIndexSortValue(right, state, sortMode), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1) || left.name.localeCompare(right.name));
+  const activeId = selectedId && sorted.some((item) => item.id === selectedId) ? selectedId : sorted[0]?.id ?? null;
+  const selectedItem = activeId ? getItem(activeId) : undefined;
+  const ownedCount = categoryItems.filter((item) => getOwnedCount(state, item.id) > 0).length;
+  const discoveredCount = categoryItems.filter((item) => itemDiscoveredForIndex(state, item)).length;
+  const rarityCounts = categoryItems.reduce<Record<string, number>>((counts, item) => ({ ...counts, [item.rarity]: (counts[item.rarity] ?? 0) + 1 }), {});
+
+  return (
+    <NeonPanel>
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Database / Balancing Review</p>
+          <h2>Item Index</h2>
+        </div>
+        <FileText size={22} />
+      </div>
+      <div className="item-index-summary">
+        <Metric label="Total" value={items.length} />
+        <Metric label={category} value={categoryItems.length} />
+        <Metric label="Owned" value={ownedCount} />
+        <Metric label="Discovered" value={discoveredCount} />
+      </div>
+      <div className="item-index-rarity-row">
+        {Object.entries(rarityCounts).map(([rarity, count]) => <span key={rarity} className={`rarity-pill rarity-${rarity.toLowerCase()}`}>{rarity} {count}</span>)}
+      </div>
+      <div className="inventory-filter-row item-index-tabs">
+        {itemIndexCategories.map((entry) => (
+          <button key={entry} className={category === entry ? "active" : ""} onClick={() => { setCategory(entry); setSecondary("All"); setSelectedId(null); }}>
+            {entry}
+          </button>
+        ))}
+      </div>
+      <div className="item-index-controls">
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, slot, rarity, tags, source..." aria-label="Search item index" />
+        <select value={secondary} onChange={(event) => { setSecondary(event.target.value); setSelectedId(null); }}>
+          {secondaryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        <button className="inventory-sort-cycle" onClick={() => setSortMode((current) => itemIndexSortModes[(itemIndexSortModes.indexOf(current) + 1) % itemIndexSortModes.length])}>
+          Sort: {titleCase(sortMode)}
+        </button>
+        <button className="inventory-sort-direction" aria-label="Reverse item index sort" onClick={() => setSortDirection((current) => current === "asc" ? "desc" : "asc")}>
+          {sortDirection === "asc" ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+        </button>
+        <button className={`secondary-button ${showHidden ? "active" : ""}`} onClick={() => setShowHidden((value) => !value)}>Hidden Data</button>
+        <button className={`secondary-button ${showIds ? "active" : ""}`} onClick={() => setShowIds((value) => !value)}>IDs</button>
+      </div>
+      <div className="item-index-layout">
+        <div className="item-slot-grid item-index-grid">
+          {sorted.length ? sorted.map((item) => (
+            <ItemIndexCard key={item.id} item={item} state={state} active={activeId === item.id} showIds={showIds} onSelect={() => setSelectedId(item.id)} />
+          )) : <p className="muted">No items match this filter.</p>}
+        </div>
+        <ItemIndexDetailPanel state={state} item={selectedItem} showIds={showIds} showHidden={showHidden} />
+      </div>
+    </NeonPanel>
+  );
+}
+
+function ItemIndexCard({ item, state, active, showIds, onSelect }: { item: ItemDefinition; state: GameState; active: boolean; showIds: boolean; onSelect: () => void }) {
+  const owned = getOwnedCount(state, item.id);
+  const discovered = itemDiscoveredForIndex(state, item);
+  return (
+    <button className={`inventory-slot item-index-card ${active ? "active" : ""} rarity-${item.rarity.toLowerCase()} ${!discovered ? "undiscovered-card" : ""}`} onClick={onSelect}>
+      <EquipmentTypeIconBadge item={item} />
+      <strong>{discovered ? item.name : "Unknown Item"}</strong>
+      <span>{item.rarity} / {itemIndexTypeLabel(item)}</span>
+      <span>Owned {owned.toLocaleString()} / Value {item.sellValue.toLocaleString()}</span>
+      <span>{itemIndexMainStat(item)}</span>
+      {showIds && <em>{item.id}</em>}
+    </button>
+  );
+}
+
+function ItemIndexDetailPanel({ state, item, showIds, showHidden }: { state: GameState; item?: ItemDefinition; showIds: boolean; showHidden: boolean }) {
+  if (!item) return <article className="panel item-index-detail"><p className="muted">Select an item to inspect full database details.</p></article>;
+  const sources = getItemSources(item.id, state);
+  const craftRecipes = recipes.filter((recipe) => recipe.outputItemId === item.id);
+  const usedIn = recipes.filter((recipe) => Object.prototype.hasOwnProperty.call(recipe.inputCosts, item.id));
+  const warnings = itemIndexWarnings(item.id);
+  const discovered = itemDiscoveredForIndex(state, item);
+  const owned = getOwnedCount(state, item.id);
+  return (
+    <article className={`panel item-index-detail rarity-${item.rarity.toLowerCase()}`}>
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">{item.rarity} / {item.type} / Owned {owned.toLocaleString()}</p>
+          <h2>{discovered || showHidden ? item.name : "Unknown Item"}</h2>
+        </div>
+        <EquipmentTypeIconBadge item={item} />
+      </div>
+      {(discovered || showHidden) ? (
+        <>
+          <p className="muted">{item.description}</p>
+          <div className="item-index-chip-row">
+            <span>{itemIndexTypeLabel(item)}</span>
+            {item.slot && <span>Slot {titleCase(item.slot)}</span>}
+            {item.tier && <span>Tier {item.tier}</span>}
+            {item.requiredLevel && <span>Requires {item.requiredSkill ? skillNames[item.requiredSkill] : "Level"} {item.requiredLevel}</span>}
+            {item.type === "Cyberware" && <span>IN {formatSigned(cyberwareInstabilityLoad(item))}</span>}
+            <span>Sell {item.sellValue.toLocaleString()}</span>
+          </div>
+          {item.stats && <DetailSection title="Stats" lines={[formatStats(item.stats)]} />}
+          {item.modifiers && <DetailSection title="Modifiers" lines={[formatItemModifiers(item.modifiers)]} />}
+          {item.specialEffect && <DetailSection title="Special" lines={[item.specialEffect]} />}
+          {item.weaponClass && <DetailSection title="Weapon Profile" lines={[`Class: ${weaponClassLabel(item.weaponClass)}`, `Attachment slots: ${item.attachmentSlots?.map(titleCase).join(", ") || "None"}`, `Mod slots: ${item.modSlots ?? 0}`]} />}
+          {item.compatibleWeaponClasses?.length ? <DetailSection title="Compatibility" lines={[item.compatibleWeaponClasses.map(weaponClassLabel).join(", ")]} /> : null}
+          {craftRecipes.length ? <DetailSection title="Crafting Recipe" lines={craftRecipes.map((recipe) => `${recipe.name}: ${formatItemCost(recipe.inputCosts)} / ${skillNames[recipe.requiredSkill]} ${recipe.requiredLevel}`)} /> : null}
+          <DetailSection title="Sources" lines={sources.map((source) => `${source.type}: ${source.name} - ${source.detail}${source.requirement ? ` (${source.requirement})` : ""}`)} />
+          <DetailSection title="Used In" lines={usedIn.length ? usedIn.map((recipe) => `${recipe.name}: requires ${(recipe.inputCosts[item.id] ?? 0).toLocaleString()}`) : ["No recipe use found yet."]} />
+          <DetailSection title="Tags" lines={[item.tags.join(", ") || "None"]} />
+          {showIds && <DetailSection title="Developer" lines={[`ID: ${item.id}`, `Source hint: ${item.sourceHint}`, `Stackable: ${item.stackable ? "Yes" : "No"}`, `Validation: ${warnings.length ? warnings.join(" / ") : "Clean"}`]} />}
+        </>
+      ) : (
+        <p className="muted">This item has not been discovered yet. Enable Hidden Data to review its full stats and sources.</p>
+      )}
+    </article>
+  );
+}
+
+function DetailSection({ title, lines }: { title: string; lines: string[] }) {
+  return (
+    <div className="item-index-detail-section">
+      <p className="eyebrow">{title}</p>
+      {lines.map((line) => <span key={line}>{line}</span>)}
+    </div>
+  );
+}
+
+function itemIndexCategoryFor(item: ItemDefinition): ItemIndexCategory | null {
+  if (item.id in resourceNames) return "Resources";
+  if (item.type === "Material" || item.type === "Component") return "Components";
+  if (item.type === "Cyberware") return "Cyberware";
+  if (item.type === "Weapon") return "Weapons";
+  if (item.type === "WeaponAttachment") return "Attachments";
+  if (item.type === "WeaponMod") return "Mods";
+  if (item.type === "Armor") return "Armor";
+  if (item.type === "Consumable") return "Consumables";
+  return null;
+}
+
+function itemIndexSecondaryFilters(category: ItemIndexCategory, categoryItems: ItemDefinition[]) {
+  const values = categoryItems.map((item) => itemIndexSecondaryValue(item, category)).filter(Boolean);
+  return ["All", ...Array.from(new Set(values)).sort()];
+}
+
+function itemIndexSecondaryValue(item: ItemDefinition, category: ItemIndexCategory) {
+  if (category === "Cyberware") return item.slot ? titleCase(item.slot) : "Utility";
+  if (category === "Weapons") return item.weaponClass ? weaponClassLabel(item.weaponClass) : "Unknown Class";
+  if (category === "Armor") return item.slot ? armorSlotLabel(item.slot) : "Unknown Slot";
+  if (category === "Components") return componentTierLabel(item);
+  if (category === "Attachments") return item.attachmentCategory ? titleCase(item.attachmentCategory) : "Attachment";
+  if (category === "Mods") return item.compatibleWeaponClasses?.[0] ? weaponClassLabel(item.compatibleWeaponClasses[0]) : "Universal";
+  return item.type;
+}
+
+function itemIndexSearchText(item: ItemDefinition, state: GameState) {
+  const sourceNames = getItemSources(item.id, state).map((source) => `${source.type} ${source.name} ${source.detail}`).join(" ");
+  return [item.name, item.description, item.type, item.rarity, item.slot, item.weaponClass, item.attachmentCategory, item.sourceHint, item.tags.join(" "), sourceNames].filter(Boolean).join(" ").toLowerCase();
+}
+
+function itemIndexSortValue(item: ItemDefinition, state: GameState, sortMode: ItemIndexSortMode) {
+  const numeric = (value: number) => value.toString().padStart(10, "0");
+  if (sortMode === "name") return item.name;
+  if (sortMode === "rarity") return numeric(inventoryRarityRanks[item.rarity] ?? 0);
+  if (sortMode === "price") return numeric(item.sellValue);
+  if (sortMode === "tier") return numeric(item.tier ?? 0);
+  if (sortMode === "requiredLevel") return numeric(item.requiredLevel ?? 0);
+  if (sortMode === "owned") return numeric(getOwnedCount(state, item.id));
+  if (sortMode === "category") return itemIndexCategoryFor(item) ?? item.type;
+  if (sortMode === "slot") return item.slot ?? item.weaponClass ?? item.type;
+  if (sortMode === "instability") return numeric(item.type === "Cyberware" ? cyberwareInstabilityLoad(item) + 1000 : 0);
+  if (sortMode === "damage") return numeric(item.stats?.damage ?? 0);
+  if (sortMode === "armor") return numeric(item.stats?.armor ?? 0);
+  return item.name;
+}
+
+function itemDiscoveredForIndex(state: GameState, item: ItemDefinition) {
+  return Boolean(item.discovered || state.discoveredItems[item.id] || getOwnedCount(state, item.id) > 0 || item.id in resourceNames);
+}
+
+function itemIndexTypeLabel(item: ItemDefinition) {
+  if (item.type === "Weapon") return item.weaponClass ? weaponClassLabel(item.weaponClass) : "Weapon";
+  if (item.type === "Armor") return item.slot ? armorSlotLabel(item.slot) : "Armor";
+  if (item.type === "Cyberware") return item.slot ? titleCase(item.slot) : "Cyberware";
+  if (item.type === "WeaponAttachment") return item.attachmentCategory ? `${titleCase(item.attachmentCategory)} Attachment` : "Attachment";
+  if (item.type === "WeaponMod") return "Weapon Mod";
+  return item.type;
+}
+
+function itemIndexMainStat(item: ItemDefinition) {
+  if (item.type === "Cyberware") return item.modifiers ? formatItemModifiers(item.modifiers).split(", ")[0] : `IN ${formatSigned(cyberwareInstabilityLoad(item))}`;
+  if (item.type === "Weapon") return `Damage ${item.stats?.damage ?? 0} / Speed ${item.stats?.attackSpeed ?? 0}`;
+  if (item.type === "Armor") return `Armor ${item.stats?.armor ?? 0} / HP ${item.stats?.maxHp ?? 0}`;
+  if (item.type === "Consumable") return item.useEffect ? `Use: ${titleCase(item.useEffect)}` : "Consumable";
+  return item.sourceHint;
+}
+
+function componentTierLabel(item: ItemDefinition) {
+  if (item.rarity === "Prototype") return "Prototype";
+  if (item.rarity === "Relic" || item.rarity === "Legendary") return "Relic";
+  if ((item.tier ?? 1) >= 4 || item.rarity === "Epic") return "Advanced";
+  if ((item.tier ?? 1) >= 2 || item.rarity === "Rare") return "Rare";
+  if (item.rarity === "Uncommon") return "Refined";
+  return "Basic";
+}
+
+function armorSlotLabel(slot: CyberwareSlot | GearSlot) {
+  if (slot === "accessory1" || slot === "accessory2") return "Accessory";
+  return titleCase(slot);
+}
+
+function weaponClassLabel(id: WeaponClassId) {
+  return weaponClasses.find((weaponClass) => weaponClass.id === id)?.name ?? titleCase(id);
+}
+
+function itemIndexWarnings(itemId: string) {
+  return [
+    ...itemIndexValidation.warnings,
+    ...itemIndexValidation.missingReferences,
+    ...itemIndexValidation.duplicateIds,
+    ...itemIndexValidation.balanceWarnings,
+  ].filter((warning) => warning.toLowerCase().includes(itemId.toLowerCase()));
 }
 
 function loadProgressDropdowns(): Record<ProgressDropdownId, boolean> {
@@ -5455,7 +7276,7 @@ function PrestigePanel({ state }: { state: GameState }) {
       <div className="inventory-grid">
         <Metric label="Unlocked" value={state.prestigeProtocol.unlocked ? 1 : 0} />
         <Metric label="Prestige Count" value={state.endgameStatistics.prestigeCount} />
-        <Metric label="Skill 99s" value={Object.values(state.skills).filter((skill) => skill.level >= 99).length} />
+        <Metric label="Skill 150s" value={Object.values(state.skills).filter((skill) => skill.level >= MAX_MAIN_SKILL_LEVEL).length} />
         <Metric label="District 99s" value={Object.values(state.districtMastery).filter((mastery) => mastery.level >= 99).length} />
       </div>
       <TerminalLog>

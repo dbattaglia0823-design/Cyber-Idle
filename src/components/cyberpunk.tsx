@@ -36,8 +36,8 @@ export function ModifierList({ items }: { items: string[] }) {
   return <p className="fine">Modifiers: {items.length ? items.join(", ") : "None"}</p>;
 }
 
-export function ActivityCard({ children, locked = false }: { children: ReactNode; locked?: boolean }) {
-  return <article className={`action-card vertical hologram-card ${locked ? "locked-card" : ""}`}>{children}</article>;
+export function ActivityCard({ children, locked = false, className = "" }: { children: ReactNode; locked?: boolean; className?: string }) {
+  return <article className={`action-card vertical hologram-card ${className} ${locked ? "locked-card" : ""}`}>{children}</article>;
 }
 
 export function LockedOverlay({ text }: { text: string }) {

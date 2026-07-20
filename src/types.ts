@@ -467,6 +467,7 @@ export interface CurrentCombat {
   enemyMaxHp?: number;
   nextPlayerAttackAt?: number;
   nextEnemyAttackAt?: number;
+  respawnAt?: number;
   lastPlayerAttackAt?: number;
   lastEnemyAttackAt?: number;
   lastPlayerHit?: {
@@ -771,6 +772,7 @@ export interface VendorDefinition {
 export interface VendorState {
   discovered: boolean;
   purchases: Record<string, number>;
+  limitedStockRefreshAt?: number;
 }
 
 export interface ActiveRipperdocEffect extends RipperdocTemporaryEffectDefinition {
@@ -929,6 +931,7 @@ export interface HousingOption {
   craftingBonus?: number;
   hackingBonus?: number;
   garageSlots?: number;
+  passiveModifiers?: Partial<ActiveModifiers>;
 }
 
 export interface Companion {
@@ -1140,8 +1143,10 @@ export interface ActiveModifiers {
   skillXp: Partial<Record<SkillId, number>>;
   skillRewards: number;
   actionSpeed: number;
+  combatMaxHp: number;
   combatDamage: number;
   combatDefense: number;
+  combatAttackSpeed: number;
   healingReceived: number;
   hpRegen: number;
   damageReduction: number;

@@ -3,6 +3,7 @@ import mapImage from "../assets/maps/Map.png";
 import { factions } from "../data/factions";
 import { cityDistrictOrder, districtCompletionBreakdown, districtCompletionPercent, getDistrict } from "../data/cityMap";
 import { cityMapOverlayRegions } from "../data/cityMapOverlayData";
+import { districtLevelBandLabel, hasAnyMainSkillLevel } from "../data/levelBands";
 import { skillNames } from "../data/skills";
 import { districtActivitySummaries } from "../systems/districtActivityMap";
 import { threatTier } from "../systems/districtThreat";
@@ -132,7 +133,7 @@ function CityMapBottomDrawer({
             <span className={`district-state-badge ${unlocked ? "open" : "locked"}`}>{unlocked ? "Open" : "Locked"}</span>
           </div>
           <p className="fine">
-            {completion}% complete / {threatTier(threat)} threat / {factionName} / Standing {state.districtStanding[districtId]?.standing ?? 0}
+            {districtLevelBandLabel(districtId)} / {completion}% complete / {threatTier(threat)} threat / {factionName} / Standing {state.districtStanding[districtId]?.standing ?? 0}
           </p>
           {!unlocked && <p className={`fine ${mainRequirementMet ? "success-text" : "danger-text"}`}>{requirementHint(state, mainRequirement)}</p>}
           {active && <p className="fine active-text">Active: {activeActivityName ?? "Activity running"}</p>}
@@ -179,6 +180,12 @@ function CityMapBottomDrawer({
 }
 
 function requirementHint(state: GameState, requirement: string) {
+  const anySkillMatch = requirement.match(/^Any main skill level (\d+)/i);
+  if (anySkillMatch) {
+    const target = Number(anySkillMatch[1]);
+    const best = Math.max(...Object.values(state.skills).map((skill) => skill.level));
+    return `Any main skill ${best}/${target}`;
+  }
   const skillMatch = requirement.match(/^(Scavenging|Hacking|Cyberware Engineering|Street Combat|Vehicle Tuning|Black Market Trading|Medical Knowledge|Streetcraft) level (\d+)/i);
   if (skillMatch) {
     const [, label, target] = skillMatch;
@@ -192,6 +199,8 @@ function requirementHint(state: GameState, requirement: string) {
 
 function requirementMet(state: GameState, requirement: string) {
   const normalized = requirement.replace(/^or\s+/i, "");
+  const anySkillMatch = normalized.match(/^Any main skill level (\d+)/i);
+  if (anySkillMatch) return hasAnyMainSkillLevel(state, Number(anySkillMatch[1]));
   const skillMatch = normalized.match(/^(Scavenging|Hacking|Cyberware Engineering|Street Combat|Vehicle Tuning|Black Market Trading|Medical Knowledge|Streetcraft) level (\d+)/i);
   if (skillMatch) {
     const [, label, target] = skillMatch;

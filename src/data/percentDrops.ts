@@ -4,10 +4,12 @@ export const percentDropTables: Record<string, PercentDropEntry[]> = {
   "street-punk": [
     drop("crude-suppressor", 2.5, 1, 1, "Common"),
     drop("weapon-frame", 12, 1, 2, "Common"),
+    drop("grip-polymer", 4, 1, 2, "Common"),
   ],
   "boosted-thug": [
     drop("junk-smg", 3, 1, 1, "Common"),
     drop("recoil-grip", 2, 1, 1, "Uncommon"),
+    drop("combat-focus-node", 1.2, 1, 1, "Uncommon"),
   ],
   "scrap-drone": [
     drop("shock-capacitor", 1.5, 1, 1, "Uncommon"),
@@ -19,6 +21,7 @@ export const percentDropTables: Record<string, PercentDropEntry[]> = {
   ],
   "scrap-hound": [
     drop("shock-rounds", 1.2, 1, 1, "Uncommon"),
+    drop("load-bearing-frame", 0.8, 1, 1, "Rare"),
   ],
   "market-cutthroat": [
     drop("monowire-knockoff", 0.6, 1, 1, "Rare"),
@@ -35,6 +38,31 @@ export const percentDropTables: Record<string, PercentDropEntry[]> = {
   "redline-brawler": [
     drop("modified-smg", 1.4, 1, 1, "Uncommon"),
     drop("boss-breaker", 0.8, 1, 1, "Rare"),
+  ],
+  "neon-row-kill-team": [
+    drop("neon-fang", 0.24, 1, 1, "Epic"),
+    drop("neon-splitter", 0.18, 1, 1, "Epic"),
+  ],
+  "jackal-roadboss": [
+    drop("chrome-jackal-ar", 0.26, 1, 1, "Epic"),
+    drop("impact-driver", 0.24, 1, 1, "Epic"),
+  ],
+  "ghost-market-factor": [
+    drop("ghostline-ripper", 0.12, 1, 1, "Legendary"),
+  ],
+  "choir-proxy": [
+    drop("streetseeker-c9", 0.24, 1, 1, "Epic"),
+  ],
+  "null-oracle-shell": [
+    drop("hive-oracle", 0.06, 1, 1, "Prototype"),
+  ],
+  "executive-bodyguard": [
+    drop("glassline-marksman", 0.22, 1, 1, "Epic"),
+    drop("railspike-vx", 0.18, 1, 1, "Epic"),
+  ],
+  "redline-executioner": [
+    drop("redline-viper", 0.3, 1, 1, "Epic"),
+    drop("rampage-pattern", 0.12, 1, 1, "Legendary"),
   ],
 };
 

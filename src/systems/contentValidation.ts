@@ -9,6 +9,7 @@ import { fixers } from "../data/fixers";
 import { housingOptions } from "../data/housing";
 import { getItem, items } from "../data/items";
 import { jobs } from "../data/jobs";
+import { districtLevelBands, majorUnlockLevels, MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
 import { operations } from "../data/operations";
 import { percentDropTables } from "../data/percentDrops";
 import { recipes } from "../data/recipes";
@@ -18,7 +19,7 @@ import { skillActions } from "../data/skills";
 import { storyArcs } from "../data/storyArcs";
 import { vehicles } from "../data/vehicles";
 import { vendors } from "../data/vendors";
-import type { DistrictId, RewardBundle, SkillId } from "../types";
+import type { CyberwareSlot, DistrictId, GearSlot, ItemDefinition, RewardBundle, SkillId } from "../types";
 
 const resourceIds = new Set([
   "credits",
@@ -166,6 +167,32 @@ export function getContentValidationReport(): ContentValidationReport {
   duplicateWarnings(duplicateIds, "story arc", storyArcs.map((arc) => arc.id));
   duplicateWarnings(duplicateIds, "district event", districtEvents.map((event) => event.id));
 
+  skillActions.forEach((action) => {
+    if (!skillLabels[action.skillId]) missingReferences.push(`${action.id} uses missing skill ${action.skillId}`);
+    if (action.districtReq) validateKnown(missingReferences, districtIds, `${action.id} district`, action.districtReq);
+    validateRewardBundle(missingReferences, `${action.id} rewards`, action.rewards);
+    if (action.levelReq < 1 || action.levelReq > MAX_MAIN_SKILL_LEVEL) balanceWarnings.push(`${action.id} has level requirement outside 1-${MAX_MAIN_SKILL_LEVEL}`);
+    if (!majorUnlockLevels.includes(action.levelReq as (typeof majorUnlockLevels)[number])) {
+      balanceWarnings.push(`${action.id} uses non-milestone level requirement ${action.levelReq}`);
+    }
+    if (action.durationMs < 2000 || action.durationMs > 30000) {
+      balanceWarnings.push(`${action.id} base duration should stay between 2s and 30s`);
+    }
+    if (action.districtReq) {
+      const band = districtLevelBands[action.districtReq];
+      if (action.levelReq < band.min && action.districtReq !== "neonRow") {
+        balanceWarnings.push(`${action.id} is below ${action.districtReq} band ${band.min}-${band.max}`);
+      }
+      if (action.levelReq > band.max) {
+        balanceWarnings.push(`${action.id} is above ${action.districtReq} band ${band.min}-${band.max}`);
+      }
+    }
+    action.rareDrops?.forEach((drop) => {
+      validateItemRef(missingReferences, `${action.id} rare drop`, drop.id);
+      validateChance(balanceWarnings, `${action.id} rare drop ${drop.id}`, drop.chance);
+    });
+  });
+
   operations.forEach((operation) => {
     if (!bossIds.has(operation.bossId)) missingReferences.push(`${operation.id} references missing boss ${operation.bossId}`);
     validateRewardBundle(missingReferences, `${operation.id} completion rewards`, operation.completionRewards);
@@ -297,6 +324,8 @@ export function getContentValidationReport(): ContentValidationReport {
     });
   });
 
+  validateItemDefinitions(balanceWarnings, items);
+
   Object.entries(percentDropTables).forEach(([sourceId, drops]) => {
     if (!enemyIds.has(sourceId) && !bossIds.has(sourceId)) warnings.push(`Percent drop table ${sourceId} is not attached to a known enemy or boss`);
     drops.forEach((drop) => {
@@ -307,6 +336,24 @@ export function getContentValidationReport(): ContentValidationReport {
   });
 
   return { warnings, missingReferences, duplicateIds, balanceWarnings, districtCounts };
+}
+
+function validateItemDefinitions(warnings: string[], definitions: ItemDefinition[]) {
+  const gearSlots: Set<GearSlot> = new Set(["weapon", "head", "chest", "hands", "legs", "boots", "accessory1", "accessory2"]);
+  const cyberwareSlots: Set<CyberwareSlot> = new Set(["neural", "optics", "arms", "legs", "skin", "skeleton", "operatingSystem", "utility"]);
+  definitions.forEach((item) => {
+    if (!item.rarity) warnings.push(`${item.id} is missing rarity`);
+    if (!item.type) warnings.push(`${item.id} is missing type`);
+    if (!item.sourceHint?.trim()) warnings.push(`${item.id} is missing source hint`);
+    if ((item.type === "Weapon" || item.type === "Armor") && (!item.slot || !gearSlots.has(item.slot as GearSlot))) warnings.push(`${item.id} has invalid equipment slot ${item.slot ?? "none"}`);
+    if (item.type === "Cyberware") {
+      if (!item.slot || !cyberwareSlots.has(item.slot as CyberwareSlot)) warnings.push(`${item.id} has invalid cyberware slot ${item.slot ?? "none"}`);
+      if (typeof item.instabilityLoad !== "number") warnings.push(`${item.id} cyberware is missing instabilityLoad`);
+    }
+    if ((item.type === "Weapon" || item.type === "Armor" || item.type === "Cyberware") && !item.requiredLevel) warnings.push(`${item.id} is missing required level`);
+    if ((item.type === "Weapon" || item.type === "Armor") && !item.stats && !item.modifiers) warnings.push(`${item.id} equipment has no stats or modifiers`);
+    if (item.type === "Cyberware" && !item.modifiers) warnings.push(`${item.id} cyberware has no modifiers`);
+  });
 }
 
 function warnIfThin(warnings: string[], districtId: DistrictId, category: string, count: number) {

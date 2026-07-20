@@ -18,6 +18,8 @@ import { applyDamage, clampPlayerHP, maybeAutoHeal } from "./healthSystem";
 import { addDistrictMasteryXp, districtMasteryDropBonus, districtMasteryRewardBonus, hasDistrictMasteryUnlock } from "./districtMasteryProcessor";
 import type { CurrentCombat, Enemy, GameState, ResourceId } from "../types";
 
+const COMBAT_RESPAWN_DELAY_MS = 1000;
+
 export function allEnemies() {
   return combatZones.flatMap((zone) => zone.enemies);
 }
@@ -64,6 +66,10 @@ export function processCombat(state: GameState, now = Date.now()) {
     }
 
     next.currentCombat = normalizeCombatState(next, enemy, now);
+    if (next.currentCombat.respawnAt) {
+      if (now < next.currentCombat.respawnAt) break;
+      next.currentCombat = createCombatState(next, enemy, next.currentCombat.respawnAt);
+    }
     const combat = next.currentCombat;
     const nextPlayerAttackAt = combat.nextPlayerAttackAt ?? now;
     const nextEnemyAttackAt = combat.nextEnemyAttackAt ?? now;
@@ -83,8 +89,15 @@ export function processCombat(state: GameState, now = Date.now()) {
         completeKill(next, enemy, killDuration);
         if (next.health.lifeState === "downed") break;
         const healed = maybeAutoHeal(next, enemy.name);
-        next.currentCombat = createCombatState(next, enemy, nextPlayerAttackAt);
+        next.currentCombat = {
+          ...combat,
+          enemyCurrentHp: 0,
+          respawnAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
+          nextPlayerAttackAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
+          nextEnemyAttackAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
+        };
         if (healed) next.currentCombat.lastHealingReceived = next.health.lastHealingReceived;
+        break;
       }
     } else if (nextEnemyAttackAt <= now) {
       const rawDamage = enemyAttackDamage(enemy);

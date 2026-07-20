@@ -3,7 +3,7 @@ import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { addItem, removeItem } from "./collectionSystem";
 import { changeLocalStanding, discoverDistrictContent, discoverDistrictVendor } from "./districtProgression";
-import { calculateSellValue, calculateVendorPrice } from "./balanceFormulas";
+import { calculateRarityAdjustedShopBasePrice, calculateSellValue, calculateVendorPrice } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { factionRank } from "./modifiers";
 import { updateWorldUnlocks } from "./worldUnlocks";
@@ -11,6 +11,7 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import type { FactionId, GameState, ResourceId, VendorDefinition, VendorItemEntry } from "../types";
 
 const resourceIds = new Set(Object.keys(resourceNames));
+export const VENDOR_LIMITED_STOCK_REFRESH_MS = 15 * 60 * 1000;
 
 export function districtVendors(districtId: string) {
   return vendors
@@ -42,14 +43,24 @@ export function vendorPrice(state: GameState, vendor: VendorDefinition, entry: V
   }, 0);
   const pathDiscount = state.startingPath ? vendor.startingPathModifiers?.[state.startingPath] ?? 0 : 0;
   const modifier = Math.max(0.35, vendor.priceModifier - factionDiscount - pathDiscount);
-  return calculateVendorPrice(state, entry.price, vendor.districtId, modifier);
+  return calculateVendorPrice(state, calculateRarityAdjustedShopBasePrice(getItem(entry.itemId), entry.price), vendor.districtId, modifier);
+}
+
+export function vendorLimitedStockRefreshAt(state: GameState, vendorId: string) {
+  return normalizedVendorState(state, vendorId).limitedStockRefreshAt;
+}
+
+export function vendorLimitedStockRemaining(state: GameState, vendorId: string, entry: VendorItemEntry) {
+  if (entry.stockType !== "limited") return Infinity;
+  const vendorState = normalizedVendorState(state, vendorId);
+  return Math.max(0, (entry.stock ?? 0) - (vendorState.purchases[entry.itemId] ?? 0));
 }
 
 export function canBuyVendorItem(state: GameState, vendorId: string, itemId: string) {
   const vendor = vendors.find((entry) => entry.id === vendorId);
   const item = vendor?.inventory.find((entry) => entry.itemId === itemId);
   if (!vendor || !item || !canUseVendor(state, vendor) || !vendorItemUnlocked(state, item)) return false;
-  if (item.stockType === "limited" && (state.vendors[vendorId]?.purchases[itemId] ?? 0) >= (item.stock ?? 0)) return false;
+  if (item.stockType === "limited" && vendorLimitedStockRemaining(state, vendorId, item) <= 0) return false;
   return state.resources.credits >= vendorPrice(state, vendor, item);
 }
 
@@ -62,7 +73,7 @@ export function buyVendorItem(state: GameState, vendorId: string, itemId: string
   next.resources.credits -= price;
   if (isResourceId(itemId)) next.resources[itemId] += 1;
   else addItem(next, itemId, 1);
-  const vendorState = next.vendors[vendorId] ?? { discovered: true, purchases: {} };
+  const vendorState = normalizedVendorState(next, vendorId);
   vendorState.discovered = true;
   vendorState.purchases[itemId] = (vendorState.purchases[itemId] ?? 0) + 1;
   next.vendors[vendorId] = vendorState;
@@ -132,4 +143,13 @@ function itemLabel(itemId: string) {
 
 function resourceBaseValue(itemId: string) {
   return getItem(itemId)?.sellValue ?? 1;
+}
+
+function normalizedVendorState(state: GameState, vendorId: string, now = Date.now()) {
+  const current = state.vendors[vendorId] ?? { discovered: true, purchases: {} };
+  const hasLimitedPurchases = Object.values(current.purchases).some((amount) => amount > 0);
+  const refreshAt = current.limitedStockRefreshAt;
+  if (refreshAt && refreshAt > now) return { discovered: current.discovered, purchases: { ...current.purchases }, limitedStockRefreshAt: refreshAt };
+  if (!refreshAt && !hasLimitedPurchases) return { discovered: current.discovered, purchases: { ...current.purchases }, limitedStockRefreshAt: now + VENDOR_LIMITED_STOCK_REFRESH_MS };
+  return { discovered: current.discovered, purchases: {}, limitedStockRefreshAt: now + VENDOR_LIMITED_STOCK_REFRESH_MS };
 }

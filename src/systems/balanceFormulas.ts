@@ -33,8 +33,10 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
     },
     { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0 },
   );
+  const rawMaxHp = balanceConfig.combat.baseMaxHp + state.skills.combat.level * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
+  const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs;
   return {
-    maxHp: Math.round(balanceConfig.combat.baseMaxHp + state.skills.combat.level * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp),
+    maxHp: Math.round(rawMaxHp * (1 + modifiers.combatMaxHp)),
     damage: Math.round(
       (balanceConfig.combat.baseDamage +
         state.skills.combat.level * balanceConfig.combat.damagePerCombatLevel +
@@ -42,7 +44,7 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
         (!state.equippedGear.weapon && weaponClass === "bluntWeapons" ? classBonus.unarmedDamage : 0)) *
         (1 + modifiers.combatDamage + classBonus.damage),
     ),
-    attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs)),
+    attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(rawAttackSpeed * (1 - Math.min(0.45, modifiers.combatAttackSpeed)))),
     armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(state.skills.combat.level / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
   };
 }
@@ -61,8 +63,7 @@ export function calculateCritChance(baseChance: number, bonus = 0) {
 }
 
 export function calculateSkillActionRewards(state: GameState, action: SkillAction, efficiency = 1): RewardBundle {
-  const levelGrowth = 1 + Math.max(0, action.levelReq - 1) * balanceConfig.rewards.actionLevelRewardGrowth;
-  return scaleRewards(applyRewardFormula(state, action.rewards, [action.skillId, ...(action.tags ?? [])]), efficiency * levelGrowth);
+  return scaleRewards(applyRewardFormula(state, action.rewards, [action.skillId, ...(action.tags ?? [])]), efficiency);
 }
 
 export function calculateCombatRewards(state: GameState, rewards: RewardBundle, tags: string[] = [], multiplier = 1): RewardBundle {
@@ -219,6 +220,38 @@ export function calculateVendorPrice(state: GameState, basePrice: number, distri
   const standingDiscount = Math.min(0.18, (state.districtStanding[districtId]?.standing ?? 0) / 600);
   const threatMarkup = districtThreatPenalty(state, districtId);
   return Math.max(balanceConfig.economy.vendorMinPrice, Math.round(basePrice * modifier * (1 + threatMarkup - standingDiscount + getActiveModifiers(state).shopPrices)));
+}
+
+export function calculateRarityShopBasePrice(item: ItemDefinition) {
+  if (item.type === "Resource") return 0;
+  const rarityMultiplier: Record<ItemDefinition["rarity"], number> = {
+    Common: 1,
+    Uncommon: 1.45,
+    Rare: 2.35,
+    Epic: 4,
+    Legendary: 7,
+    Prototype: 9,
+    Relic: 13,
+  };
+  const typeBase: Record<ItemDefinition["type"], number> = {
+    Resource: 0,
+    Material: 120,
+    Component: 80,
+    Cyberware: 420,
+    Weapon: 170,
+    WeaponAttachment: 90,
+    WeaponMod: 105,
+    Armor: 140,
+    Consumable: 45,
+    Blueprint: 220,
+    Quest: 0,
+  };
+  return Math.round((typeBase[item.type] ?? 80) * (item.tier ?? 1) * rarityMultiplier[item.rarity]);
+}
+
+export function calculateRarityAdjustedShopBasePrice(item: ItemDefinition | undefined, listedBasePrice: number) {
+  if (!item) return listedBasePrice;
+  return Math.max(listedBasePrice, calculateRarityShopBasePrice(item));
 }
 
 export function calculateSellValue(state: GameState, item: ItemDefinition, modifier = 1) {

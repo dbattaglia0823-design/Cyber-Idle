@@ -27,11 +27,11 @@ export function getOperation(id: string) {
 export function canStartOperation(state: GameState, operation: OperationDefinition) {
   if (!state.districts[operation.districtId]?.unlocked) return false;
   if (operation.id === "op-backstreet-sweep" && !state.operationLeads[operation.id] && !state.operationLogs[operation.id]?.firstClear) return false;
-  if (operation.id === "op-backstreet-sweep" && state.skills.combat.level < 5) return false;
-  if (operation.id === "op-junkyard-lockdown" && state.skills.combat.level < 15) return false;
+  if (operation.id === "op-backstreet-sweep" && state.skills.combat.level < 10) return false;
+  if (operation.id === "op-junkyard-lockdown" && state.skills.combat.level < 30) return false;
   if (operation.id === "op-contraband-raid" && state.resources.reputation < 150) return false;
-  if (operation.id === "op-ghost-signal-dive" && state.skills.hacking.level < 25) return false;
-  if (operation.id === "op-corporate-extraction" && (state.skills.hacking.level < 35 || state.skills.combat.level < 30)) return false;
+  if (operation.id === "op-ghost-signal-dive" && state.skills.hacking.level < 60) return false;
+  if (operation.id === "op-corporate-extraction" && (state.skills.hacking.level < 100 || state.skills.combat.level < 100)) return false;
   if (!operation.unlockRequirements.every((requirement) => requirementMet(state, requirement))) return false;
   return Object.entries(operation.requiredItems ?? {}).every(([id, amount]) => (state.inventory[id] ?? 0) >= amount);
 }

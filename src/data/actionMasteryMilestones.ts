@@ -5,7 +5,7 @@ export interface ActionMasteryMilestone {
 }
 
 export const actionMasteryMilestones: ActionMasteryMilestone[] = [
-  { level: 10, name: "Cleaner Loop", description: "+3% speed for this action." },
+  { level: 10, name: "Cleaner Loop", description: "+5% speed for this action." },
   { level: 25, name: "Better Pulls", description: "+5% rewards from this action." },
   { level: 50, name: "Rare Pattern", description: "Improves or unlocks rare drop farming." },
   { level: 75, name: "District Habit", description: "Adds a small district-specific return bonus." },

@@ -10,6 +10,40 @@ export function fixerContracts(fixerId: string) {
   return jobs.filter((job) => job.fixerId === fixerId);
 }
 
+export function jobRiskScore(job: JobContract) {
+  const hackingPressure = job.tags.includes("hacking") || job.tags.includes("blacknet");
+  const tracePressure = job.tags.includes("blacknet")
+    ? 12
+    : hackingPressure && (job.tags.includes("illegal") || job.tags.includes("blackmarket") || job.factionConflict)
+      ? 8
+      : hackingPressure
+        ? 6
+        : 0;
+  const successPressure = Math.max(0, 0.9 - job.baseSuccessChance) * 35;
+  const conflictPressure = job.factionConflict ? 3 : 0;
+  const elitePressure = job.tags.includes("elite") || job.tags.includes("prototype") ? 6 : 0;
+  return Math.max(0, job.heatChange) + tracePressure + (job.neuralInstabilityChange ?? 0) * 2 + successPressure + conflictPressure + elitePressure;
+}
+
+export function jobRiskTier(job: JobContract) {
+  const score = jobRiskScore(job);
+  if (score >= 35) return "High";
+  if (score >= 14) return "Medium";
+  return "Low";
+}
+
+export function jobRiskSortRank(job: JobContract) {
+  return { Low: 0, Medium: 1, High: 2 }[jobRiskTier(job)];
+}
+
+export function jobProgressionLevel(job: JobContract) {
+  const levels = job.requirements
+    .flatMap((requirement) => [...requirement.matchAll(/level\s+(\d+)|rank\s+(\d+)|trust\s+(\d+)|reputation\s+(\d+)/gi)])
+    .map((match) => Number(match[1] ?? match[2] ?? match[3] ?? match[4] ?? 0))
+    .filter(Boolean);
+  return levels.length ? Math.max(...levels) : 0;
+}
+
 export function contractType(job: JobContract): ContractType {
   if (job.contractType) return job.contractType;
   if (job.tags.includes("bounty")) return "Bounty";

@@ -1,6 +1,6 @@
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
-import { actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
 import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
@@ -98,14 +98,14 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     }
     const rewards = scaleRewards(calculateSkillActionRewards(state, action), efficiency);
     const xp = Math.round(actionXpRewardWithMastery(state, action) * efficiency.skillXp);
-    const mastery = Math.round(action.masteryXpReward * efficiency.masteryXp);
+    const mastery = Math.round(actionMasteryXpReward(state, action) * efficiency.masteryXp);
     applyRewards(state, rewards);
     addRewardDelta(recap.resourcesGained, rewards);
     addSkillXp(state, action.skillId, xp);
     const pool = Math.ceil(mastery * 0.25);
     addMasteryXp(state, action.id, mastery);
     addMasteryPoolXp(state, action.skillId, pool);
-    addDistrictMasteryXp(state, action.districtReq ?? state.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + action.masteryXpReward * 0.35) * 0.45)));
+    addDistrictMasteryXp(state, action.districtReq ?? state.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + mastery * 0.35) * 0.45)));
     recap.xpGained += xp;
     recap.masteryXpGained += mastery;
     recap.poolXpGained += pool;

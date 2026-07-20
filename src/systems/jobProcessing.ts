@@ -80,11 +80,11 @@ export function processJobCompletion(state: GameState, now = Date.now()) {
 
 export function canAttemptJob(state: GameState, job: JobContract) {
   if (!state.districts[job.districtId]?.unlocked) return false;
-  if (job.id === "job-data-leak-sale" && state.skills.hacking.level < 3) return false;
-  if (job.id === "job-junkyard-sweep" && state.skills.scavenging.level < 5 && !state.districts.rustYards.unlocked) return false;
+  if (job.id === "job-data-leak-sale" && state.skills.hacking.level < 10) return false;
+  if (job.id === "job-junkyard-sweep" && (state.skills.scavenging.level < 20 || !state.districts.rustYards.unlocked)) return false;
   if (job.id === "job-smuggled-axle" && factionRank(state.factions.chromeJackals.reputation) < 2) return false;
-  if (job.id === "job-debt-collection" && state.skills.combat.level < 4) return false;
-  if (job.id === "job-terminal-ghost" && state.skills.hacking.level < 5) return false;
+  if (job.id === "job-debt-collection" && (state.skills.combat.level < 40 || !state.districts.underpassMarket.unlocked)) return false;
+  if (job.id === "job-terminal-ghost" && (state.skills.hacking.level < 60 || !state.districts.blacknetQuarter.unlocked)) return false;
   return job.requirements.every((requirement) => jobRequirementMet(state, job, requirement));
 }
 
@@ -97,12 +97,17 @@ export function jobRequirementDetails(state: GameState, job: JobContract) {
 
 export function visibleJobRequirements(job: JobContract) {
   const extra: string[] = [];
-  if (job.id === "job-data-leak-sale") extra.push("Hacking level 3");
-  if (job.id === "job-junkyard-sweep") extra.push("Scavenging level 5 or Rust Yards unlocked");
+  if (job.id === "job-data-leak-sale") extra.push("Hacking level 10");
+  if (job.id === "job-junkyard-sweep") extra.push("Scavenging level 20");
   if (job.id === "job-smuggled-axle") extra.push("Chrome Jackals rank 2");
-  if (job.id === "job-debt-collection") extra.push("Street Combat level 4");
-  if (job.id === "job-terminal-ghost") extra.push("Hacking level 5");
-  return [...new Set([...job.requirements, ...extra])];
+  if (job.id === "job-debt-collection") extra.push("Street Combat level 40");
+  if (job.id === "job-terminal-ghost") extra.push("Hacking level 60");
+  return [...new Set([...job.requirements, ...extra])].filter((requirement) => !isDistrictUnlockedRequirement(requirement));
+}
+
+function isDistrictUnlockedRequirement(requirement: string) {
+  const normalized = requirement.toLowerCase();
+  return normalized.includes("unlocked") && Object.values(districtRequirementNames).some((name) => normalized.includes(name.toLowerCase()));
 }
 
 export function jobRequirementMet(state: GameState, job: JobContract, requirement: string): boolean {

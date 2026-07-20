@@ -154,7 +154,7 @@ export function createInitialState(now = Date.now()): GameState {
     ripperdocUnlocks: {},
     ripperdocHistory: { servicesUsed: 0, cyberwareInstalled: 0, cyberwareSold: 0, cyberwareBought: 0 },
     activeRipperdocEffects: [],
-    vendors: Object.fromEntries(vendors.map((vendor) => [vendor.id, { discovered: false, purchases: {} }])) as GameState["vendors"],
+    vendors: Object.fromEntries(vendors.map((vendor) => [vendor.id, { discovered: false, purchases: {}, limitedStockRefreshAt: undefined }])) as GameState["vendors"],
     blackMarketListings: [],
     blackMarketCompletedSales: [],
     blackMarketAutomation: {
@@ -329,7 +329,7 @@ export function cloneState(state: GameState): GameState {
       modifiers: { ...effect.modifiers, skillXp: { ...effect.modifiers.skillXp } },
     })),
     vendors: Object.fromEntries(
-      Object.entries(state.vendors).map(([id, vendor]) => [id, { discovered: vendor.discovered, purchases: { ...vendor.purchases } }]),
+      Object.entries(state.vendors).map(([id, vendor]) => [id, { discovered: vendor.discovered, purchases: { ...vendor.purchases }, limitedStockRefreshAt: vendor.limitedStockRefreshAt }]),
     ),
     blackMarketListings: state.blackMarketListings.map((listing) => ({ ...listing })),
     blackMarketCompletedSales: state.blackMarketCompletedSales.map((listing) => ({ ...listing })),

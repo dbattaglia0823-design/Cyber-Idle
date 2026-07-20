@@ -6,6 +6,7 @@ import { jobs } from "../data/jobs";
 import { operations } from "../data/operations";
 import { ripperdocServices } from "../data/ripperdocs";
 import { skillActions } from "../data/skills";
+import { jobProgressionLevel, jobRiskSortRank } from "./fixerContracts";
 import type { DistrictId } from "../types";
 
 const combatZoneIds: Partial<Record<DistrictId, string[]>> = {
@@ -26,7 +27,7 @@ export function districtSkillActions(districtId: DistrictId) {
 export function districtJobs(districtId: DistrictId) {
   return jobs
     .filter((job) => job.districtId === districtId)
-    .sort((a, b) => contentRequirementScore(a.requirements) - contentRequirementScore(b.requirements) || a.durationMs - b.durationMs || a.name.localeCompare(b.name));
+    .sort((a, b) => jobRiskSortRank(a) - jobRiskSortRank(b) || jobProgressionLevel(a) - jobProgressionLevel(b) || a.durationMs - b.durationMs || a.name.localeCompare(b.name));
 }
 
 export function districtOperations(districtId: DistrictId) {

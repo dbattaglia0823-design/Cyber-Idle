@@ -7,18 +7,10 @@ import { ripperdocServices } from "./ripperdocs";
 import { skillActions } from "./skills";
 import { storyArcs } from "./storyArcs";
 import { vendors } from "./vendors";
+import { districtProgressionOrder } from "./districtProgressionOrder";
 import type { DistrictCompletionBreakdown, DistrictId, GameState } from "../types";
 
-export const cityDistrictOrder: DistrictId[] = [
-  "neonRow",
-  "rustYards",
-  "underpassMarket",
-  "blacknetQuarter",
-  "glasslineDistrict",
-  "helixWard",
-  "redlineBlocks",
-  "skylineCore",
-];
+export const cityDistrictOrder: DistrictId[] = districtProgressionOrder;
 
 export function getDistrict(id: DistrictId) {
   return districts.find((district) => district.id === id);

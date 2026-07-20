@@ -1,70 +1,45 @@
-import { factionRank } from "./modifiers";
 import { pushCategorizedLog } from "./gameState";
 import { triggerUnlockEventForDistrict } from "./districtProgression";
-import type { GameState } from "../types";
+import { districtLevelBands, hasAnyMainSkillLevel } from "../data/levelBands";
+import type { DistrictId, GameState } from "../types";
 
 export function updateWorldUnlocks(state: GameState) {
-  unlockDistrict(
-    state,
-    "rustYards",
-    state.skills.scavenging.level >= 10 ||
-      factionRank(state.factions.chromeJackals.reputation) >= 2 ||
-      Boolean(state.operationLogs["op-backstreet-sweep"]?.firstClear),
-  );
-  unlockDistrict(
-    state,
-    "underpassMarket",
-    state.skills.streetcraft.level >= 12 ||
-      factionRank(state.factions.ghostMarket.reputation) >= 2 ||
-      (state.fixerTrust["sable-quinn-fixer"]?.completedJobs ?? 0) >= 3,
-  );
-  unlockDistrict(
-    state,
-    "blacknetQuarter",
-    state.skills.hacking.level >= 18 ||
-      factionRank(state.factions.nullChoir.reputation) >= 2 ||
-      (state.inventory["blacknet-cipher"] ?? 0) > 0,
-  );
-  unlockDistrict(
-    state,
-    "glasslineDistrict",
-    state.skills.hacking.level >= 30 ||
-      (state.startingPath === "corporateDefector" && (state.inventory["corporate-access-token"] ?? 0) > 0),
-  );
-  unlockDistrict(
-    state,
-    "helixWard",
-    state.skills.cyberware.level >= 24 ||
-      factionRank(state.factions.helixOrder.reputation) >= 2 ||
-      (state.inventory["medical-access-pass"] ?? 0) > 0,
-  );
-  unlockDistrict(
-    state,
-    "redlineBlocks",
-    state.skills.combat.level >= 28 ||
-      factionRank(state.factions.redlineSaints.reputation) >= 2 ||
-      (state.inventory["bounty-token"] ?? 0) > 0,
-  );
-  unlockDistrict(
-    state,
-    "skylineCore",
-    state.skills.combat.level >= 50 ||
-      Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear),
-  );
+  syncDistrictUnlock(state, "neonRow", true);
+  syncDistrictUnlock(state, "rustYards", hasAnyMainSkillLevel(state, 20));
+  syncDistrictUnlock(state, "underpassMarket", hasAnyMainSkillLevel(state, 40));
+  syncDistrictUnlock(state, "blacknetQuarter", hasAnyMainSkillLevel(state, 60));
+  syncDistrictUnlock(state, "helixWard", hasAnyMainSkillLevel(state, 80));
+  syncDistrictUnlock(state, "glasslineDistrict", hasAnyMainSkillLevel(state, 100));
+  syncDistrictUnlock(state, "redlineBlocks", hasAnyMainSkillLevel(state, 120));
+  syncDistrictUnlock(state, "skylineCore", hasAnyMainSkillLevel(state, 140));
 
-  if (factionRank(state.factions.nullChoir.reputation) >= 2) unlockCompanion(state, "nyra-vale");
-  if (factionRank(state.factions.chromeJackals.reputation) >= 2) unlockCompanion(state, "dex-riven");
-  if (state.skills.combat.level >= 5 || factionRank(state.factions.redlineSaints.reputation) >= 2) unlockCompanion(state, "mara-voss");
-  if (factionRank(state.factions.helixOrder.reputation) >= 2) unlockCompanion(state, "iris-kade");
+  if (state.districts.blacknetQuarter?.unlocked) unlockCompanion(state, "nyra-vale");
+  if (state.districts.rustYards?.unlocked) unlockCompanion(state, "dex-riven");
+  if (state.skills.combat.level >= 5 || state.districts.redlineBlocks?.unlocked) unlockCompanion(state, "mara-voss");
+  if (state.districts.helixWard?.unlocked) unlockCompanion(state, "iris-kade");
 }
 
-function unlockDistrict(state: GameState, id: keyof GameState["districts"], condition: boolean) {
+function syncDistrictUnlock(state: GameState, id: DistrictId, condition: boolean) {
   const district = state.districts[id];
-  if (!district || district.unlocked || !condition) return;
-  district.unlocked = true;
-  district.unlockProgress = 100;
-  pushCategorizedLog(state, "World", `District unlocked: ${id}.`);
-  triggerUnlockEventForDistrict(state, id);
+  if (!district) return;
+  if (condition) {
+    if (!district.unlocked) {
+      district.unlocked = true;
+      pushCategorizedLog(state, "World", `District unlocked: ${id}.`);
+      triggerUnlockEventForDistrict(state, id);
+    }
+    district.unlockProgress = 100;
+    return;
+  }
+  district.unlocked = false;
+  district.unlockProgress = districtUnlockProgress(state, id);
+}
+
+function districtUnlockProgress(state: GameState, id: DistrictId) {
+  const requiredLevel = districtLevelBands[id].entryLevel;
+  if (requiredLevel <= 1) return 100;
+  const highestLevel = Math.max(...Object.values(state.skills).map((skill) => skill.level));
+  return Math.max(0, Math.min(99, Math.floor((highestLevel / requiredLevel) * 100)));
 }
 
 function unlockCompanion(state: GameState, id: string) {

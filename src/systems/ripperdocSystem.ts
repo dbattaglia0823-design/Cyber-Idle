@@ -2,7 +2,7 @@ import { ripperdocServices } from "../data/ripperdocs";
 import { ripperdocClinics } from "../data/ripperdocClinics";
 import { getItem } from "../data/items";
 import { addItem, removeItem } from "./collectionSystem";
-import { calculateRipperdocServiceCost, calculateSellValue, calculateVendorPrice } from "./balanceFormulas";
+import { calculateRarityAdjustedShopBasePrice, calculateRipperdocServiceCost, calculateSellValue, calculateVendorPrice } from "./balanceFormulas";
 import { changeLocalStanding, discoverDistrictContent } from "./districtProgression";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { factionRank } from "./modifiers";
@@ -129,7 +129,8 @@ export function ripperdocBuyPrice(state: GameState, clinicId: string, itemId: st
   if (!clinic || !item) return 0;
   const factionDiscount = clinic.factionDiscount ? Math.min(0.18, factionRank(state.factions[clinic.factionDiscount].reputation) * 0.015) : 0;
   const fixerDiscount = Math.min(0.12, Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0) / 2000);
-  return calculateVendorPrice(state, item.sellValue * 4, clinic.districtId, clinic.priceModifier * (1 - factionDiscount - fixerDiscount));
+  const basePrice = calculateRarityAdjustedShopBasePrice(item, item.sellValue * 4);
+  return calculateVendorPrice(state, basePrice, clinic.districtId, clinic.priceModifier * (1 - factionDiscount - fixerDiscount));
 }
 
 export function ripperdocSellValue(state: GameState, clinicId: string, itemId: string) {

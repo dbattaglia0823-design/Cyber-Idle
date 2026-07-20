@@ -107,7 +107,7 @@ export const collectionRewardMilestones: CollectionRewardMilestone[] = [
 
 export const prestigeProtocolNotes = [
   "Optional only; no forced resets.",
-  "Future Skill Prestige can reset a level 99 skill for a small permanent bonus.",
+  "Future Skill Prestige can reset a level 150 skill for a small permanent bonus.",
   "Future District Prestige can reset District Mastery 99 for a district passive.",
   "Collections, story, major unlocks, and important items should stay preserved.",
 ];

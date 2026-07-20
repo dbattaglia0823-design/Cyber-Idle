@@ -1,6 +1,7 @@
 import type { Fixer } from "../types";
 
 export const fixers: Fixer[] = [
+  // ===== NEON ROW =====
   {
     id: "sable-quinn-fixer",
     name: "Sable Quinn",
@@ -20,6 +21,8 @@ export const fixers: Fixer[] = [
     marketConnections: ["Underpass Black Market"],
     ripperdocConnections: ["Neon Row Backroom Clinic"],
   },
+
+  // ===== RUST YARDS =====
   {
     id: "dex-riven-fixer",
     name: "Dex Riven",
@@ -38,23 +41,8 @@ export const fixers: Fixer[] = [
     marketConnections: ["Rust Yards Scrap Broker"],
     ripperdocConnections: ["Rust Yard Chopdoc"],
   },
-  {
-    id: "iris-kade-fixer",
-    name: "Iris Kade",
-    districtId: "helixWard",
-    factionId: "helixOrder",
-    specialty: "Medical cyberware, stabilizers, and corporate clinic access.",
-    startingPathNotes: {
-      corporateDefector: "Corporate defectors get better clinic introductions but attract attention.",
-    },
-    companionUnlocks: ["iris-kade"],
-    housingUnlocks: ["glassline-apartment", "skyline-penthouse"],
-    jobChains: ["Helix clinic clearance", "Prototype recovery"],
-    uniqueUnlocks: ["Helix Ward clearance", "Glassline clinic access", "safe upgrade referrals"],
-    operationLeads: ["Corporate Extraction"],
-    districtLeads: ["helixWard", "glasslineDistrict"],
-    ripperdocConnections: ["Helix Ward Recovery Lab", "Glassline Augment Lab"],
-  },
+
+  // ===== UNDERPASS MARKET =====
   {
     id: "mara-voss-fixer",
     name: "Mara Voss",
@@ -73,6 +61,8 @@ export const fixers: Fixer[] = [
     marketConnections: ["Underpass Black Market"],
     ripperdocConnections: ["Underpass Street Surgeon"],
   },
+
+  // ===== BLACKNET QUARTER =====
   {
     id: "nyra-vale-fixer",
     name: "Nyra Vale",
@@ -91,6 +81,27 @@ export const fixers: Fixer[] = [
     marketConnections: ["Data Broker cipher listings"],
     ripperdocConnections: ["Blacknet Quarter Neural Clinic"],
   },
+
+  // ===== HELIX WARD =====
+  {
+    id: "iris-kade-fixer",
+    name: "Iris Kade",
+    districtId: "helixWard",
+    factionId: "helixOrder",
+    specialty: "Medical cyberware, stabilizers, and corporate clinic access.",
+    startingPathNotes: {
+      corporateDefector: "Corporate defectors get better clinic introductions but attract attention.",
+    },
+    companionUnlocks: ["iris-kade"],
+    housingUnlocks: ["glassline-apartment", "skyline-penthouse"],
+    jobChains: ["Helix clinic clearance", "Prototype recovery"],
+    uniqueUnlocks: ["Helix Ward clearance", "Glassline clinic access", "safe upgrade referrals"],
+    operationLeads: ["Corporate Extraction"],
+    districtLeads: ["helixWard", "glasslineDistrict"],
+    ripperdocConnections: ["Helix Ward Recovery Lab", "Glassline Augment Lab"],
+  },
+
+  // ===== SKYLINE CORE =====
   {
     id: "vale-syn-fixer",
     name: "Vale Syn",

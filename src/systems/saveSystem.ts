@@ -184,7 +184,16 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     ripperdocUnlocks: { ...initial.ripperdocUnlocks, ...saved.ripperdocUnlocks },
     ripperdocHistory: { ...initial.ripperdocHistory, ...saved.ripperdocHistory },
     activeRipperdocEffects: saved.activeRipperdocEffects ?? initial.activeRipperdocEffects,
-    vendors: { ...initial.vendors, ...saved.vendors },
+    vendors: Object.fromEntries(
+      Object.entries({ ...initial.vendors, ...saved.vendors }).map(([id, vendor]) => [
+        id,
+        {
+          discovered: vendor.discovered,
+          purchases: { ...vendor.purchases },
+          limitedStockRefreshAt: vendor.limitedStockRefreshAt,
+        },
+      ]),
+    ) as GameState["vendors"],
     blackMarketListings: saved.blackMarketListings ?? initial.blackMarketListings,
     blackMarketCompletedSales: saved.blackMarketCompletedSales ?? initial.blackMarketCompletedSales,
     blackMarketAutomation: { ...initial.blackMarketAutomation, ...saved.blackMarketAutomation },

@@ -4,7 +4,7 @@ export const BALANCE_VERSION = 1;
 
 export const balanceConfig = {
   levels: {
-    skillsMax: 120,
+    skillsMax: 150,
     weaponClassMax: 99,
     actionMasteryMax: 99,
     factionRankMax: 10,
@@ -12,9 +12,9 @@ export const balanceConfig = {
     companionRankMax: 10,
   },
   xpCurves: {
-    skill: { base: 42, exponent: 1.68, maxLevel: 120 },
+    skill: { base: 42, exponent: 1.68, maxLevel: 150 },
     weaponClass: { base: 46, exponent: 1.78, maxLevel: 99 },
-    mastery: { base: 55, exponent: 1.92, maxLevel: 99 },
+    mastery: { base: 10, exponent: 1.35, maxLevel: 99 },
     districtMastery: { base: 95, exponent: 2.02, maxLevel: 99 },
     companion: { base: 40, exponent: 1.35, maxLevel: 10 },
     fixer: { base: 10, exponent: 1.2, maxLevel: 10 },
@@ -56,7 +56,6 @@ export const balanceConfig = {
   },
   rewards: {
     globalDropChanceMultiplier: 0.62,
-    actionLevelRewardGrowth: 0.035,
     jobRequirementRewardGrowth: 0.04,
     operationRequirementRewardGrowth: 0.06,
     masteryDropLevel25: 0.01,

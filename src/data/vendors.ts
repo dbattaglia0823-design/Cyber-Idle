@@ -1,6 +1,7 @@
 import type { VendorDefinition } from "../types";
 
 export const vendors: VendorDefinition[] = [
+  // ===== NEON ROW =====
   {
     id: "vendor-neon-street",
     name: "Neon Row Street Vendor",
@@ -18,11 +19,16 @@ export const vendors: VendorDefinition[] = [
       item("basic-med-injector", 45, "infinite", "Starter medical shelf."),
       item("neural-stabilizer", 85, "infinite", "Low-grade stabilizer crate."),
       item("scrap-jacket", 140, "limited", "Street armor rack.", 1),
+      item("street-visor", 95, "limited", "Cheap scan visor hook.", 2),
+      item("padded-street-vest", 110, "limited", "Starter vest shelf.", 2),
+      item("compact-holdout", 130, "limited", "Pocket pistol case.", 1),
       item("rusted-pistol", 160, "limited", "Pawned weapon locker.", 1),
       item("circuitBoards", 24, "infinite", "Part bins under the counter."),
       item("basic-sim-cache", 240, "unlock", "Unlocked by Sim Cache systems.", 2, "sim-cache-basic"),
     ],
   },
+
+  // ===== RUST YARDS =====
   {
     id: "vendor-rust-scrap-broker",
     name: "Rust Yards Scrap Broker",
@@ -41,10 +47,14 @@ export const vendors: VendorDefinition[] = [
       item("vehicleParts", 42, "infinite", "Chop-shop shelf."),
       item("armorPlating", 105, "limited", "Recovered hauler plate.", 4),
       item("fuelCell", 120, "limited", "Tested cells only.", 3),
+      item("reinforced-treads", 190, "limited", "Yard boot shelf.", 2),
+      item("servo-joint-braces", 460, "limited", "Recovered mobility braces.", 1),
       item("rust-access-key", 220, "unlock", "Sold to trusted yard runners.", 1),
       item("engineCore", 360, "limited", "Rare engine pull.", 1),
     ],
   },
+
+  // ===== UNDERPASS MARKET =====
   {
     id: "vendor-underpass-black-market",
     name: "Underpass Black Market",
@@ -61,11 +71,18 @@ export const vendors: VendorDefinition[] = [
     inventory: [
       item("rare-blueprint-fragment", 430, "limited", "Fragment case under guard.", 2),
       item("market-pass", 260, "limited", "Contraband route marker.", 2),
+      item("silent-step-boots", 620, "limited", "Quiet runner shelf.", 1),
+      item("heat-sink-broach", 780, "unlock", "Ghost Market heat scrubber.", 1),
+      item("ghost-market-vector", 1250, "unlock", "Private-buyer SMG listing.", 1),
+      item("ghostline-ripper", 2800, "unlock", "Ghost Market rank weapon listing.", 1),
+      item("pulse-repeater", 4200, "unlock", "Rare prototype pistol listing.", 1),
       item("prototype-neural-core", 780, "unlock", "Ghost Market trust listing.", 1),
       item("illegal-overclock", 280, "limited", "Hot boost, cold warranty.", 3),
       item("blacknet-cipher", 560, "unlock", "Brokered from Null Choir leaks.", 1),
     ],
   },
+
+  // ===== BLACKNET QUARTER =====
   {
     id: "vendor-blacknet-data-broker",
     name: "Blacknet Data Broker",
@@ -83,10 +100,40 @@ export const vendors: VendorDefinition[] = [
       item("encryptedData", 36, "infinite", "Brokered packet lots."),
       item("blacknet-cipher", 500, "limited", "Cipher sleeve."),
       item("hacking-script", 150, "infinite", "Exploit script pack."),
+      item("trace-buffer-os", 620, "limited", "Trace buffer OS sleeve.", 1),
+      item("swarmtag-carbine", 860, "limited", "Smart carbine under broker seal.", 1),
+      item("streetseeker-c9", 1500, "limited", "Guided smart weapon shelf.", 1),
+      item("vector-bloom", 4600, "unlock", "Prototype smart-assisted SMG listing.", 1),
       item("data-job-pass", 260, "limited", "Signed access packet.", 2),
       item("circuit-bundle", 110, "infinite", "Deck repair bundle."),
     ],
   },
+
+  // ===== HELIX WARD =====
+  {
+    id: "vendor-helix-clinic",
+    name: "Helix Ward Clinic Vendor",
+    districtId: "helixWard",
+    description: "Stabilizers, medical gel, implant parts, and clinic-only recovery stock.",
+    unlockRequirements: ["Helix Ward unlocked"],
+    priceModifier: 1.08,
+    factionDiscounts: { helixOrder: 0.14 },
+    refreshBehavior: "Medical stock expands with Helix Order rank and recovery events.",
+    canBuy: true,
+    canSell: true,
+    specialServices: ["Stabilizer access", "Medical cyberware blueprint sourcing"],
+    inventory: [
+      item("neural-stabilizer", 78, "infinite", "Clinic shelf stock."),
+      item("advanced-stabilizer", 220, "limited", "Locked medical cabinet.", 4),
+      item("medical-gel", 95, "infinite", "Recovery supply rack."),
+      item("auto-injector-link", 680, "limited", "Auto-injector implant order.", 1),
+      item("cyberwareParts", 52, "infinite", "Sterile implant tray."),
+      item("medical-access-pass", 360, "limited", "Clinic access pass.", 1),
+      item("bp-stabilized-buffer", 820, "unlock", "Helix blueprint archive.", 1),
+    ],
+  },
+
+  // ===== GLASSLINE DISTRICT =====
   {
     id: "vendor-glassline-supplier",
     name: "Glassline Corporate Supplier",
@@ -104,31 +151,16 @@ export const vendors: VendorDefinition[] = [
       item("cyberwareParts", 58, "infinite", "Sterile implant parts."),
       item("corporate-access-token", 420, "limited", "Temporary tower credential.", 2),
       item("armorPlating", 160, "limited", "Clean-room armor laminate.", 5),
+      item("coil-lance", 980, "limited", "Corporate coil weapon rack.", 1),
+      item("threat-id-lens-helmet", 760, "limited", "Threat-ID helmet shelf.", 1),
+      item("glassline-marksman", 1800, "limited", "Corporate precision rifle rack.", 1),
+      item("white-arc-lance", 3600, "unlock", "Corporate charged weapon listing.", 1),
       item("stabilized-chrome-frame", 720, "unlock", "Corporate cyberware frame.", 1),
       item("job-success-booster", 360, "limited", "Contract assurance chip.", 3),
     ],
   },
-  {
-    id: "vendor-helix-clinic",
-    name: "Helix Ward Clinic Vendor",
-    districtId: "helixWard",
-    description: "Stabilizers, medical gel, implant parts, and clinic-only recovery stock.",
-    unlockRequirements: ["Helix Ward unlocked"],
-    priceModifier: 1.08,
-    factionDiscounts: { helixOrder: 0.14 },
-    refreshBehavior: "Medical stock expands with Helix Order rank and recovery events.",
-    canBuy: true,
-    canSell: true,
-    specialServices: ["Stabilizer access", "Medical cyberware blueprint sourcing"],
-    inventory: [
-      item("neural-stabilizer", 78, "infinite", "Clinic shelf stock."),
-      item("advanced-stabilizer", 220, "limited", "Locked medical cabinet.", 4),
-      item("medical-gel", 95, "infinite", "Recovery supply rack."),
-      item("cyberwareParts", 52, "infinite", "Sterile implant tray."),
-      item("medical-access-pass", 360, "limited", "Clinic access pass.", 1),
-      item("bp-stabilized-buffer", 820, "unlock", "Helix blueprint archive.", 1),
-    ],
-  },
+
+  // ===== REDLINE BLOCKS =====
   {
     id: "vendor-redline-arms",
     name: "Redline Arms Dealer",
@@ -145,11 +177,17 @@ export const vendors: VendorDefinition[] = [
     inventory: [
       item("street-knife", 150, "limited", "Blade roll.", 1),
       item("servo-knuckles", 260, "limited", "Crew weapon rack.", 1),
+      item("redline-burst-pistol", 440, "limited", "Burst pistol locker.", 1),
+      item("redline-viper", 1450, "limited", "Elite street pistol locker.", 1),
+      item("redline-monowake", 3400, "unlock", "Saints high-rank blade listing.", 1),
+      item("wired-knuckle-wraps", 210, "limited", "Melee wrap shelf.", 2),
       item("reinforced-hoodie", 190, "limited", "Armor bin.", 1),
       item("bounty-token", 310, "limited", "Bounty board marker.", 3),
       item("basic-med-injector", 55, "infinite", "Fight-night medical tray."),
     ],
   },
+
+  // ===== SKYLINE CORE =====
   {
     id: "vendor-skyline-luxury",
     name: "Skyline Luxury Broker",
@@ -165,6 +203,11 @@ export const vendors: VendorDefinition[] = [
     specialServices: ["Luxury permit brokerage", "Premium Sim Cache placeholder"],
     inventory: [
       item("rare-blueprint-fragment", 700, "limited", "Curated rare fragments.", 4),
+      item("precision-combat-gloves", 2600, "limited", "Elite glove case.", 1),
+      item("skyline-mobility-boots", 3800, "unlock", "Executive mobility shelf.", 1),
+      item("sim-cache-optimizer", 6200, "unlock", "Luxury simulation implant.", 1),
+      item("apex-rotary-frame", 6200, "unlock", "Endgame rotary prototype listing.", 1),
+      item("hive-oracle", 6400, "unlock", "Optics-linked smart weapon prototype.", 1),
       item("district-permit", 1200, "limited", "Executive district permit.", 1),
       item("prototypeDriveUnit", 2200, "unlock", "Private vehicle commission.", 1),
       item("boss-data-key", 1600, "unlock", "Operation broker key.", 1),

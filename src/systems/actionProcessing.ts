@@ -1,10 +1,11 @@
 import { resourceNames } from "../data/resources";
 import { skillActions, skillNames } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
+import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
 import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
 import { calculateDropChance, calculateHeatGain, calculateSkillActionRewards, masteryDropBonusForLevel } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
-import { adjustedDurationMs, applyXpModifier, getActiveModifiers } from "./modifiers";
+import { adjustedActionDurationMs, applyXpModifier, getActiveModifiers } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
 import { updateWorldUnlocks } from "./worldUnlocks";
 import { markSkillActionManual } from "./manualDiscovery";
@@ -49,7 +50,7 @@ export function startSkillAction(state: GameState, actionId: string, now = Date.
   next.activeAction = {
     actionId,
     startedAt: now,
-    durationMs: adjustedDurationMs(state, action.durationMs, [action.skillId, ...(action.tags ?? [])]),
+    durationMs: adjustedActionDurationMs(state, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]),
   };
   return next;
 }
@@ -86,9 +87,10 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     if (heatDelta) next.resources.heat = clampRiskStat(next.resources.heat + heatDelta);
     const neuralDelta = 0;
     const levelUps = addSkillXp(next, action.skillId, xpReward);
-    const masteryReward = Math.round(action.masteryXpReward * (1 + getActiveModifiers(next).masteryXpGain));
+    const masteryReward = Math.round(actionMasteryXpReward(next, action) * (1 + getActiveModifiers(next).masteryXpGain));
     const masteryUps = addMasteryXp(next, action.id, masteryReward);
-    addMasteryPoolXp(next, action.skillId, action.masteryPoolXpReward ?? Math.ceil(masteryReward * 0.25));
+    const poolReward = Math.ceil(masteryReward * 0.25);
+    addMasteryPoolXp(next, action.skillId, poolReward);
     markSkillActionManual(next, action.id);
     const districtId = action.districtReq ?? next.selectedDistrict;
     if (districtId) {
@@ -104,7 +106,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
       title: `${action.name} Complete`,
       xp: { [action.skillId]: xpReward },
       masteryXp: masteryReward,
-      poolXp: action.masteryPoolXpReward ?? Math.ceil(masteryReward * 0.25),
+      poolXp: poolReward,
       resources: rewards,
       rareDrops: rareMessages,
       levelUps: levelUps ? [`${skillNames[action.skillId]} ${next.skills[action.skillId].level}`] : [],
@@ -126,7 +128,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     next.activeAction = {
       ...next.activeAction,
       startedAt: next.activeAction.startedAt + next.activeAction.durationMs,
-      durationMs: adjustedDurationMs(next, action.durationMs, [action.skillId, ...(action.tags ?? [])]),
+      durationMs: adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]),
     };
     guard += 1;
   }
@@ -210,7 +212,7 @@ function updateSkillActionStats(state: GameState, action: SkillAction, rareDrops
     if ((action.heatChange ?? 0) < 0) state.achievements["streetcraft-heat-resolution"] = true;
   }
   if (traced) state.achievements[`trace-${action.id}`] = true;
-  [25, 50, 99].forEach((level) => {
+  [25, 50, 100, 150].forEach((level) => {
     if (state.skills[action.skillId].level >= level) state.achievements[`${action.skillId}-level-${level}`] = true;
   });
   if ((state.actionMastery[action.id]?.level ?? 1) >= 99) state.achievements[`master-${action.id}`] = true;
@@ -227,17 +229,22 @@ export function addSkillXp(state: GameState, skillId: SkillId, xp: number) {
   const skill = state.skills[skillId];
   let levels = 0;
   skill.xp += xp;
-  while (skill.xp >= xpForNextLevel(skill.level)) {
+  while (skill.level < MAX_MAIN_SKILL_LEVEL && skill.xp >= xpForNextLevel(skill.level)) {
     skill.xp -= xpForNextLevel(skill.level);
     skill.level += 1;
     levels += 1;
   }
+  if (skill.level >= MAX_MAIN_SKILL_LEVEL) skill.xp = 0;
   return levels;
 }
 
 export function actionXpRewardWithMastery(state: GameState, action: SkillAction) {
   const masteryLevel = state.actionMastery[action.id]?.level ?? 1;
   return Math.max(1, Math.round(applyXpModifier(state, action.skillId, action.xpReward) * (1 + masteryLevel * 0.02)));
+}
+
+export function actionMasteryXpReward(state: GameState, action: SkillAction) {
+  return Math.max(10, state.skills[action.skillId].level * 10);
 }
 
 export function addMasteryXp(state: GameState, actionId: string, xp: number) {

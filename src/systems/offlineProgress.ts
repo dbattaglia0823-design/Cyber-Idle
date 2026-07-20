@@ -1,11 +1,12 @@
 import { skillActions } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
-import { actionXpRewardWithMastery, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
+import { actionMasteryXpReward, actionXpRewardWithMastery, canAffordRewards, getSkillAction } from "./actionProcessing";
 import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
-import { getActiveModifiers } from "./modifiers";
+import { adjustedActionDurationMs, getActiveModifiers } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
 import { processBlackMarketListings } from "./blackMarketSystem";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
@@ -119,8 +120,9 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     return next;
   }
 
+  const durationMs = adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   const available = elapsed + Math.max(0, state.lastSavedAt - next.activeAction.startedAt);
-  const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / action.durationMs));
+  const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / durationMs));
   if (completions <= 0) {
     next.lastSavedAt = now;
     return next;
@@ -147,13 +149,14 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     }
     const rewards = calculateSkillActionRewards(next, action);
     const xpReward = actionXpRewardWithMastery(next, action);
+    const masteryReward = actionMasteryXpReward(next, action);
     applyRewardDelta(next, rewards);
     addRewardDelta(recap.resourcesGained, rewards);
     recap.xpGained += xpReward;
-    recap.masteryXpGained += action.masteryXpReward;
+    recap.masteryXpGained += masteryReward;
     recap.levelsGained += addOfflineSkillXp(next, action.skillId, xpReward);
-    recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, action.masteryXpReward);
-    addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + action.masteryXpReward * 0.35) * 0.5)));
+    recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, masteryReward);
+    addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + masteryReward * 0.35) * 0.5)));
     if (action.heatChange) {
       const heat = calculateHeatGain(next, action.heatChange, action.tags);
       next.resources.heat = clampRiskStat(next.resources.heat + heat);
@@ -164,7 +167,8 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   }
 
   if (next.activeAction) {
-    next.activeAction.startedAt = now - (available % action.durationMs);
+    next.activeAction.startedAt = now - (available % durationMs);
+    next.activeAction.durationMs = adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   }
   processBlackMarketListings(next, now);
   next.offlineRecap = recap;
@@ -207,11 +211,12 @@ function addOfflineSkillXp(state: GameState, skillId: (typeof skillActions)[numb
   const skill = state.skills[skillId];
   let levels = 0;
   skill.xp += xp;
-  while (skill.xp >= xpForNextLevel(skill.level)) {
+  while (skill.level < MAX_MAIN_SKILL_LEVEL && skill.xp >= xpForNextLevel(skill.level)) {
     skill.xp -= xpForNextLevel(skill.level);
     skill.level += 1;
     levels += 1;
   }
+  if (skill.level >= MAX_MAIN_SKILL_LEVEL) skill.xp = 0;
   return levels;
 }
 

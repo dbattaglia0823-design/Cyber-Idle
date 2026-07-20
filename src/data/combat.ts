@@ -168,7 +168,11 @@ const rawCombatZones: CombatZone[] = [
         creditsReward: 7,
         xpReward: 14,
         reputationReward: 1,
-        drops: [{ id: "patched-jacket", name: "Patched Jacket", chance: 0.18, quantity: 1 }],
+        drops: [
+          { id: "patched-jacket", name: "Patched Jacket", chance: 0.14, quantity: 1 },
+          { id: "street-visor", name: "Street Visor", chance: 0.08, quantity: 1 },
+          { id: "compact-holdout", name: "Compact Holdout", chance: 0.06, quantity: 1 },
+        ],
       },
       {
         id: "boosted-thug",
@@ -184,6 +188,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "servo-knuckles", name: "Servo Knuckles", chance: 0.12, quantity: 1 },
           { id: "street-knife", name: "Street Knife", chance: 0.08, quantity: 1 },
+          { id: "wired-knuckle-wraps", name: "Wired Knuckle Wraps", chance: 0.055, quantity: 1 },
+          { id: "combat-focus-node", name: "Combat Focus Node", chance: 0.025, quantity: 1 },
           { id: "cyberwareParts", name: "Cyberware Parts", chance: 0.35, quantity: 1 },
         ],
       },
@@ -200,6 +206,7 @@ const rawCombatZones: CombatZone[] = [
         reputationReward: 1,
         drops: [
           { id: "drone-eye", name: "Drone Eye", chance: 0.15, quantity: 1 },
+          { id: "threat-highlight-lens", name: "Threat Highlight Lens", chance: 0.045, quantity: 1 },
           { id: "bp-precision-grip", name: "Precision Grip Blueprint", chance: 0.05, quantity: 1 },
           { id: "circuitBoards", name: "Circuit Boards", chance: 0.45, quantity: 1 },
         ],
@@ -222,6 +229,8 @@ const rawCombatZones: CombatZone[] = [
         factionAlignment: "redlineSaints",
         drops: [
           { id: "smartlink-chip", name: "Smartlink Chip", chance: 0.05, quantity: 1 },
+          { id: "sprayline-smg", name: "Sprayline SMG", chance: 0.045, quantity: 1 },
+          { id: "redline-burst-pistol", name: "Redline Burst Pistol", chance: 0.025, quantity: 1 },
           { id: "circuitBoards", name: "Circuit Boards", chance: 0.35, quantity: 1 },
         ],
       },
@@ -243,6 +252,8 @@ const rawCombatZones: CombatZone[] = [
         factionAlignment: "redlineSaints",
         drops: [
           { id: "medical-gel", name: "Medical Gel", chance: 0.08, quantity: 1 },
+          { id: "basic-med-port", name: "Basic Med Port", chance: 0.035, quantity: 1 },
+          { id: "dermal-patch-mesh", name: "Dermal Patch Mesh", chance: 0.035, quantity: 1 },
           { id: "cyberwareParts", name: "Cyberware Parts", chance: 0.28, quantity: 1 },
         ],
       },
@@ -266,6 +277,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "street-coil", name: "Street Coil", chance: 0.055, quantity: 1 },
           { id: "redline-wire", name: "Redline Wire", chance: 0.035, quantity: 1 },
+          { id: "patchwork-combat-helm", name: "Patchwork Combat Helm", chance: 0.025, quantity: 1 },
+          { id: "redline-burst-pistol", name: "Redline Burst Pistol", chance: 0.02, quantity: 1 },
           { id: "scrap", name: "Scrap", chance: 0.7, quantity: 5 },
         ],
       },
@@ -290,6 +303,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "urban-reflex-chip", name: "Urban Reflex Chip", chance: 0.035, quantity: 1 },
           { id: "lowgrade-optic-lens", name: "Lowgrade Optic Lens", chance: 0.05, quantity: 1 },
+          { id: "servo-lined-gloves", name: "Servo-Lined Gloves", chance: 0.025, quantity: 1 },
+          { id: "servo-tendon-array", name: "Servo Tendon Array", chance: 0.025, quantity: 1 },
           { id: "cyberwareParts", name: "Cyberware Parts", chance: 0.42, quantity: 2 },
         ],
       },
@@ -315,6 +330,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "neon-circuit-fragment", name: "Neon Circuit Fragment", chance: 0.08, quantity: 1 },
           { id: "urban-reflex-chip", name: "Urban Reflex Chip", chance: 0.045, quantity: 1 },
+          { id: "threat-id-lens-helmet", name: "Threat-ID Lens Helmet", chance: 0.02, quantity: 1 },
+          { id: "reflex-prediction-core", name: "Reflex Prediction Core", chance: 0.012, quantity: 1 },
           { id: "rare-blueprint-fragment", name: "Rare Blueprint Fragment", chance: 0.035, quantity: 1 },
         ],
       },
@@ -338,6 +355,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "vehicleParts", name: "Vehicle Parts", chance: 0.32, quantity: 1 },
           { id: "armorPlating", name: "Armor Plating", chance: 0.12, quantity: 1 },
+          { id: "subdermal-plate-carrier", name: "Subdermal Plate Carrier", chance: 0.025, quantity: 1 },
+          { id: "yard-lmg", name: "Yard LMG", chance: 0.016, quantity: 1 },
         ],
       },
       {
@@ -352,6 +371,8 @@ const rawCombatZones: CombatZone[] = [
         reputationReward: 2,
         drops: [
           { id: "scrap", name: "Scrap", chance: 0.65, quantity: 4 },
+          { id: "reinforced-treads", name: "Reinforced Treads", chance: 0.04, quantity: 1 },
+          { id: "load-bearing-frame", name: "Load-Bearing Frame", chance: 0.018, quantity: 1 },
           { id: "fuelCell", name: "Fuel Cell", chance: 0.08, quantity: 1 },
         ],
       },
@@ -608,6 +629,7 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "boss-data-key", name: "Boss Data Key", chance: 0.04, quantity: 1 },
           { id: "bp-blacknet-tool", name: "Blacknet Tool Blueprint", chance: 0.035, quantity: 1 },
+          { id: "swarmtag-carbine", name: "Swarmtag Carbine", chance: 0.02, quantity: 1 },
         ],
       },
     ],
