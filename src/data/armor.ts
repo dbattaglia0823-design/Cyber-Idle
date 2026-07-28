@@ -81,9 +81,51 @@ function set(
   tier: number,
   requiredLevel: number,
   districtId: DistrictId,
-  materials: Record<string, number>,
+  _materials: Record<string, number>,
 ): ArmorSetSpec {
-  return { id, name, description, armorClass, rarity, tier, requiredLevel, districtId, materials };
+  return {
+    id,
+    name,
+    description,
+    armorClass,
+    rarity,
+    tier,
+    requiredLevel: progressionLevel(districtId, requiredLevel),
+    districtId,
+    materials: armorMaterials(districtId, armorClass),
+  };
+}
+
+function progressionLevel(districtId: DistrictId, originalLevel: number) {
+  if (districtId === "neonRow") return originalLevel <= 1 ? 1 : originalLevel <= 3 ? 10 : 18;
+  const levels: Record<Exclude<DistrictId, "neonRow">, number> = {
+    rustYards: 24,
+    underpassMarket: 44,
+    blacknetQuarter: 64,
+    helixWard: 84,
+    glasslineDistrict: 104,
+    redlineBlocks: 124,
+    skylineCore: 144,
+  };
+  return levels[districtId];
+}
+
+function armorMaterials(districtId: DistrictId, armorClass: ArmorClass): Record<string, number> {
+  const frame: Record<string, number> =
+    districtId === "neonRow"
+      ? armorClass === "Medium" ? { circuitBoards: 1 } : { scrap: 1 }
+      : armorClass === "Heavy" ? { armorPlating: 1 } : armorClass === "Light" ? { "grip-polymer": 1 } : { "circuit-bundle": 1 };
+  const districtParts: Record<DistrictId, Record<string, number>> = {
+    neonRow: { scrap: 2, "redline-wire": 1 },
+    rustYards: { "rust-plated-frame": 1, "salvaged-servo": 1 },
+    underpassMarket: { "smuggler-seal": 1, "contraband-chip": 1 },
+    blacknetQuarter: { "trace-scrambler-chip": 1, "encrypted-memory-stack": 1 },
+    helixWard: { "medical-gel-matrix": 1, "bioware-thread": 1 },
+    glasslineDistrict: { "glassline-alloy": 1, "corporate-optic-lens": 1 },
+    redlineBlocks: { "armor-breaker-plate": 1, "reinforced-grip": 1 },
+    skylineCore: { "legendary-chrome-matrix": 1, "luxury-processor": 1, "skyline-authorization": 1 },
+  };
+  return { ...districtParts[districtId], ...frame };
 }
 
 function armorStats(armorClass: ArmorClass, slot: ArmorSlot, tier: number): ItemStats {
@@ -135,7 +177,7 @@ function compact(stats: ItemStats): ItemStats {
 }
 
 function addScrapCost(materials: Record<string, number>, extraScrap: number) {
-  return { ...materials, scrap: (materials.scrap ?? 0) + extraScrap };
+  return { ...materials, scrap: (materials.scrap ?? 0) + Math.ceil(extraScrap / 3) };
 }
 
 function slotDescription(slot: ArmorSlot) {

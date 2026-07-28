@@ -87,9 +87,48 @@ function suite(
   requiredLevel: number,
   districtId: DistrictId,
   instabilityLoad: number,
-  materials: Record<string, number>,
+  _materials: Record<string, number>,
 ): CyberwareSuite {
-  return { id, name, description, style, rarity, tier, requiredLevel, districtId, instabilityLoad, materials };
+  return {
+    id,
+    name,
+    description,
+    style,
+    rarity,
+    tier,
+    requiredLevel: progressionLevel(districtId, requiredLevel),
+    districtId,
+    instabilityLoad: Math.max(0, tier - 1),
+    materials: cyberwareMaterials(districtId),
+  };
+}
+
+function progressionLevel(districtId: DistrictId, originalLevel: number) {
+  if (districtId === "neonRow") return originalLevel <= 1 ? 1 : originalLevel <= 3 ? 10 : 18;
+  const levels: Record<Exclude<DistrictId, "neonRow">, number> = {
+    rustYards: 24,
+    underpassMarket: 44,
+    blacknetQuarter: 64,
+    helixWard: 84,
+    glasslineDistrict: 104,
+    redlineBlocks: 124,
+    skylineCore: 144,
+  };
+  return levels[districtId];
+}
+
+function cyberwareMaterials(districtId: DistrictId): Record<string, number> {
+  const districtParts: Record<DistrictId, Record<string, number>> = {
+    neonRow: { cyberwareParts: 2, "neon-circuit-fragment": 1 },
+    rustYards: { "cyberware-frame": 1, "salvaged-servo": 1, "rust-plated-frame": 1 },
+    underpassMarket: { "cyberware-frame": 1, "illegal-mod-core": 1, "contraband-chip": 1 },
+    blacknetQuarter: { "neural-connector": 1, "rogue-packet-core": 1, "encrypted-memory-stack": 1 },
+    helixWard: { "neural-connector": 1, "neural-dampener": 1, "medical-gel-matrix": 1 },
+    glasslineDistrict: { "stabilized-chrome-frame": 1, "glassline-alloy": 1, "executive-processor": 1 },
+    redlineBlocks: { "stabilized-chrome-frame": 1, "ballistic-core": 1, "combat-stim-pack": 1 },
+    skylineCore: { "legendary-chrome-matrix": 1, "apex-neural-core": 1, "skyline-authorization": 1 },
+  };
+  return districtParts[districtId];
 }
 
 function suiteModifiers(style: BuildStyle, slot: CyberwareSlot, tier: number): Partial<ActiveModifiers> {

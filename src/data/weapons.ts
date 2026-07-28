@@ -89,7 +89,55 @@ function w(
   requiredLevel: number,
   districtId: DistrictId,
   stats: ItemStats,
-  inputCosts: Record<string, number>,
+  _inputCosts: Record<string, number>,
 ): WeaponSpec {
-  return { id, name, description, weaponClass, rarity, tier, requiredLevel, districtId, stats, inputCosts };
+  return {
+    id,
+    name,
+    description,
+    weaponClass,
+    rarity,
+    tier,
+    requiredLevel: progressionLevel(districtId, requiredLevel),
+    districtId,
+    stats: modernWeaponStats(weaponClass, stats, tier),
+    inputCosts: weaponCosts(districtId, weaponClass),
+  };
+}
+
+function progressionLevel(districtId: DistrictId, originalLevel: number) {
+  if (districtId === "neonRow") return originalLevel <= 1 ? 1 : originalLevel <= 3 ? 10 : 18;
+  const levels: Record<Exclude<DistrictId, "neonRow">, number> = {
+    rustYards: 24,
+    underpassMarket: 44,
+    blacknetQuarter: 64,
+    helixWard: 84,
+    glasslineDistrict: 104,
+    redlineBlocks: 124,
+    skylineCore: 144,
+  };
+  return levels[districtId];
+}
+
+function modernWeaponStats(weaponClass: WeaponClass, stats: ItemStats, tier: number): ItemStats {
+  if (weaponClass === "Pistol") return { ...stats, critChance: Math.max(stats.critChance ?? 0, 0.02 * tier), heatModifier: -0.01 * tier };
+  if (weaponClass === "SMG") return { ...stats, dodge: 0.01 * tier, heatModifier: 0.02 * tier };
+  if (weaponClass === "Rifle") return { ...stats, armorPenetration: 2 * tier };
+  if (weaponClass === "Shotgun") return { ...stats, armorPenetration: 3 * tier, heatModifier: 0.025 * tier };
+  return { ...stats, critChance: Math.max(stats.critChance ?? 0, 0.025 * tier), heatModifier: -0.02 * tier };
+}
+
+function weaponCosts(districtId: DistrictId, weaponClass: WeaponClass): Record<string, number> {
+  const classPart = weaponClass === "Melee" ? "grip-polymer" : weaponClass === "Rifle" || weaponClass === "Shotgun" ? "barrel-assembly" : "precision-parts";
+  const districtParts: Record<DistrictId, Record<string, number>> = {
+    neonRow: { "weapon-frame": 1, "street-coil": 1 },
+    rustYards: { "weapon-frame": 1, "salvaged-servo": 1, "rust-plated-frame": 1 },
+    underpassMarket: { "weapon-frame": 1, "contraband-chip": 1, "illegal-mod-core": 1 },
+    blacknetQuarter: { "weapon-frame": 1, "rogue-packet-core": 1, "trace-scrambler-chip": 1 },
+    helixWard: { "weapon-frame": 1, "bioware-thread": 1, "stabilizer-compound": 1 },
+    glasslineDistrict: { "weapon-frame": 1, "glassline-alloy": 1, "executive-processor": 1 },
+    redlineBlocks: { "weapon-frame": 1, "ballistic-core": 1, "redline-trigger-kit": 1 },
+    skylineCore: { "prototype-weapon-core": 1, "luxury-processor": 1, "skyline-authorization": 1 },
+  };
+  return { ...districtParts[districtId], [classPart]: 1 };
 }
