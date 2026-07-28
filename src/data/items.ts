@@ -1,4 +1,7 @@
 import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemRarity, WeaponClassId } from "../types";
+import { armorSpecs, type ArmorSpec } from "./armor";
+import { cyberwareSpecs, type CyberwareSpec } from "./cyberware";
+import { weaponSpecs, type WeaponSpec } from "./weapons";
 
 export const cyberwareSlots: Array<{ id: CyberwareSlot; label: string }> = [
   { id: "neural", label: "Neural" },
@@ -155,6 +158,7 @@ export const items: ItemDefinition[] = [
   cyberware("dampener-weave", "Dampener Weave", "A skin-layer stabilizer that smooths signal noise from heavier chrome.", "skin", 2, 8, { combatDefense: 0.02, neuralInstabilityRecovery: 0.04 }, -4, ["medical", "stabilizer"]),
   cyberware("helix-governor-os", "Helix Governor OS", "A restrained operating system that limits runaway implant feedback.", "operatingSystem", 3, 14, { skillXp: { medical: 0.04 }, neuralInstabilityRecovery: 0.08 }, -9, ["medical", "stabilizer", "helix"]),
   ...expandedCyberware(),
+  ...cyberwareSpecs.map(cyberwareFromSpec),
   weapon("rusted-pistol", "Rusted Pistol", "Ugly, loud, and still better than harsh words.", 1, "pistols", { damage: 5, accuracy: 2, critChance: 0.03 }, ["ranged", "gang"], ["muzzle", "grip"], 1, "Starter sidearm and Neon Row vendor stock."),
   weapon("street-knife", "Street Knife", "A fast blade for close work.", 1, "blades", { damage: 3, attackSpeed: -80, critChance: 0.05, heatModifier: -0.03 }, ["melee", "stealth", "lowHeat"], ["grip"], 1, "Starter blade and Redline drops."),
   weapon("scrap-baton", "Scrap Baton", "A weighted baton made from insulated salvage.", 1, "bluntWeapons", { damage: 4, armorPenetration: 1 }, ["melee", "nonlethal", "gang"], ["grip"], 1, "Crafted from scrap and grip polymer."),
@@ -175,6 +179,7 @@ export const items: ItemDefinition[] = [
   weapon("suppressed-precision-pistol", "Suppressed Precision Pistol", "A clean pistol built for quiet work.", 3, "pistols", { damage: 10, accuracy: 6, critChance: 0.1, heatModifier: -0.08 }, ["ranged", "stealth", "assassination", "lowHeat"], ["muzzle", "scope", "grip"], 2, "Ghost Market rare listing."),
   weapon("heavy-breacher", "Heavy Breacher", "A heavy weapon for bosses, doors, and terrible decisions.", 3, "heavyWeapons", { damage: 24, attackSpeed: 420, armorPenetration: 6, heatModifier: 0.12 }, ["ranged", "loud", "highHeat", "boss"], ["muzzle", "barrel", "stock", "batteryCore"], 2, "Operation drop."),
   ...expandedWeapons(),
+  ...weaponSpecs.map(weaponFromSpec),
   attachment("crude-suppressor", "Crude Suppressor", "Cheap muzzle suppression for stealth jobs.", "muzzle", "Common", ["pistols", "smgs"], { heatGain: -0.03, jobSuccessChance: 0.02 }, ["stealth", "lowHeat"], "Neon Row Street Vendor."),
   attachment("military-suppressor", "Military Suppressor", "Better suppression with cleaner cycling.", "muzzle", "Rare", ["pistols", "smgs", "sniperRifles"], { heatGain: -0.06, jobSuccessChance: 0.03 }, ["stealth", "assassination"], "Rare Underpass market stock."),
   attachment("compensator", "Compensator", "Improves accuracy for loud weapons.", "muzzle", "Uncommon", ["pistols", "smgs", "assaultRifles"], { combatDamage: 0.02 }, ["loud"], "Weapon crafting."),
@@ -215,6 +220,7 @@ export const items: ItemDefinition[] = [
   armor("runner-boots", "Runner Boots", "Soft boots built for wet concrete.", "boots", 1, { dodge: 0.03, armor: 1 }),
   armor("patched-jacket", "Patched Jacket", "A trophy jacket with a few useful plates left.", "chest", 1, { armor: 1, maxHp: 4 }),
   ...expandedArmorAndAccessories(),
+  ...armorSpecs.map(armorFromSpec),
   weapon("servo-knuckles", "Servo Knuckles", "Boosted knuckles stripped from a street bruiser.", 1, "bluntWeapons", { damage: 4, critChance: 0.02, armorPenetration: 1 }, ["melee", "gang"], ["grip"], 1, "Dropped by boosted street fighters."),
   component("drone-eye", "Drone Eye", "A cracked optical unit useful for scanner work.", 30),
 ];
@@ -338,6 +344,99 @@ function weaponMod(
     maxUpgradeLevel: 5,
     scenarioModifiers: [{ tags: scenarioTags, description: specialEffect, modifiers }],
   };
+}
+
+function cyberwareFromSpec(spec: CyberwareSpec): ItemDefinition {
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    type: "Cyberware",
+    rarity: spec.rarity,
+    tags: spec.tags,
+    stackable: false,
+    sellValue: raritySellValue(spec.rarity, 125, spec.tier),
+    sourceHint: `Crafted after reaching ${districtName(spec.districtId)} and Cyberware Engineering level ${spec.requiredLevel}.`,
+    slot: spec.slot,
+    tier: spec.tier,
+    requiredSkill: "cyberware",
+    requiredLevel: spec.requiredLevel,
+    modifiers: spec.modifiers,
+    instabilityLoad: spec.instabilityLoad,
+    setName: spec.name.slice(0, spec.name.lastIndexOf(" ")),
+    maxUpgradeLevel: 10,
+  };
+}
+
+function weaponFromSpec(spec: WeaponSpec): ItemDefinition {
+  const classIds: Record<WeaponSpec["weaponClass"], WeaponClassId> = {
+    Pistol: "pistols",
+    SMG: "smgs",
+    Rifle: "assaultRifles",
+    Shotgun: "shotguns",
+    Melee: "blades",
+  };
+  const attachmentSlots: AttachmentCategory[] =
+    spec.weaponClass === "Melee"
+      ? ["grip", "batteryCore"]
+      : spec.weaponClass === "Pistol"
+        ? ["muzzle", "scope", "grip"]
+        : ["muzzle", "scope", "magazine", "grip", "barrel", "stock"];
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    type: "Weapon",
+    rarity: spec.rarity,
+    tags: ["weapon", "combat", spec.weaponClass.toLowerCase(), spec.districtId],
+    stackable: false,
+    sellValue: raritySellValue(spec.rarity, 70, spec.tier),
+    sourceHint: `Crafted after reaching ${districtName(spec.districtId)} and Streetcraft level ${spec.requiredLevel}.`,
+    slot: "weapon",
+    weaponClass: classIds[spec.weaponClass],
+    attachmentSlots,
+    modSlots: Math.min(3, Math.max(1, spec.tier)),
+    tier: spec.tier,
+    requiredSkill: "combat",
+    requiredLevel: spec.requiredLevel,
+    stats: spec.stats,
+    maxUpgradeLevel: 10,
+  };
+}
+
+function armorFromSpec(spec: ArmorSpec): ItemDefinition {
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    type: "Armor",
+    rarity: spec.rarity,
+    tags: ["armor", "equipment", spec.armorClass.toLowerCase(), spec.districtId],
+    stackable: false,
+    sellValue: raritySellValue(spec.rarity, 55, spec.tier),
+    sourceHint: `Crafted after reaching ${districtName(spec.districtId)} and Streetcraft level ${spec.requiredLevel}.`,
+    slot: spec.slot,
+    tier: spec.tier,
+    requiredSkill: "combat",
+    requiredLevel: spec.requiredLevel,
+    stats: spec.stats,
+    setName: spec.name.slice(0, spec.name.lastIndexOf(" ")),
+    maxUpgradeLevel: 10,
+  };
+}
+
+function districtName(id: WeaponSpec["districtId"]) {
+  const names: Record<WeaponSpec["districtId"], string> = {
+    neonRow: "Neon Row",
+    rustYards: "Rust Yards",
+    underpassMarket: "Underpass Market",
+    blacknetQuarter: "Blacknet Quarter",
+    glasslineDistrict: "Glassline District",
+    helixWard: "Helix Ward",
+    redlineBlocks: "Redline Blocks",
+    skylineCore: "Skyline Core",
+  };
+  return names[id];
 }
 
 function armor(id: string, name: string, description: string, slot: GearSlot, tier: number, stats: ItemDefinition["stats"]): ItemDefinition {

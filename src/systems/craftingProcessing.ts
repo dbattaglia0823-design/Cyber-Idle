@@ -18,6 +18,7 @@ export function getRecipe(recipeId: string) {
 export function canCraft(state: GameState, recipe: CraftingRecipe) {
   if (state.skills[recipe.requiredSkill].level < recipe.requiredLevel) return false;
   if (recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]) return false;
+  if (recipe.requiredDistrict && !state.districts[recipe.requiredDistrict]?.unlocked) return false;
   return Object.entries(adjustCraftingCosts(state, recipe)).every(([id, amount]) => getCount(state, id) >= amount);
 }
 

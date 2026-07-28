@@ -4880,7 +4880,8 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
   const selectedMissingEntries = Object.entries(selectedCosts).filter(([id, amount]) => getOwnedCount(state, id) < amount);
   const selectedLevelLocked = selectedRecipe ? state.skills[selectedRecipe.requiredSkill].level < selectedRecipe.requiredLevel : false;
   const selectedBlueprintLocked = Boolean(selectedRecipe?.requiredBlueprint && !state.unlockedBlueprints[selectedRecipe.requiredBlueprint]);
-  const selectedLocked = selectedLevelLocked || selectedBlueprintLocked;
+  const selectedDistrictLocked = Boolean(selectedRecipe?.requiredDistrict && !state.districts[selectedRecipe.requiredDistrict]?.unlocked);
+  const selectedLocked = selectedLevelLocked || selectedBlueprintLocked || selectedDistrictLocked;
   const selectedMissing = selectedMissingEntries.length > 0;
   const selectedActive = selectedRecipe ? state.activeCraft?.recipeId === selectedRecipe.id : false;
   const selectedProgress = selectedActive && state.activeCraft ? activityProgress(state.activeCraft.startedAt, state.activeCraft.durationMs) : null;
@@ -4940,7 +4941,8 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
             const output = getItem(recipe.outputItemId);
             const levelLocked = state.skills[recipe.requiredSkill].level < recipe.requiredLevel;
             const blueprintLocked = Boolean(recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]);
-            const locked = levelLocked || blueprintLocked;
+            const districtLocked = Boolean(recipe.requiredDistrict && !state.districts[recipe.requiredDistrict]?.unlocked);
+            const locked = levelLocked || blueprintLocked || districtLocked;
             const costs = scaledCraftingCosts(state, recipe);
             const missing = Object.entries(costs).some(([id, amount]) => getOwnedCount(state, id) < amount);
             const active = state.activeCraft?.recipeId === recipe.id;
@@ -4983,6 +4985,13 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
               {selectedRecipe.requiredBlueprint && (
                 <RequirementBulletList title="Blueprint Requirement" warning={selectedBlueprintLocked}>
                   <ClickableItemRequirement state={state} itemId={selectedRecipe.requiredBlueprint} required={1} warning={selectedBlueprintLocked} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
+                </RequirementBulletList>
+              )}
+              {selectedRecipe.requiredDistrict && (
+                <RequirementBulletList title="District Requirement" warning={selectedDistrictLocked}>
+                  <span className={selectedDistrictLocked ? "requirement-row missing" : "requirement-row met"}>
+                    {districts.find((district) => district.id === selectedRecipe.requiredDistrict)?.name ?? selectedRecipe.requiredDistrict} {selectedDistrictLocked ? "Locked" : "Unlocked"}
+                  </span>
                 </RequirementBulletList>
               )}
               <RequirementBulletList title="Required Materials" warning={selectedMissing}>
