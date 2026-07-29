@@ -2162,18 +2162,92 @@ main {
   gap: 5px;
 }
 
-.requirement-summary span {
-  display: inline-flex;
+.requirement-summary {
+  gap: 7px;
+}
+
+.requirement-summary-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
-  gap: 5px;
+  border: 1px solid rgba(121, 242, 162, 0.28);
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: rgba(121, 242, 162, 0.07);
+  color: var(--text);
+  min-width: 0;
+}
+
+.requirement-summary-row.missing {
+  border-color: rgba(255, 79, 125, 0.44);
+  background: rgba(255, 49, 101, 0.11);
+  color: #ffb6dc;
+}
+
+.requirement-state {
+  border: 1px solid rgba(121, 242, 162, 0.34);
+  border-radius: 999px;
+  padding: 3px 6px;
+  color: #8dffb0;
+  font-size: 0.64rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.requirement-summary-row.missing .requirement-state {
+  border-color: rgba(255, 79, 125, 0.5);
+  color: #ff8ab0;
+}
+
+.requirement-main {
+  display: grid;
+  gap: 2px;
   min-width: 0;
   color: var(--muted);
-  line-height: 1.25;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
-.requirement-summary .missing {
-  color: #ffb6dc;
+.requirement-main b {
+  color: var(--cyan);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+.requirement-summary-row.missing .requirement-main b,
+.requirement-summary-row.missing > strong {
+  color: #ff8ab0;
+}
+
+.requirement-summary-row > strong {
+  color: #8dffb0;
+  font-size: 0.78rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.requirement-time-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.requirement-time-grid span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgba(62, 231, 255, 0.16);
+  border-radius: 7px;
+  padding: 6px;
+  background: rgba(62, 231, 255, 0.06);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.requirement-time-grid strong {
+  color: var(--text);
 }
 
 .mission-gain-grid {
@@ -5908,6 +5982,20 @@ button:disabled {
     border-top: 1px solid rgba(62, 231, 255, 0.14);
     padding-top: 8px;
     padding-left: 0;
+  }
+
+  .requirement-summary-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .requirement-summary-row > strong {
+    grid-column: 2;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .requirement-time-grid {
+    grid-template-columns: 1fr;
   }
 
   .mission-gain-grid,

@@ -1,7 +1,7 @@
 import type { RewardPopupGroup } from "../types";
 
 export function RewardPopupContainer({ popups, now, onDismiss }: { popups: RewardPopupGroup[]; now: number; onDismiss: (id: string) => void }) {
-  const visible = popups.filter((popup) => popup.expiresAt > now).slice(0, 5);
+  const visible = popups.filter((popup) => popup.expiresAt > now).slice(0, 2);
   if (!visible.length) return null;
   return (
     <aside className="reward-popup-stack" aria-live="polite" aria-label="Reward notifications">

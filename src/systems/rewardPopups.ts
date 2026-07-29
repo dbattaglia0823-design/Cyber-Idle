@@ -54,7 +54,7 @@ export function emitRewardPopupGroup(state: GameState, input: RewardPopupInput) 
     createdAt: now,
     expiresAt: now + (input.durationMs ?? categoryDuration[category]),
   };
-  state.rewardPopups = mergeRecentPopup(state.rewardPopups ?? [], popup).slice(0, 8);
+  state.rewardPopups = mergeRecentPopup(state.rewardPopups ?? [], popup).slice(0, 2);
 }
 
 export function emitSummaryPopup(state: GameState, title: string, lines: string[], category: RewardPopupCategory = "story") {

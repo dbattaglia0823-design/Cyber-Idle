@@ -3373,7 +3373,6 @@ function ActionCard({
 
         <p className="mission-description">{action.description}</p>
         <RecommendationBadges badges={badges} />
-        {locked && <p className="mission-lockout">{actionLockHint(state, action, { accessMet, districtUnlocked, unlocksMet, requiredItemsMet, affordable })}</p>}
 
         <div className="mission-section-stack">
           <InfoSectionRow icon={<Target size={22} />} title="Requirements">
@@ -3621,24 +3620,64 @@ function RequirementSummary({
   const durationModifier = baseDuration > 0 ? Math.round((durationDelta / baseDuration) * 100) : 0;
   return (
     <div className="requirement-summary">
-      <span className={accessMet ? "" : "missing"}>{actionAccessRequirementText(state, action)}</span>
-      {!accessMet && <span className="missing">Need {skillNames[action.skillId]} {action.levelReq}. Current {state.skills[action.skillId].level}</span>}
-      {!districtUnlocked && action.districtReq && <span className="missing">Unlock {getDistrict(action.districtReq)?.name ?? action.districtReq}</span>}
-      {!unlocksMet && <span className="missing">Needs {action.requiredUnlocks?.join(", ") ?? "unlock"}</span>}
-      {!requiredItemsMet && action.requiredItems && <span className="missing">Missing required items</span>}
+      <RequirementSummaryRow
+        met={accessMet}
+        label="Skill"
+        text={`${skillNames[action.skillId]} level ${action.levelReq}`}
+        value={`${state.skills[action.skillId].level} / ${action.levelReq}`}
+      />
+      {action.districtReq && (
+        <RequirementSummaryRow
+          met={Boolean(districtUnlocked)}
+          label="District"
+          text={getDistrict(action.districtReq)?.name ?? action.districtReq}
+          value={districtUnlocked ? "Unlocked" : "Locked"}
+        />
+      )}
+      {(action.requiredUnlocks?.length ?? 0) > 0 && (
+        <RequirementSummaryRow
+          met={unlocksMet}
+          label="Unlock"
+          text={action.requiredUnlocks?.join(", ") ?? "Required unlock"}
+          value={unlocksMet ? "Ready" : "Needed"}
+        />
+      )}
+      {action.requiredItems && (
+        <RequirementSummaryRow
+          met={requiredItemsMet}
+          label="Items"
+          text={Object.entries(action.requiredItems).map(([id, amount]) => `${amount} ${getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}`).join(", ")}
+          value={requiredItemsMet ? "Ready" : "Missing"}
+        />
+      )}
       {costEntries.map(([id, amount]) => {
         const owned = getOwnedCount(state, id);
+        const met = owned >= (amount ?? 0);
         return (
-          <span key={id} className={owned >= (amount ?? 0) ? "" : "missing"}>
-            Cost {getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}: {owned.toLocaleString()} / {(amount ?? 0).toLocaleString()}
-          </span>
+          <RequirementSummaryRow
+            key={id}
+            met={met}
+            label="Cost"
+            text={getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}
+            value={`${owned.toLocaleString()} / ${(amount ?? 0).toLocaleString()}`}
+          />
         );
       })}
-      <span><Timer size={14} /> Base {formatDuration(baseDuration)}</span>
-      <span className={durationModifier < 0 ? "success-text" : durationModifier > 0 ? "missing" : ""}>
-        Modifiers {durationModifier > 0 ? "+" : ""}{durationModifier}%
-      </span>
-      <span><Timer size={14} /> Final {formatDuration(duration)}</span>
+      <div className="requirement-time-grid">
+        <span><Timer size={14} /> Base <strong>{formatDuration(baseDuration)}</strong></span>
+        <span className={durationModifier < 0 ? "success-text" : durationModifier > 0 ? "missing" : ""}>Mods <strong>{durationModifier > 0 ? "+" : ""}{durationModifier}%</strong></span>
+        <span><Timer size={14} /> Final <strong>{formatDuration(duration)}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+function RequirementSummaryRow({ met, label, text, value }: { met: boolean; label: string; text: string; value: string }) {
+  return (
+    <div className={`requirement-summary-row ${met ? "met" : "missing"}`}>
+      <span className="requirement-state">{met ? "Met" : "Need"}</span>
+      <span className="requirement-main"><b>{label}</b>{text}</span>
+      <strong>{value}</strong>
     </div>
   );
 }
