@@ -369,6 +369,7 @@ export interface CraftingRecipe {
   requiredSkill: SkillId;
   requiredLevel: number;
   requiredBlueprint?: string;
+  requiredDistrict?: DistrictId;
   inputCosts: Record<string, number>;
   outputItemId: string;
   outputQuantity: number;

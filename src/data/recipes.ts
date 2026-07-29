@@ -1,4 +1,7 @@
 import type { CraftingRecipe } from "../types";
+import { armorSpecs } from "./armor";
+import { cyberwareSpecs } from "./cyberware";
+import { weaponSpecs } from "./weapons";
 
 export const recipes: CraftingRecipe[] = [
   recipe("recipe-circuit-bundle", "Circuit Bundle", "Components", 1, { scrap: 4, circuitBoards: 1 }, "circuit-bundle", 1, 4500, 12),
@@ -40,20 +43,69 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-helix-governor-os", "Helix Governor OS", "Cyberware", 14, { "neural-connector": 2, "stabilizer-compound": 3, encryptedData: 8 }, "helix-governor-os", 1, 26000, 110, "neural-dampener-blueprint"),
   ...expandedEquipmentRecipes(),
   ...expandedHighTierWeaponRecipes(),
+  ...weaponSpecs.map((weapon) =>
+    recipe(
+      `recipe-${weapon.id}`,
+      weapon.name,
+      "Weapons",
+      weapon.requiredLevel,
+      weapon.inputCosts,
+      weapon.id,
+      1,
+      6000 + weapon.tier * 3000 + weapon.requiredLevel * 150,
+      16 + weapon.tier * 14 + weapon.requiredLevel * 2,
+      undefined,
+      weapon.districtId,
+      "streetcraft",
+    ),
+  ),
+  ...armorSpecs.map((armor) =>
+    recipe(
+      `recipe-${armor.id}`,
+      armor.name,
+      "Armor",
+      armor.requiredLevel,
+      armor.inputCosts,
+      armor.id,
+      1,
+      6000 + armor.tier * 2800 + armor.requiredLevel * 140,
+      14 + armor.tier * 13 + armor.requiredLevel * 2,
+      undefined,
+      armor.districtId,
+      "streetcraft",
+    ),
+  ),
+  ...cyberwareSpecs.map((implant) =>
+    recipe(
+      `recipe-${implant.id}`,
+      implant.name,
+      "Cyberware",
+      implant.requiredLevel,
+      implant.inputCosts,
+      implant.id,
+      1,
+      7000 + implant.tier * 3200 + implant.requiredLevel * 160,
+      18 + implant.tier * 16 + implant.requiredLevel * 2,
+      undefined,
+      implant.districtId,
+      "cyberware",
+    ),
+  ),
 ].sort(sortRecipes);
 
 function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
   return a.requiredLevel - b.requiredLevel || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
 }
 
-function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string): CraftingRecipe {
+function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = "cyberware"): CraftingRecipe {
   return {
     id,
     name,
     category,
-    requiredSkill: "cyberware",
+    requiredSkill,
     requiredLevel,
     requiredBlueprint,
+    requiredDistrict,
     inputCosts,
     outputItemId,
     outputQuantity,
@@ -61,7 +113,11 @@ function recipe(id: string, name: string, category: CraftingRecipe["category"], 
     xpReward,
     masteryXpReward: Math.ceil(xpReward * 0.45),
     tags: ["crafting", category.toLowerCase()],
-    unlockRequirements: requiredBlueprint ? [`Blueprint: ${requiredBlueprint}`] : ["Unlocked by default"],
+    unlockRequirements: [
+      ...(requiredBlueprint ? [`Blueprint: ${requiredBlueprint}`] : []),
+      ...(requiredDistrict ? [`District: ${requiredDistrict}`] : []),
+      ...(!requiredBlueprint && !requiredDistrict ? ["Unlocked by default"] : []),
+    ],
   };
 }
 
