@@ -31,7 +31,8 @@ export function canUseVendor(state: GameState, vendor: VendorDefinition) {
 
 export function vendorItemUnlocked(state: GameState, entry: VendorItemEntry) {
   if (entry.requiredDistrictUnlock && !state.districts[entry.requiredDistrictUnlock]?.unlocked) return false;
-  if (entry.requiredUnlock && !state.worldUnlocks[entry.requiredUnlock] && !state.unlocks[entry.requiredUnlock]) return false;
+  if (entry.requiredUnlock && !state.worldUnlocks[entry.requiredUnlock] && !state.unlocks[entry.requiredUnlock] && !state.discoveredItems[entry.requiredUnlock] && !state.unlockedBlueprints[entry.requiredUnlock]) return false;
+  if (!Object.entries(entry.requiredSkillLevel ?? {}).every(([skillId, level]) => state.skills[skillId as keyof GameState["skills"]].level >= (level ?? 0))) return false;
   return Object.entries(entry.requiredFactionRank ?? {}).every(([factionId, rank]) => {
     return factionRank(state.factions[factionId as FactionId]?.reputation ?? 0) >= (rank ?? 0);
   });
@@ -60,6 +61,7 @@ export function canBuyVendorItem(state: GameState, vendorId: string, itemId: str
   const vendor = vendors.find((entry) => entry.id === vendorId);
   const item = vendor?.inventory.find((entry) => entry.itemId === itemId);
   if (!vendor || !item || !canUseVendor(state, vendor) || !vendorItemUnlocked(state, item)) return false;
+  if (getItem(itemId)?.tags.includes("heat-countermeasure") && state.discoveredItems[itemId]) return false;
   if (item.stockType === "limited" && vendorLimitedStockRemaining(state, vendorId, item) <= 0) return false;
   return state.resources.credits >= vendorPrice(state, vendor, item);
 }

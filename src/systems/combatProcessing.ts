@@ -185,7 +185,7 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     if ((state.weaponStatistics.killsByClass[weaponClass] ?? 0) >= 1000) state.achievements[`weapon-${weaponClass}-1000-kills`] = true;
   }
   enemy.drops.forEach((drop) => {
-    const chance = calculateDropChance(drop.chance, state, matchup.tags, matchup.dropChance + districtMasteryDropBonus(state, districtId));
+    const chance = enemyDropChance(state, enemy, drop.chance);
     if (Math.random() > chance) return;
     if (isResource(drop.id)) {
       state.resources[drop.id] += drop.quantity;
@@ -222,6 +222,11 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     neuralInstability: 0,
   });
   updateWorldUnlocks(state);
+}
+
+export function enemyDropChance(state: GameState, enemy: Enemy, baseChance: number) {
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  return calculateDropChance(baseChance, state, matchup.tags, matchup.dropChance + districtMasteryDropBonus(state, enemyDistrict(enemy.id)));
 }
 
 function isResource(id: string): id is ResourceId {

@@ -6,7 +6,7 @@ export const fixers: Fixer[] = [
     id: "sable-quinn-fixer",
     name: "Sable Quinn",
     districtId: "neonRow",
-    factionId: "ghostMarket",
+    factionId: "redlineSaints",
     specialty: "Starter street contracts, contraband introductions, and companion routes.",
     startingPathNotes: {
       streetborn: "Streetborn runners gain trust faster through Sable's local contacts.",

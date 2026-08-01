@@ -11,10 +11,9 @@ export function earnedPerkPoints(state: GameState) {
   const operationClears = Object.values(state.operationLogs).filter((log) => log.firstClear).length * 2;
   const bossKills = Object.values(state.bossLogs).filter((log) => log.kills > 0).length * 2;
   const factionRanks = Object.values(state.factions).reduce((sum, faction) => sum + Math.floor(Math.max(0, faction.reputation) / 20), 0);
-  const fixerTrust = Object.values(state.fixerTrust).reduce((sum, fixer) => sum + Math.floor(fixer.trust / 25), 0);
   const achievements = Math.floor(Object.values(state.achievements).filter(Boolean).length / 3);
   const masteryPools = (Object.keys(state.skills) as SkillId[]).filter((skill) => masteryPoolPercent(state, skill) >= 100).length * 3;
-  return totalMilestones + skillMilestones + operationClears + bossKills + factionRanks + fixerTrust + achievements + masteryPools;
+  return totalMilestones + skillMilestones + operationClears + bossKills + factionRanks + achievements + masteryPools;
 }
 
 export function spentPerkPoints(state: GameState) {
@@ -91,8 +90,8 @@ export function updateSpecializationMilestones(state: GameState) {
     if (state.specializationMilestones[id] || treeInvestment(state, milestone.tree) < milestone.points) return;
     state.specializationMilestones[id] = true;
     unlockAchievement(state, "first-specialization-milestone", "Unlock First Specialization Milestone");
-    if (milestone.points >= 30) unlockAchievement(state, `tree-30-${milestone.tree}`, `Reach 30 Points in ${milestone.tree}`);
-    if (milestone.points >= 50) unlockAchievement(state, `signature-passive-${milestone.tree}`, `Unlock ${milestone.name}`);
+    if (milestone.points === 20) unlockAchievement(state, `signature-passive-${milestone.tree}`, `Unlock ${milestone.name}`);
+    if (milestone.points === 27) unlockAchievement(state, `tree-mastery-${milestone.tree}`, `Master the ${milestone.tree} build`);
     pushCategorizedLog(state, "World", `Specialization milestone: ${milestone.name}.`);
   });
 }
@@ -115,7 +114,7 @@ function meetsNamedUnlock(state: GameState, perk: PerkDefinition) {
   if (perk.id === "techie-blueprint-analyst") return Object.values(state.unlockedBlueprints).some(Boolean);
   if (perk.id === "outrider-hidden-compartments" || perk.id === "outrider-engine-whisperer") return Object.values(state.ownedVehicles).some(Boolean);
   if (perk.id === "outrider-rust-yard-regular") return state.districts.rustYards?.unlocked;
-  if (perk.id === "fixer-local-leverage") return Object.values(state.fixerTrust).some((fixer) => fixer.completedJobs > 0);
+  if (perk.id === "fixer-local-leverage") return Object.keys(state.manualDiscovery.jobs).length > 0;
   if (perk.id === "fixer-negotiated-prices") return Object.values(state.vendors).some((vendor) => vendor.discovered);
   if (perk.id === "fixer-contact-chain") return Object.values(state.companions).some((companion) => companion.unlocked);
   if (perk.id === "fixer-favor-economy") return Object.values(state.factions).some((faction) => faction.reputation >= 20);

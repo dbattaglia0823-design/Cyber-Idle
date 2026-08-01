@@ -5,7 +5,8 @@ import { calculateVehicleUpgradeCost } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { updateOperationAchievements } from "./achievements";
 import { emitRewardPopupGroup } from "./rewardPopups";
-import type { GameState, RewardBundle } from "../types";
+import { factionRank } from "./modifiers";
+import type { FactionId, GameState, RewardBundle, SkillId, VehicleDefinition } from "../types";
 
 export function garageSlots(state: GameState) {
   const housing = housingOptions.find((option) => option.id === state.activeResidence);
@@ -16,7 +17,37 @@ export function canBuyVehicle(state: GameState, vehicleId: string) {
   const vehicle = vehicles.find((entry) => entry.id === vehicleId);
   if (!vehicle || state.ownedVehicles[vehicleId]) return false;
   if (Object.values(state.ownedVehicles).filter(Boolean).length >= garageSlots(state)) return false;
+  if (!vehicle.unlockRequirements.every((requirement) => vehicleRequirementMet(state, vehicle, requirement))) return false;
   return canPay(state, vehicle.cost);
+}
+
+export function vehicleRequirementMet(state: GameState, vehicle: VehicleDefinition, requirement: string) {
+  const lower = requirement.toLowerCase();
+  if (lower.includes("available early") || lower.includes("major credit sink")) return true;
+  const faction = factionRequirement(lower);
+  const rank = Number(lower.match(/rank\s+(\d+)/)?.[1] ?? 0);
+  if (faction && rank) return factionRank(state.factions[faction].reputation) >= rank;
+  const factionReputation = Number(lower.match(/reputation\s+(\d+)/)?.[1] ?? 0);
+  if (faction && factionReputation) return state.factions[faction].reputation >= factionReputation;
+  const globalReputation = Number(lower.match(/^reputation\s+(\d+)/)?.[1] ?? 0);
+  if (globalReputation) return state.resources.reputation >= globalReputation;
+  const skillMatch = lower.match(/(vehicle tuning|combat|hacking|cyberware|scavenging)\s+level\s+(\d+)/);
+  if (skillMatch) {
+    const skills: Record<string, SkillId> = { "vehicle tuning": "vehicleTuning", combat: "combat", hacking: "hacking", cyberware: "cyberware", scavenging: "scavenging" };
+    return state.skills[skills[skillMatch[1]]].level >= Number(skillMatch[2]);
+  }
+  if (lower.includes("unlocked")) return Boolean(state.districts[vehicle.districtId]?.unlocked);
+  if (lower.includes("corporate extraction")) return Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear);
+  return true;
+}
+
+function factionRequirement(requirement: string): FactionId | null {
+  if (requirement.includes("chrome jackals")) return "chromeJackals";
+  if (requirement.includes("null choir")) return "nullChoir";
+  if (requirement.includes("redline saints")) return "redlineSaints";
+  if (requirement.includes("ghost market")) return "ghostMarket";
+  if (requirement.includes("helix order")) return "helixOrder";
+  return null;
 }
 
 export function buyVehicle(state: GameState, vehicleId: string) {

@@ -1,6 +1,6 @@
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
-import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction, rollSkillActionDrops } from "./actionProcessing";
 import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
@@ -10,6 +10,7 @@ import { applyRiskEvents } from "./riskEvents";
 import { getSimulationEfficiency } from "./simulationEfficiency";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
+import { actionHeatSuppressed } from "../data/heatCountermeasures";
 import type { GameState, ResourceId, RewardBundle, SimulationRecap } from "../types";
 
 export function simCacheEligibility(state: GameState) {
@@ -19,7 +20,10 @@ export function simCacheEligibility(state: GameState) {
     const action = getSkillAction(state.activeAction.actionId);
     if (!action) return { eligible: false, reason: "Current action is missing." };
     if (!state.manualDiscovery.skillActions[action.id]) return { eligible: false, reason: "Complete this skill action manually once first." };
+    if (!canAffordRewards(state, action.rewards)) return { eligible: false, reason: "Missing resources required by the current action." };
+    if (!hasRequiredActionItems(state, action)) return { eligible: false, reason: "Missing items required by the current action." };
     if (action.tags?.includes("hacking") && state.resources.heat >= 75) return { eligible: false, reason: "Heat safety stop: Hunted or higher." };
+    if (state.resources.heat >= 90) return { eligible: false, reason: "Heat safety stop: reduce Heat below 90." };
     return { eligible: true, reason: `Eligible: repeat ${action.name}.` };
   }
   if (state.activeCraft) {
@@ -40,7 +44,6 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   const eligible = simCacheEligibility(state);
   if (!eligible.eligible) return state;
   const next = cloneState(state);
-  removeItem(next, basic.itemId, count);
   const simulatedMs = count * basic.minutesPerItem * 60_000;
   const efficiency = getSimulationEfficiency(next);
   const recap: SimulationRecap = {
@@ -63,6 +66,22 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   if (next.activeAction) simulateAction(next, simulatedMs, recap);
   else if (next.activeCraft) simulateCraft(next, simulatedMs, recap);
 
+  if (recap.completions <= 0) {
+    recap.warnings.push(recap.stoppedReason);
+    next.simulationRecap = recap;
+    pushCategorizedLog(next, "Warning", `Sim Cache stopped without consuming a cache: ${recap.stoppedReason}`);
+    emitRewardPopupGroup(next, {
+      title: "Sim Cache Stopped",
+      category: "warning",
+      warnings: recap.warnings,
+      durationMs: 5000,
+    });
+    return next;
+  }
+
+  removeItem(next, basic.itemId, count);
+  if (recap.stoppedReason !== "Simulated full cache.") recap.warnings.push(recap.stoppedReason);
+
   next.worldUnlocks.usedSimCache = true;
   next.simulationRecap = recap;
   pushCategorizedLog(next, "World", `Sim Cache used: ${recap.completions} completions. ${recap.stoppedReason}`);
@@ -77,6 +96,7 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
     heat: recap.heatChange,
     neuralInstability: recap.neuralInstabilityChange,
     warnings: recap.warnings,
+    story: [`${recap.completions} simulated completion${recap.completions === 1 ? "" : "s"}.`],
     durationMs: 5000,
   });
   return next;
@@ -87,9 +107,17 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
   const efficiency = recap.efficiency;
   recap.activityName = action.name;
   const loops = Math.min(balanceConfig.simCache.maxLoops, Math.floor(simulatedMs / state.activeAction!.durationMs));
+  if (loops <= 0) {
+    recap.stoppedReason = "Cache duration is shorter than one action completion.";
+    return;
+  }
   for (let i = 0; i < loops; i += 1) {
     if (!canAffordRewards(state, action.rewards)) {
       recap.stoppedReason = "Stopped early: missing required resources.";
+      break;
+    }
+    if (!hasRequiredActionItems(state, action)) {
+      recap.stoppedReason = "Stopped early: missing required items.";
       break;
     }
     if (state.resources.heat >= 90) {
@@ -106,10 +134,13 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     addMasteryXp(state, action.id, mastery);
     addMasteryPoolXp(state, action.skillId, pool);
     addDistrictMasteryXp(state, action.districtReq ?? state.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + mastery * 0.35) * 0.45)));
+    rollSkillActionDrops(state, action, efficiency.rareDrops).forEach((drop) => {
+      recap.dropsGained[drop.id] = (recap.dropsGained[drop.id] ?? 0) + drop.quantity;
+    });
     recap.xpGained += xp;
     recap.masteryXpGained += mastery;
     recap.poolXpGained += pool;
-    if (action.heatChange) {
+    if (action.heatChange && !actionHeatSuppressed(state, action)) {
       const heat = Math.round(calculateHeatGain(state, action.heatChange, action.tags) * efficiency.heat);
       state.resources.heat += heat;
       recap.heatChange += heat;
@@ -123,6 +154,10 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
   const recipe = getRecipe(state.activeCraft!.recipeId)!;
   recap.activityName = recipe.name;
   const loops = Math.floor(simulatedMs / state.activeCraft!.durationMs);
+  if (loops <= 0) {
+    recap.stoppedReason = "Cache duration is shorter than one crafting completion.";
+    return;
+  }
   for (let i = 0; i < loops; i += 1) {
     if (!canCraft(state, recipe)) {
       recap.stoppedReason = "Stopped early: missing materials.";
@@ -135,6 +170,13 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
     recap.poolXpGained += Math.ceil(recipe.masteryXpReward * 0.25);
     recap.dropsGained[recipe.outputItemId] = (recap.dropsGained[recipe.outputItemId] ?? 0) + recipe.outputQuantity;
   }
+}
+
+function hasRequiredActionItems(state: GameState, action: NonNullable<ReturnType<typeof getSkillAction>>) {
+  return Object.entries(action.requiredItems ?? {}).every(([id, amount]) => {
+    if (id in state.resources) return state.resources[id as ResourceId] >= amount;
+    return (state.inventory[id] ?? 0) >= amount;
+  });
 }
 
 function scaleRewards(rewards: RewardBundle, efficiency: ReturnType<typeof getSimulationEfficiency>) {

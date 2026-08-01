@@ -2,7 +2,7 @@ import type { VehicleDefinition } from "../types";
 
 export const vehicles: VehicleDefinition[] = [
   // ===== NEON ROW =====
-  vehicle("neon-racer", "Neon Racer", "Epic", "neonRow", ["Chrome Jackals rank 4"], { credits: 1800, vehicleParts: 35, navigationChip: 2 }, { speed: 14, armor: 2, storage: 6, stealth: 4, heatReduction: 3, jobEfficiency: 7, smugglingRewardBonus: 3, districtAccessBonus: 3 }, "Chrome Jackals race circuit."),
+  vehicle("neon-racer", "Neon Racer", "Epic", "neonRow", ["Redline Saints rank 4"], { credits: 1800, vehicleParts: 35, navigationChip: 2 }, { speed: 14, armor: 2, storage: 6, stealth: 4, heatReduction: 3, jobEfficiency: 7, smugglingRewardBonus: 3, districtAccessBonus: 3 }, "Redline Saints race circuit."),
   vehicle("street-coupe", "Street Coupe", "Uncommon", "neonRow", ["Reputation 25"], { credits: 550, vehicleParts: 18, fuelCell: 1 }, { speed: 8, armor: 2, storage: 8, stealth: 2, heatReduction: 2, jobEfficiency: 4, smugglingRewardBonus: 2, districtAccessBonus: 1 }, "Neon Row dealers."),
 
   // ===== RUST YARDS =====

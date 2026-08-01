@@ -4,11 +4,13 @@ import { getItem } from "../data/items";
 import { vehicles } from "../data/vehicles";
 import { startingPaths } from "../data/startingPaths";
 import { balanceConfig } from "../data/balanceConfig";
-import { cyberwareLoad, effectiveNeuralInstability } from "./itemFormulas";
+import { cyberwareLoad, effectiveNeuralInstability, scaledModifiers } from "./itemFormulas";
 import { heatTier, neuralInstabilityTierName } from "./riskEvents";
 import { masteryPoolBonus } from "./masteryPool";
 import { applyPerkModifiers } from "./perkSystem";
 import { streetLegendMilestones } from "../data/streetLegendData";
+import { totalFactionReputation } from "./factionContacts";
+import { activeDistrictDropAmplifier } from "../data/dropRateAmplifiers";
 import type { ActiveModifiers, GameState, RewardBundle, SkillId } from "../types";
 
 export function getActiveModifiers(state: GameState): ActiveModifiers {
@@ -54,15 +56,23 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyHousing(state, modifiers);
   applyFactions(state, modifiers);
   applyMasteryPools(state, modifiers);
-  applyFixerTrust(state, modifiers);
+  applyFactionNetwork(state, modifiers);
   applyCompanion(state, modifiers);
   applyEquipment(state, modifiers);
   applyVehicle(state, modifiers);
   applyRipperdocEffects(state, modifiers);
   applyStreetLegend(state, modifiers);
+  applyDistrictDropAmplifier(state, modifiers);
   applyRiskState(state, modifiers);
 
   return modifiers;
+}
+
+function applyDistrictDropAmplifier(state: GameState, modifiers: ActiveModifiers) {
+  const amplifier = activeDistrictDropAmplifier(state);
+  if (!amplifier) return;
+  modifiers.dropChance += amplifier.dropRateBonus;
+  modifiers.activeSources.push(`${amplifier.name} +${Math.round(amplifier.dropRateBonus * 100)}% drops`);
 }
 
 function applyStreetLegend(state: GameState, modifiers: ActiveModifiers) {
@@ -186,7 +196,7 @@ function applyHousing(state: GameState, modifiers: ActiveModifiers) {
   modifiers.offlineProgressCapHours += housing.offlineCapBonusHours;
   modifiers.heatDecay += housing.heatDecayBonus / 100;
   modifiers.neuralInstabilityRecovery += housing.neuralRecoveryBonus / 100;
-  modifiers.actionSpeed += 0.02;
+  modifiers.actionSpeed += 0.01;
   if (housing.passiveModifiers) mergeModifiers(modifiers, housing.passiveModifiers);
 }
 
@@ -210,10 +220,10 @@ function applyFactions(state: GameState, modifiers: ActiveModifiers) {
   if (helix >= 10) modifiers.neuralInstabilityRecovery += 0.05;
 }
 
-function applyFixerTrust(state: GameState, modifiers: ActiveModifiers) {
-  const totalTrust = Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0);
-  if (totalTrust >= 25) modifiers.jobRewards += 0.02;
-  if (totalTrust >= 75) modifiers.jobSuccessChance += 0.03;
+function applyFactionNetwork(state: GameState, modifiers: ActiveModifiers) {
+  const totalReputation = totalFactionReputation(state);
+  if (totalReputation >= 25) modifiers.jobRewards += 0.02;
+  if (totalReputation >= 75) modifiers.jobSuccessChance += 0.03;
 }
 
 function applyCompanion(state: GameState, modifiers: ActiveModifiers) {
@@ -264,11 +274,11 @@ function applyRiskState(state: GameState, modifiers: ActiveModifiers) {
 }
 
 function applyEquipment(state: GameState, modifiers: ActiveModifiers) {
-  Object.values(state.equippedCyberware).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
-  Object.values(state.equippedGear).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  Object.values(state.equippedCyberware).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
+  Object.values(state.equippedGear).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
   const weaponLoadout = state.weaponLoadouts[state.equippedGear.weapon ?? ""];
-  Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
-  (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
+  (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
   if (cyberwareLoad(state) > 0) modifiers.activeSources.push(`Cyberware load +${cyberwareLoad(state)} NI`);
 }
 
@@ -283,7 +293,7 @@ function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
   const vehicle = vehicles.find((entry) => entry.id === state.activeVehicle);
   if (!vehicle) return;
   const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-  modifiers.actionSpeed += 0.02 + vehicle.stats.jobEfficiency / 100 + level * 0.003;
+  modifiers.actionSpeed += 0.01 + vehicle.stats.jobEfficiency / 100 + level * 0.003;
   modifiers.heatGain -= vehicle.stats.heatReduction / 100 + level * 0.002;
   modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + level * 0.002;
   modifiers.offlineProgressCapHours += Math.floor(vehicle.stats.storage / 20);
@@ -291,11 +301,11 @@ function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
   modifiers.activeSources.push(vehicle.name);
 }
 
-function mergeItemModifiers(modifiers: ActiveModifiers, itemId?: string) {
+function mergeItemModifiers(state: GameState, modifiers: ActiveModifiers, itemId?: string) {
   if (!itemId) return;
   const item = getItem(itemId);
   if (!item?.modifiers) return;
-  mergeModifiers(modifiers, item.modifiers);
+  mergeModifiers(modifiers, scaledModifiers(state, itemId));
   modifiers.activeSources.push(item.name);
 }
 

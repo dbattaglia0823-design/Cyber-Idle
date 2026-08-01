@@ -15,7 +15,7 @@ export function equippedWeapon(state: GameState) {
 }
 
 export function equippedWeaponClass(state: GameState): WeaponClassId | null {
-  return equippedWeapon(state)?.weaponClass ?? "bluntWeapons";
+  return equippedWeapon(state)?.weaponClass ?? null;
 }
 
 export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, xp: number, manuallyUsed = true) {
@@ -23,7 +23,7 @@ export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, x
   current.xp += Math.max(0, Math.round(xp));
   current.manuallyUsed = current.manuallyUsed || manuallyUsed;
   let levels = 0;
-  while (current.xp >= weaponXpForNextLevel(current.level) && current.level < 99) {
+  while (current.xp >= weaponXpForNextLevel(current.level) && current.level < 100) {
     current.xp -= weaponXpForNextLevel(current.level);
     current.level += 1;
     levels += 1;
@@ -37,12 +37,14 @@ export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, x
 }
 
 export function weaponClassBonus(state: GameState, weaponClass: WeaponClassId) {
+  const activeClass = equippedWeapon(state)?.weaponClass;
   const level = state.weaponClasses[weaponClass]?.level ?? 1;
+  const damageMilestones = activeClass === weaponClass ? Math.floor(level / 10) : 0;
   return {
-    damage: Math.floor(level / 5) * 0.01,
-    unarmedDamage: weaponClass === "bluntWeapons" ? Math.floor(level / 4) : 0,
-    dropChance: Math.floor(level / 25) * 0.01,
-    jobSuccess: Math.floor(level / 20) * 0.01,
+    damage: damageMilestones * 0.01,
+    unarmedDamage: 0,
+    dropChance: 0,
+    jobSuccess: 0,
   };
 }
 

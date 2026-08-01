@@ -2,6 +2,8 @@ import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemR
 import { armorSpecs, type ArmorSpec } from "./armor";
 import { cyberwareSpecs, type CyberwareSpec } from "./cyberware";
 import { weaponSpecs, type WeaponSpec } from "./weapons";
+import { heatCountermeasureItems } from "./heatCountermeasures";
+import { dropRateAmplifierItems } from "./dropRateAmplifiers";
 
 export const cyberwareSlots: Array<{ id: CyberwareSlot; label: string }> = [
   { id: "neural", label: "Neural" },
@@ -31,12 +33,12 @@ export const items: ItemDefinition[] = [
   resource("encryptedData", "Encrypted Data", "Locked packets pulled from exposed systems.", "Material", 12),
   resource("cyberwareParts", "Cyberware Parts", "Servos, connectors, housings, and implant scraps.", "Material", 16),
   resource("vehicleParts", "Vehicle Parts", "Chassis bolts, actuators, mounts, and salvageable vehicle systems.", "Material", 18),
-  resource("engineCore", "Engine Core", "A compact engine core used in vehicle builds.", "Material", 90),
-  resource("armorPlating", "Armor Plating", "Heavy plating for vehicles and courier armor.", "Material", 45),
-  resource("fuelCell", "Fuel Cell", "A volatile but efficient power cell.", "Material", 40),
-  resource("navigationChip", "Navigation Chip", "A route chip for hostile districts.", "Material", 55),
-  resource("smugglerCompartment", "Smuggler Compartment", "A hidden vehicle storage system.", "Material", 110),
-  resource("prototypeDriveUnit", "Prototype Drive Unit", "A rare late-game vehicle drive core.", "Material", 350),
+  resource("engineCore", "Engine Core", "A compact engine core used in vehicle builds.", "Material", 90, "Uncommon"),
+  resource("armorPlating", "Armor Plating", "Heavy plating for vehicles and courier armor.", "Material", 45, "Uncommon"),
+  resource("fuelCell", "Fuel Cell", "A volatile but efficient power cell.", "Material", 40, "Uncommon"),
+  resource("navigationChip", "Navigation Chip", "A route chip for hostile districts.", "Material", 55, "Uncommon"),
+  resource("smugglerCompartment", "Smuggler Compartment", "A hidden vehicle storage system.", "Material", 110, "Rare"),
+  resource("prototypeDriveUnit", "Prototype Drive Unit", "A rare late-game vehicle drive core.", "Material", 350, "Epic"),
   component("circuit-bundle", "Circuit Bundle", "Bundled boards ready for clean assembly.", 22),
   component("neural-connector", "Neural Connector", "A shielded bridge for implant signal routing.", 35),
   component("cyberware-frame", "Cyberware Frame", "A basic frame for street-grade cyberware.", 42),
@@ -101,7 +103,7 @@ export const items: ItemDefinition[] = [
   component("boss-data-key", "Boss Data Key", "Future boss and dungeon unlock bottleneck.", 400, "Legendary"),
   component("faction-authorization", "Faction Authorization", "A permit token for faction-gated unlocks.", 250, "Epic"),
   component("district-permit", "District Permit", "A district access bottleneck for later progression.", 250, "Epic"),
-  component("rare-blueprint-fragment", "Rare Blueprint Fragment", "Fragments used to reconstruct rare blueprints.", 180),
+  component("rare-blueprint-fragment", "Rare Blueprint Fragment", "Fragments used to reconstruct rare blueprints.", 180, "Rare"),
   component("neural-stabilizer-compound", "Neural Stabilizer Compound", "A compound needed for better stabilizers.", 160),
   component("rust-access-key", "Rust Access Key", "Entry key for Junkyard Lockdown.", 80),
   component("market-pass", "Market Pass", "Contraband route pass for Underpass Market operations.", 100),
@@ -111,6 +113,8 @@ export const items: ItemDefinition[] = [
   component("corporate-access-token", "Corporate Access Token", "Temporary corporate credential for Glassline work.", 220),
   component("hacking-script", "Hacking Script", "Single-use exploit package for future Blacknet automations.", 95),
   component("data-job-pass", "Data Job Pass", "Broker-signed packet that opens higher-risk data contracts.", 130),
+  ...heatCountermeasureItems,
+  ...dropRateAmplifierItems,
   component("medical-gel", "Medical Gel", "Sterile gel used by clinics and emergency patch kits.", 65),
   component("basic-scanner", "Basic Scanner", "A pocket scanner that improves early salvage reads.", 70),
   component("magnetic-scrapper", "Magnetic Scrapper", "A compact tool for faster metal and board recovery.", 95),
@@ -231,8 +235,8 @@ export function getItem(id: string) {
   return items.find((item) => item.id === id);
 }
 
-function resource(id: string, name: string, description: string, type: "Resource" | "Material", sellValue: number): ItemDefinition {
-  return { id, name, description, type, rarity: "Common", tags: [type.toLowerCase()], stackable: true, maxStack: 999999, sellValue, sourceHint: "Core resource.", discovered: true } as ItemDefinition & { discovered: boolean };
+function resource(id: string, name: string, description: string, type: "Resource" | "Material", sellValue: number, rarity: ItemRarity = "Common"): ItemDefinition {
+  return { id, name, description, type, rarity, tags: [type.toLowerCase()], stackable: true, maxStack: 999999, sellValue, sourceHint: "Core resource.", discovered: true } as ItemDefinition & { discovered: boolean };
 }
 
 function component(id: string, name: string, description: string, sellValue: number, rarity: ItemRarity = "Uncommon"): ItemDefinition {
@@ -463,7 +467,7 @@ function expandedArmorAndAccessories(): ItemDefinition[] {
     gear("precision-combat-gloves", "Precision Combat Gloves", "Elite gloves for calm trigger work.", "hands", "Legendary", 5, 54, { damage: 8, accuracy: 8, critChance: 0.05 }, { combatDamage: 0.03 }, ["hands", "precision"], "Skyline luxury broker and boss drops."),
 
     gear("street-runner-pants", "Street Runner Pants", "Light reinforced pants for alley movement.", "legs", "Common", 1, 1, { dodge: 0.02, armor: 1 }, { actionSpeed: 0.005 }, ["legs", "movement"], "Starter crafting and Neon Row drops."),
-    gear("servo-joint-braces", "Servo Joint Braces", "Braces that help carry gear through long routes.", "legs", "Rare", 3, 18, { armor: 3, dodge: 0.04 }, { actionSpeed: 0.02 }, ["legs", "travel"], "Rust Yards enemy and vehicle salvage source."),
+    gear("servo-joint-braces", "Servo Joint Braces", "Braces that help carry gear through long routes.", "legs", "Rare", 3, 1, { armor: 3, dodge: 0.04 }, { actionSpeed: 0.02 }, ["legs", "travel"], "Rust Yards enemy and vehicle salvage source."),
     gear("ghoststep-leg-rig", "Ghoststep Leg Rig", "Quiet leg rig for stealth and low-Heat work.", "legs", "Epic", 4, 34, { dodge: 0.07, armor: 4 }, { heatGain: -0.04, jobSuccessChance: 0.03 }, ["legs", "stealth"], "Underpass private buyer and operation source."),
     gear("redline-pursuit-frame", "Redline Pursuit Frame", "High-end chase frame for violent route control.", "legs", "Legendary", 5, 56, { damage: 4, dodge: 0.08, armor: 5 }, { actionSpeed: 0.04 }, ["legs", "redline"], "Redline boss chain and bounty reward."),
 

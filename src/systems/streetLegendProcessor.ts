@@ -42,7 +42,6 @@ function calculateStreetLegendXp(state: GameState) {
   const bossXp = Object.values(state.bossLogs).reduce((sum, log) => sum + log.kills * 18 + bossMilestoneXp(log.kills), 0);
   const rareXp = state.weaponStatistics.rareDropsFound * 25 + Object.values(state.discoveredItems).filter(Boolean).length * 6;
   const factionXp = Object.values(state.factions).reduce((sum, faction) => sum + factionRank(faction.reputation) * 45, 0);
-  const fixerXp = Object.values(state.fixerTrust).reduce((sum, fixer) => sum + Math.floor(fixer.trust / 10) * 18 + fixer.completedJobs * 5, 0);
   const achievementXp = Object.values(state.achievements).filter(Boolean).length * 35;
   const challengeXp = challengeContracts.reduce((sum, challenge) => {
     const progress = state.challengeProgress[challenge.id];
@@ -50,7 +49,7 @@ function calculateStreetLegendXp(state: GameState) {
   }, 0);
   const storyXp = Object.values(state.storyArcs).filter((arc) => arc.status === "completed").length * 300;
   const highThreatXp = Object.values(state.highThreatOperationClears).reduce((sum, clears) => sum + clears * 60, 0);
-  return skillXp + weaponXp + districtXp + operationXp + bossXp + rareXp + factionXp + fixerXp + achievementXp + challengeXp + storyXp + highThreatXp;
+  return skillXp + weaponXp + districtXp + operationXp + bossXp + rareXp + factionXp + achievementXp + challengeXp + storyXp + highThreatXp;
 }
 
 function bossMilestoneXp(kills: number) {

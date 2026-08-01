@@ -71,7 +71,9 @@ export function districtContentMap(state: GameState, districtId: DistrictId): Di
     operations: operations.filter((operation) => operation.districtId === districtId).map((operation) => operation.id),
     fixers: districtFixers(districtId).map((fixer) => fixer.id),
     vendors: vendors.filter((vendor) => vendor.districtId === districtId).map((vendor) => vendor.id),
-    ripperdocServices: ripperdocServices.filter((service) => service.districtId === districtId).map((service) => service.id),
+    ripperdocServices: ripperdocServices
+      .filter((service) => service.districtId === districtId && (service.serviceType === "treatment" || service.serviceType === "stabilizer"))
+      .map((service) => service.id),
     ripperdocClinics: ripperdocClinics.filter((clinic) => clinic.districtId === districtId).map((clinic) => clinic.id),
     housing: housingOptions.filter((housing) => housing.districtId === districtId).map((housing) => housing.id),
     factions: localFactions.map((faction) => faction.id),
@@ -135,20 +137,12 @@ export function districtActivitySummaries(state: GameState, districtId: District
       reward: "Gear, cyberware, tools",
     },
     {
-      id: "ripperdoc",
-      label: "Ripperdoc",
-      summary: `${content.ripperdocClinics.length} clinics, ${content.ripperdocServices.length} services`,
-      available: unlocked ? content.ripperdocClinics.length + content.ripperdocServices.length : 0,
-      locked: unlocked ? 0 : content.ripperdocClinics.length + content.ripperdocServices.length,
-      reward: "Cyberware, recovery",
-    },
-    {
       id: "market",
       label: "Market",
-      summary: `${content.vendors.length} vendors${blacknetDistricts.includes(districtId) ? ", black market access" : ""}`,
-      available: unlocked ? content.vendors.length + (blacknetDistricts.includes(districtId) ? 1 : 0) : 0,
-      locked: unlocked ? 0 : content.vendors.length,
-      reward: "Items, parts, resale",
+      summary: `${content.vendors.length} vendors, ${content.ripperdocClinics.length} clinics${blacknetDistricts.includes(districtId) ? ", black market access" : ""}`,
+      available: unlocked ? content.vendors.length + content.ripperdocClinics.length + content.ripperdocServices.length + (blacknetDistricts.includes(districtId) ? 1 : 0) : 0,
+      locked: unlocked ? 0 : content.vendors.length + content.ripperdocClinics.length + content.ripperdocServices.length,
+      reward: "Items, cyberware, treatment",
       warning: heat >= 75 ? "Heat raises risk" : undefined,
     },
     {

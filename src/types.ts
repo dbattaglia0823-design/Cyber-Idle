@@ -365,7 +365,7 @@ export interface WeaponStatistics {
 export interface CraftingRecipe {
   id: string;
   name: string;
-  category: "Components" | "Cyberware" | "Weapons" | "Attachments" | "Weapon Mods" | "Ammo/Power Cells" | "Upgrade Parts" | "Armor" | "Consumables" | "Upgrades";
+  category: "Components" | "Cyberware" | "Weapons" | "Attachments" | "Weapon Mods" | "Ammo/Power Cells" | "Upgrade Parts" | "Armor" | "Consumables" | "Upgrades" | "Player Upgrades";
   requiredSkill: SkillId;
   requiredLevel: number;
   requiredBlueprint?: string;
@@ -672,6 +672,8 @@ export interface OperationRecap {
   heatChange: number;
   neuralInstabilityChange: number;
   firstClear: boolean;
+  successChance?: number;
+  successRoll?: number;
   message: string;
 }
 
@@ -715,6 +717,7 @@ export interface RipperdocService {
   fixerTrustDiscount?: string;
   heatChange?: number;
   neuralInstabilityChange?: number;
+  healthRestorePercent?: number;
   riskLevel?: number;
   risk?: string;
   effects?: string[];
@@ -751,6 +754,7 @@ export interface VendorItemEntry {
   requiredFactionRank?: Partial<Record<FactionId, number>>;
   requiredDistrictUnlock?: DistrictId;
   requiredUnlock?: string;
+  requiredSkillLevel?: Partial<Record<SkillId, number>>;
   sourceHint: string;
 }
 

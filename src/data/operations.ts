@@ -7,7 +7,7 @@ export const operations: OperationDefinition[] = [
     name: "Backstreet Sweep",
     districtId: "neonRow",
     description: "Clear a street crew hideout buried behind Neon Row storefronts.",
-    unlockRequirements: ["Street Combat level 10"],
+    unlockRequirements: ["Street Combat level 5"],
     recommendedStats: ["Damage 18", "Armor 4"],
     recommendedLoadoutTags: ["pistols", "smgs", "blades", "stealth"],
     stages: [
@@ -19,7 +19,7 @@ export const operations: OperationDefinition[] = [
       { id: "crew-alert", name: "Crew Alert", description: "Loud routes earn more weapon XP but raise Heat.", tags: ["loud", "gang"], successModifier: 0.02, heatChange: 1, rewardMultiplier: 1.04 },
     ],
     routes: [
-      { id: "directAssault", name: "Direct Assault", description: "Fight through the front and farm weapon XP.", requirements: ["Street Combat level 10"], recommendedTags: ["smgs", "shotguns", "loud"], successModifier: 0.04, heatChange: 2, rewardMultiplier: 1.08 },
+      { id: "directAssault", name: "Direct Assault", description: "Fight through the front and farm weapon XP.", requirements: ["Street Combat level 5"], recommendedTags: ["smgs", "shotguns", "loud"], successModifier: 0.04, heatChange: 2, rewardMultiplier: 1.08 },
       { id: "silentEntry", name: "Silent Entry", description: "Quiet side-door clear with better attachment odds.", requirements: ["Stealth weapon or suppressor recommended"], recommendedTags: ["stealth", "blades", "pistols"], successModifier: 0.03, heatChange: -2, rareDropModifier: 0.03 },
       { id: "fixerSetup", name: "Fixer Setup", description: "Let Neon Row contacts stage the target.", requirements: ["Vega trust recommended"], recommendedTags: ["fixer", "street"], successModifier: 0.02, rewardMultiplier: 1.12 },
     ],
@@ -83,7 +83,7 @@ export const operations: OperationDefinition[] = [
     routes: [
       { id: "silentEntry", name: "Silent Entry", description: "Keep vendors confused and improve attachment odds.", requirements: ["Suppressor, blades, or stealth tags"], recommendedTags: ["stealth", "lowHeat", "pistols"], successModifier: 0.06, heatChange: -3, rareDropModifier: 0.04 },
       { id: "directAssault", name: "Direct Assault", description: "Hard breach with more Heat and faster clears.", requirements: ["Armor 16"], recommendedTags: ["shotguns", "smgs", "loud"], successModifier: 0.02, heatChange: 4, rewardMultiplier: 1.08 },
-      { id: "smugglerRoute", name: "Smuggler Route", description: "Ghost Market paths convert chaos into contraband.", requirements: ["Ghost Market trust recommended"], recommendedTags: ["smuggling", "vehicle"], successModifier: 0.03, rewardMultiplier: 1.15 },
+      { id: "smugglerRoute", name: "Smuggler Route", description: "Redline Saints paths convert chaos into contraband.", requirements: ["Redline Saints reputation recommended"], recommendedTags: ["smuggling", "vehicle"], successModifier: 0.03, rewardMultiplier: 1.15 },
     ],
     defaultRouteId: "silentEntry",
     bossId: "boss-market-enforcer",
@@ -246,7 +246,7 @@ function op(
     routes: [
       { id: "directAssault", name: "Direct Assault", description: "Fast clear with higher Heat.", requirements: [`Street Combat level ${level}`], recommendedTags: ["loud", "armor"], successModifier: 0.03, heatChange: 2, rewardMultiplier: 1.08 },
       { id: districtId === "blacknetQuarter" ? "blacknetBreach" : "silentEntry", name: districtId === "blacknetQuarter" ? "Blacknet Breach" : "Silent Entry", description: "Lower Heat route with better rare-drop control.", requirements: ["Stealth, cyberdeck, or route prep recommended"], recommendedTags: ["stealth", "blacknet"], successModifier: 0.04, heatChange: -2, rareDropModifier: 0.03 },
-      { id: "fixerSetup", name: "Fixer Setup", description: "Spend local trust to improve payout consistency.", requirements: ["Local fixer trust recommended"], recommendedTags: ["fixer", "prepared"], successModifier: 0.02, rewardMultiplier: 1.12 },
+      { id: "fixerSetup", name: "Faction Setup", description: "Use local faction support to improve payout consistency.", requirements: ["Local faction reputation recommended"], recommendedTags: ["fixer", "prepared"], successModifier: 0.02, rewardMultiplier: 1.12 },
     ],
     defaultRouteId: "directAssault",
     bossId,

@@ -198,9 +198,9 @@ const rawCombatZones: CombatZone[] = [
         name: "Scrap Drone",
         description: "A scavenger drone with corrupted threat filters.",
         requiredCombatLevel: 4,
-        hp: 35,
-        damage: 5,
-        attackSpeedMs: 1400,
+        hp: 42,
+        damage: 7,
+        attackSpeedMs: 2000,
         creditsReward: 10,
         xpReward: 22,
         reputationReward: 1,
@@ -843,10 +843,11 @@ function scaleEnemyForProgression(enemy: Enemy, zoneIndex: number, enemyIndex: n
   const hpMultiplier = 1.2 + zoneStep * 0.32 + rankStep * 0.2;
   const damageMultiplier = 1.15 + zoneStep * 0.22 + rankStep * 0.13;
   const rewardMultiplier = 1 + zoneStep * 0.16 + rankStep * 0.08;
+  const preserveBaseCombatStats = enemy.id === "scrap-drone";
   return {
     ...enemy,
-    hp: Math.max(enemy.hp + rankStep * 8 + zoneStep * 18, Math.round(enemy.hp * hpMultiplier)),
-    damage: Math.max(enemy.damage + rankStep * 2 + zoneStep * 3, Math.round(enemy.damage * damageMultiplier)),
+    hp: preserveBaseCombatStats ? enemy.hp : Math.max(enemy.hp + rankStep * 8 + zoneStep * 18, Math.round(enemy.hp * hpMultiplier)),
+    damage: preserveBaseCombatStats ? enemy.damage : Math.max(enemy.damage + rankStep * 2 + zoneStep * 3, Math.round(enemy.damage * damageMultiplier)),
     creditsReward: Math.max(1, Math.round(enemy.creditsReward * rewardMultiplier)),
     xpReward: Math.max(1, Math.round(enemy.xpReward * rewardMultiplier)),
     reputationReward: Math.max(enemy.reputationReward, Math.round(enemy.reputationReward * (1 + zoneStep * 0.08 + rankStep * 0.04))),

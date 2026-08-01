@@ -63,7 +63,7 @@ export const storyArcs: StoryArcDefinition[] = [
             id: "sell-to-sable",
             label: "Sell It To Sable",
             description: "Let Sable package the data into a cleaner operation lead.",
-            knownConsequences: ["+Fixer Trust", "+Credits", "+Ghost Market reputation"],
+            knownConsequences: ["+Redline Saints reputation", "+Credits", "+Ghost Market reputation"],
             fixerTrust: { "sable-quinn-fixer": 15 },
             factionReputation: { ghostMarket: 5 },
             localStanding: { neonRow: 2 },
@@ -111,7 +111,7 @@ export const storyArcs: StoryArcDefinition[] = [
       {
         id: "neon-help-locals",
         title: "Read The Block",
-        description: "Get enough local trust to know who is squeezing the alleys.",
+        description: "Build enough Redline Saints reputation for Sable to identify who is squeezing the alleys.",
         objective: { type: "completeSkillAction", target: "street-read-rumors", requiredCount: 2, districtId: "neonRow" },
         rewards: { reputation: 2 },
         nextStepIds: ["neon-clean-pressure"],
@@ -171,7 +171,7 @@ export const storyArcs: StoryArcDefinition[] = [
       },
       {
         id: "sable-trust-rank",
-        title: "Trust Rank 2",
+        title: "Redline Saints Rank 2",
         description: "Earn enough trust for Sable to hand you the Backstreet Sweep lead.",
         objective: { type: "completeFixerContract", target: "sable-quinn-fixer", requiredCount: 2, districtId: "neonRow" },
         rewards: { credits: 60, reputation: 3 },
@@ -269,4 +269,3 @@ function lockedRoadmap(
     ],
   };
 }
-

@@ -2,6 +2,8 @@ import type { CraftingRecipe } from "../types";
 import { armorSpecs } from "./armor";
 import { cyberwareSpecs } from "./cyberware";
 import { weaponSpecs } from "./weapons";
+import { heatCountermeasureRecipes } from "./heatCountermeasures";
+import { dropRateAmplifierRecipes } from "./dropRateAmplifiers";
 
 export const recipes: CraftingRecipe[] = [
   recipe("recipe-circuit-bundle", "Circuit Bundle", "Components", 1, { scrap: 4, circuitBoards: 1 }, "circuit-bundle", 1, 4500, 12),
@@ -41,6 +43,8 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-stabilized-buffer", "Stabilized Neural Buffer", "Cyberware", 6, { "neural-connector": 2, encryptedData: 6, cyberwareParts: 4 }, "stabilized-neural-buffer", 1, 17000, 72, "bp-stabilized-buffer"),
   recipe("recipe-dampener-weave", "Dampener Weave", "Cyberware", 8, { "cyberware-frame": 1, "neural-dampener": 1, cyberwareParts: 5 }, "dampener-weave", 1, 18000, 78, "neural-dampener-blueprint"),
   recipe("recipe-helix-governor-os", "Helix Governor OS", "Cyberware", 14, { "neural-connector": 2, "stabilizer-compound": 3, encryptedData: 8 }, "helix-governor-os", 1, 26000, 110, "neural-dampener-blueprint"),
+  ...heatCountermeasureRecipes,
+  ...dropRateAmplifierRecipes,
   ...expandedEquipmentRecipes(),
   ...expandedHighTierWeaponRecipes(),
   ...weaponSpecs.map((weapon) =>

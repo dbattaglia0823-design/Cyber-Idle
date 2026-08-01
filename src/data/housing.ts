@@ -8,7 +8,7 @@ export const housingOptions: HousingOption[] = [
     districtId: "neonRow",
     cost: housingCost("neonRow", 150, 1),
     unlockRequirements: ["Available in Neon Row"],
-    passiveBonuses: ["+2% action speed", "Small storage boost", "Basic offline safety"],
+    passiveBonuses: ["+1% action speed", "Small storage boost", "Basic offline safety"],
     storageBonus: 25,
     offlineCapBonusHours: 1,
     heatDecayBonus: 1,
@@ -23,7 +23,7 @@ export const housingOptions: HousingOption[] = [
     districtId: "rustYards",
     cost: housingCost("rustYards", 900, 2, 2),
     unlockRequirements: ["Rust Yards unlocked", "Chrome Jackals reputation 10"],
-    passiveBonuses: ["+2% action speed", "Vehicle job speed", "Garage slots"],
+    passiveBonuses: ["+1% action speed", "Vehicle job speed", "Garage slots"],
     storageBonus: 60,
     offlineCapBonusHours: 2,
     heatDecayBonus: 1,
@@ -39,7 +39,7 @@ export const housingOptions: HousingOption[] = [
     districtId: "underpassMarket",
     cost: housingCost("underpassMarket", 1400, 3),
     unlockRequirements: ["Underpass Market unlocked", "Reputation 20"],
-    passiveBonuses: ["+2% action speed", "Heat decay", "Protection job access"],
+    passiveBonuses: ["+1% action speed", "Heat decay", "Protection job access"],
     storageBonus: 80,
     offlineCapBonusHours: 3,
     heatDecayBonus: 3,
@@ -54,7 +54,7 @@ export const housingOptions: HousingOption[] = [
     districtId: "blacknetQuarter",
     cost: housingCost("blacknetQuarter", 2200, 4),
     unlockRequirements: ["Blacknet Quarter unlocked", "Hacking level 10"],
-    passiveBonuses: ["+2% action speed", "Hacking bonus", "Longer offline cap"],
+    passiveBonuses: ["+1% action speed", "Hacking bonus", "Longer offline cap"],
     storageBonus: 70,
     offlineCapBonusHours: 4,
     heatDecayBonus: 1,
@@ -70,7 +70,7 @@ export const housingOptions: HousingOption[] = [
     districtId: "glasslineDistrict",
     cost: housingCost("glasslineDistrict", 3500, 5),
     unlockRequirements: ["Glassline District unlocked", "Helix Order reputation 15"],
-    passiveBonuses: ["+2% action speed", "Neural recovery", "Crafting bonus"],
+    passiveBonuses: ["+1% action speed", "Neural recovery", "Crafting bonus"],
     storageBonus: 100,
     offlineCapBonusHours: 5,
     heatDecayBonus: 2,
@@ -83,10 +83,10 @@ export const housingOptions: HousingOption[] = [
   {
     id: "skyline-penthouse",
     name: "Skyline Penthouse",
-    districtId: "glasslineDistrict",
+    districtId: "skylineCore",
     cost: housingCost("skylineCore", 25000, 12, 4),
     unlockRequirements: ["Late-game luxury", "Reputation 100"],
-    passiveBonuses: ["+2% action speed", "Large storage", "Major offline cap", "Heat decay"],
+    passiveBonuses: ["+1% action speed", "Large storage", "Major offline cap", "Heat decay"],
     storageBonus: 300,
     offlineCapBonusHours: 12,
     heatDecayBonus: 5,
@@ -103,7 +103,7 @@ function makeExpandedHousing(): HousingOption[] {
   house("neon-rooftop-den", "Rooftop Den", "neonRow", 2800, ["Clear Neon Rooftop Chase"], ["Combat staging", "Low Heat routes"], 120, 4, 4, 2),
   house("neon-sleeper-pod", "Sleeper Pod Stack", "neonRow", 320, ["Streetcraft level 2"], ["Cheap heat decay", "Starter stash"], 35, 1, 2, 0),
   house("neon-signmaker-loft", "Signmaker Loft", "neonRow", 780, ["Neon Row standing 10"], ["Scavenging prep", "Better offline cap"], 55, 2, 2, 1),
-  house("neon-backroom-safehouse", "Backroom Safehouse", "neonRow", 1600, ["Sable Quinn trust 25"], ["Starter fixer safety", "Heat recovery"], 90, 3, 4, 1),
+  house("neon-backroom-safehouse", "Backroom Safehouse", "neonRow", 1600, ["Redline Saints reputation 25"], ["Sable Quinn contact safety", "Heat recovery"], 90, 3, 4, 1),
 
   // ===== RUST YARDS =====
   house("rust-container-bunk", "Container Bunk", "rustYards", 450, ["Rust Yards unlocked"], ["Vehicle salvage storage"], 70, 1, 1, 0, 1),
@@ -146,7 +146,7 @@ function makeExpandedHousing(): HousingOption[] {
   // ===== SKYLINE CORE =====
   house("skyline-orbital-lease", "Orbital Lease", "skylineCore", 85000, ["Clear Skyline Blackout"], ["Endgame prestige", "Massive offline cap"], 650, 18, 8, 8, 5),
   house("skyline-service-suite", "Service Suite", "skylineCore", 6500, ["Skyline Core unlocked"], ["Luxury recovery", "Executive storage"], 160, 5, 4, 3, 1),
-  house("skyline-broker-loft", "Broker Loft", "skylineCore", 15000, ["Vale Syn trust 40"], ["Private buyer prep", "Offline cap"], 260, 8, 5, 4, 2),
+  house("skyline-broker-loft", "Broker Loft", "skylineCore", 15000, ["Ghost Market reputation 40"], ["Private buyer prep", "Offline cap"], 260, 8, 5, 4, 2),
   house("skyline-executive-penthouse", "Executive Penthouse", "skylineCore", 42000, ["Reputation 1500"], ["Major storage", "Luxury access"], 450, 14, 6, 6, 4),
   ];
 }
@@ -164,7 +164,7 @@ function house(
   neuralRecoveryBonus: number,
   garageSlots?: number,
 ): HousingOption {
-  return { id, name, districtId, cost: housingCost(districtId, cost, offlineCapBonusHours, garageSlots), unlockRequirements, passiveBonuses: ["+2% action speed", ...passiveBonuses], storageBonus, offlineCapBonusHours, heatDecayBonus, neuralRecoveryBonus, garageSlots, passiveModifiers: housingPassiveModifiers(id) };
+  return { id, name, districtId, cost: housingCost(districtId, cost, offlineCapBonusHours, garageSlots), unlockRequirements, passiveBonuses: ["+1% action speed", ...passiveBonuses], storageBonus, offlineCapBonusHours, heatDecayBonus, neuralRecoveryBonus, garageSlots, passiveModifiers: housingPassiveModifiers(id) };
 }
 
 function housingCost(districtId: HousingOption["districtId"], baseCost: number, offlineCapBonusHours: number, garageSlots = 0) {

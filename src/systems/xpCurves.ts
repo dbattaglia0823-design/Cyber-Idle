@@ -35,7 +35,15 @@ function idleTierMultiplier(level: number, curveType: XpCurveType) {
     level < 99 ? 3.65 :
     6.25;
 
-  if (curveType === "mastery") return tier * 1.25;
+  if (curveType === "mastery") {
+    // Starter actions award at least 10 Mastery XP, so the original 9 XP first
+    // level was skipped immediately. Keep early mastery deliberate, then blend
+    // back into the established curve at level 25.
+    if (level < 5) return 2.6;
+    if (level < 10) return 2;
+    if (level < 25) return 1.75;
+    return tier * 1.25;
+  }
   if (curveType === "districtMastery") return tier * 1.65;
   if (curveType === "weaponClass") return tier * 1.1;
   return tier;

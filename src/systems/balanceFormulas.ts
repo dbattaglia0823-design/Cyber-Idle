@@ -7,6 +7,7 @@ import { scenarioBonusForTags } from "./scenarioModifiers";
 import { effectiveNeuralInstability } from "./itemFormulas";
 import { scaledStats } from "./itemFormulas";
 import { equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
+import { totalFactionReputation } from "./factionContacts";
 import type { BlackMarketStrategy, DistrictId, EnemyDrop, GameState, ItemDefinition, JobContract, PlayerCombatStats, RewardBundle, SkillAction } from "../types";
 
 export interface FormulaBreakdown {
@@ -87,11 +88,10 @@ export function calculateJobSuccessChance(job: JobContract, state: GameState) {
   const scenario = scenarioBonusForTags(state, job.tags);
   const weaponClass = equippedWeaponClass(state);
   const classBonus = weaponClass ? weaponClassBonus(state, weaponClass).jobSuccess : 0;
-  const trustBonus = Math.min(0.08, (state.fixerTrust[job.fixerId]?.trust ?? 0) / 1000);
-  const factionBonus = Math.min(0.06, Math.max(0, state.factions[job.factionId]?.reputation ?? 0) / 1000);
+  const factionBonus = Math.min(0.08, Math.max(0, state.factions[job.factionId]?.reputation ?? 0) / 1000);
   const standingBonus = Math.min(0.05, Math.max(0, state.districtStanding[job.districtId]?.standing ?? 0) / 1000);
   const threatPenalty = districtThreatPenalty(state, job.districtId);
-  let chance = job.baseSuccessChance + modifiers.jobSuccessChance + scenario.successChance + classBonus + trustBonus + factionBonus + standingBonus - threatPenalty;
+  let chance = job.baseSuccessChance + modifiers.jobSuccessChance + scenario.successChance + classBonus + factionBonus + standingBonus - threatPenalty;
   if (state.startingPath === "streetborn" && job.tags.includes("corporate")) chance -= 0.05;
   const instability = effectiveNeuralInstability(state);
   if (instability >= 25 && job.tags.includes("hacking")) chance -= instability >= 75 ? 0.1 : instability >= 50 ? 0.05 : 0.02;
@@ -107,7 +107,6 @@ export function calculateJobSuccessChance(job: JobContract, state: GameState) {
       { label: "Modifiers", value: modifiers.jobSuccessChance },
       { label: "Scenario", value: scenario.successChance },
       { label: "Weapon class", value: classBonus },
-      { label: "Fixer trust", value: trustBonus },
       { label: "Faction", value: factionBonus },
       { label: "Standing", value: standingBonus },
       { label: "Threat penalty", value: -threatPenalty },
@@ -211,7 +210,7 @@ export function calculateBlackMarketRisk(state: GameState, strategy: BlackMarket
   const ghostReduction = factionRank(state.factions.ghostMarket.reputation) * 0.008;
   const tradingReduction = Math.min(0.08, (state.skills.blackMarket?.level ?? 1) * 0.0015);
   const heatRisk = Math.max(0.01, config.risk * (0.04 + heatScale) - ghostReduction - tradingReduction + getActiveModifiers(state).heatGain);
-  const buyerRisk = Math.max(0.02, 0.16 * config.risk - Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0) / 2000);
+  const buyerRisk = Math.max(0.02, 0.16 * config.risk - totalFactionReputation(state) / 2000);
   const saleChance = clampPercent(config.chance + ghostReduction + tradingReduction - calculateHeatEffects(state.resources.heat).blackMarketRisk * 0.35, 0.08, 0.97);
   return { heatRisk, buyerRisk, saleChance, durationMs: Math.round(config.durationMs * (1 - Math.min(0.35, tradingReduction))) };
 }

@@ -32,7 +32,7 @@ interface ArmorSetSpec {
 
 const armorSets: ArmorSetSpec[] = [
   // Three starter sets keep light, balanced, and tank builds available immediately.
-  set("neon-runner", "Neon Runner", "Flexible street gear built for relentless movement.", "Light", "Common", 1, 1, "neonRow", { scrap: 6, circuitBoards: 1 }),
+  set("neon-runner-armor", "Neon Runner", "Flexible street gear built for relentless movement.", "Light", "Common", 1, 1, "neonRow", { scrap: 6, circuitBoards: 1 }),
   set("street-operator", "Street Operator", "Reliable protection for an adaptable street fighter.", "Medium", "Common", 1, 3, "neonRow", { scrap: 8, circuitBoards: 1 }),
   set("scrap-bulwark", "Scrap Bulwark", "Welded plates for runners who expect to be hit.", "Heavy", "Common", 1, 6, "neonRow", { scrap: 11, armorPlating: 1 }),
 
@@ -43,7 +43,7 @@ const armorSets: ArmorSetSpec[] = [
   set("helix-aegis", "Helix Aegis", "A bio-monitored suit balancing protection and trauma control.", "Medium", "Rare", 3, 25, "helixWard", { scrap: 24, cyberwareParts: 9, "medical-gel": 4 }),
   set("glassline-tactical", "Glassline Tactical", "Corporate combat tailoring with immaculate targeting integration.", "Medium", "Epic", 4, 30, "glasslineDistrict", { scrap: 34, circuitBoards: 12, encryptedData: 16, "corporate-access-token": 1 }),
   set("redline-juggernaut", "Redline Juggernaut", "Championship plate designed to advance through incoming fire.", "Heavy", "Epic", 4, 40, "redlineBlocks", { scrap: 42, cyberwareParts: 12, armorPlating: 5, "bounty-token": 2 }),
-  set("skyline-apex", "Skyline Apex", "A unique adaptive armor system built from city-defining technology.", "Adaptive", "Legendary", 5, 50, "skylineCore", { scrap: 60, circuitBoards: 18, cyberwareParts: 18, armorPlating: 7, "prototype-neural-core": 1, "boss-data-key": 1 }),
+  set("skyline-apex-armor", "Skyline Apex", "A unique adaptive armor system built from city-defining technology.", "Adaptive", "Legendary", 5, 50, "skylineCore", { scrap: 60, circuitBoards: 18, cyberwareParts: 18, armorPlating: 7, "prototype-neural-core": 1, "boss-data-key": 1 }),
 ];
 
 const slots: Array<{ id: ArmorSlot; label: string; costScale: number }> = [

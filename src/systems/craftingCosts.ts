@@ -17,17 +17,23 @@ export function scaledCraftingCosts(state: GameState, recipe: CraftingRecipe) {
   const output = getItem(recipe.outputItemId);
   const rarity = output?.rarity ?? "Common";
   const tier = output?.tier ?? 1;
-  const base = mergeCosts(recipe.inputCosts, rarityExtras(recipe, rarity, tier, output?.type));
+  const isPlayerUpgrade = Boolean(output?.tags.includes("player-upgrade"));
+  const base = mergeCosts(recipe.inputCosts, isPlayerUpgrade ? {} : rarityExtras(recipe, rarity, tier, output?.type));
   delete base[recipe.outputItemId];
-  const multiplier = rarityScale[rarity] * Math.max(1, tier * 0.85);
+  const multiplier = isPlayerUpgrade ? 1 : rarityScale[rarity] * Math.max(1, tier * 0.85);
   const reduction = Math.min(0.5, getActiveModifiers(state).craftingCostReduction);
   return Object.fromEntries(
-    Object.entries(base).map(([id, amount]) => [id, amount > 0 ? Math.max(1, Math.ceil(amount * multiplier * (1 - reduction))) : amount]),
+    Object.entries(base).map(([id, amount]) => {
+      if (getItem(id)?.tags.includes("player-upgrade")) return [id, amount];
+      return [id, amount > 0 ? Math.max(1, Math.ceil(amount * multiplier * (1 - reduction))) : amount];
+    }),
   );
 }
 
 export function recipeSourceHints(recipe: CraftingRecipe) {
-  return Object.keys(rarityExtras(recipe, getItem(recipe.outputItemId)?.rarity ?? "Common", getItem(recipe.outputItemId)?.tier ?? 1, getItem(recipe.outputItemId)?.type))
+  const output = getItem(recipe.outputItemId);
+  if (output?.tags.includes("player-upgrade")) return [];
+  return Object.keys(rarityExtras(recipe, output?.rarity ?? "Common", output?.tier ?? 1, output?.type))
     .map((id) => `${getItem(id)?.name ?? id}: ${resourceSourceHint(id) ?? getItem(id)?.sourceHint ?? "Activity, vendor, or operation source."}`);
 }
 

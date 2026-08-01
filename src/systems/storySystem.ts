@@ -4,6 +4,7 @@ import { changeDistrictThreat } from "./districtThreat";
 import { changeLocalStanding, discoverDistrictContent } from "./districtProgression";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { emitRewardPopupGroup } from "./rewardPopups";
+import { addFixerFactionReputation } from "./factionContacts";
 import type { FactionId, GameState, StoryArcDefinition, StoryArcState, StoryChoice, StoryObjective, StoryStepDefinition } from "../types";
 
 export function getStoryArc(id: string) {
@@ -60,7 +61,7 @@ export function storyObjectiveProgress(state: GameState, objective: StoryObjecti
       return state.operationLogs[objective.target]?.clears ?? 0;
     case "completeFixerContract":
       if (objective.target.startsWith("job-")) return state.manualDiscovery.jobs[objective.target] ? 1 : 0;
-      return state.fixerTrust[objective.target]?.completedJobs ?? 0;
+      return state.marketStatistics.contractsCompletedByFixer[objective.target] ?? 0;
     case "gainFactionReputation":
       return state.factions[objective.target as FactionId]?.reputation ?? 0;
     case "buyInstallCyberware":
@@ -180,9 +181,7 @@ function applyChoice(state: GameState, arc: StoryArcDefinition, step: StoryStepD
     updateConflictLeaning(state, id as FactionId, amount ?? 0, step.id, choice.id);
   });
   Object.entries(choice.fixerTrust ?? {}).forEach(([id, amount]) => {
-    const trust = state.fixerTrust[id] ?? { trust: 0, completedJobs: 0 };
-    trust.trust += amount ?? 0;
-    state.fixerTrust[id] = trust;
+    addFixerFactionReputation(state, id, amount ?? 0);
   });
   Object.entries(choice.companionRelationship ?? {}).forEach(([id, amount]) => {
     const companion = state.companions[id];

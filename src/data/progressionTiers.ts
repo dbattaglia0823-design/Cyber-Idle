@@ -8,7 +8,7 @@ export const progressionTiers = [
   { id: "tier1", name: "Tier 1: Street Operator", goals: ["Any skill level 10", "100 total actions", "25 enemy kills", "First cyberware equipped", "First fixer job completed"] },
   { id: "tier2", name: "Tier 2: District Runner", goals: ["Unlock second district", "Any skill level 25", "First housing purchased", "First faction rank 2", "First automation unlocked", "First Sim Cache earned and used"] },
   { id: "tier3", name: "Tier 3: Chrome Specialist", goals: ["Any skill level 50", "Several action masteries above level 25", "First mini-boss defeated", "First rare blueprint found", "First preset saved", "First mastery pool checkpoint at 50%"] },
-  { id: "tier4", name: "Tier 4: Blacknet Veteran", goals: ["Multiple districts unlocked", "Faction rank 5", "Fixer trust rank 5", "Multiple crafted cyberware items", "Enemy drop log completion started", "First 95% mastery pool checkpoint"] },
+  { id: "tier4", name: "Tier 4: Blacknet Veteran", goals: ["Multiple districts unlocked", "Faction rank 5", "Complete contracts for a rank 5 faction", "Multiple crafted cyberware items", "Enemy drop log completion started", "First 95% mastery pool checkpoint"] },
   { id: "tier5", name: "Tier 5: Endgame Candidate", goals: ["Any skill level 150", "Multiple action masteries at 99", "Multiple enemy logs complete", "Multiple prototype items crafted", "Several housing options owned", "Several automation features unlocked"] },
 ];
 
@@ -25,7 +25,7 @@ export function tierProgress(state: GameState, tierId: string) {
     tier1: [anySkill >= 10, actions >= 3, kills >= 25, Object.keys(state.equippedCyberware).length > 0, Object.keys(state.manualDiscovery.jobs).length > 0],
     tier2: [districts >= 2, anySkill >= 25, Object.keys(state.ownedHousing).length > 0, anyFaction >= 2, false, (state.inventory["basic-sim-cache"] ?? 0) === 0 && state.worldUnlocks.usedSimCache],
     tier3: [anySkill >= 50, Object.values(state.actionMastery).filter((m) => m.level >= 25).length >= 3, false, Object.keys(state.unlockedBlueprints).length > 0, Object.keys(state.equipmentPresets).length >= 5, pool50],
-    tier4: [districts >= 3, anyFaction >= 5, Object.values(state.fixerTrust).some((f) => f.trust >= 50), Object.keys(state.equippedCyberware).length >= 2, Object.values(state.enemyLog).some((log) => Object.keys(log.discoveredDrops).length >= 2), pool95],
+    tier4: [districts >= 3, anyFaction >= 5, Object.keys(state.manualDiscovery.jobs).length >= 5, Object.keys(state.equippedCyberware).length >= 2, Object.values(state.enemyLog).some((log) => Object.keys(log.discoveredDrops).length >= 2), pool95],
     tier5: [anySkill >= 150, Object.values(state.actionMastery).filter((m) => m.level >= 99).length >= 2, false, false, Object.keys(state.ownedHousing).length >= 3, false],
   };
   const values = checks[tierId] ?? [];

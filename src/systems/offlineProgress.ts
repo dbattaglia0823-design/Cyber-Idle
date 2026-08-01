@@ -11,6 +11,7 @@ import { applyRiskEvents } from "./riskEvents";
 import { processBlackMarketListings } from "./blackMarketSystem";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import { emitRewardPopupGroup } from "./rewardPopups";
+import { actionHeatSuppressed } from "../data/heatCountermeasures";
 import type { GameState, OfflineRecap, ResourceId, RewardBundle } from "../types";
 
 const OFFLINE_CAP_MS = 1000 * 60 * 60 * 12;
@@ -157,7 +158,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     recap.levelsGained += addOfflineSkillXp(next, action.skillId, xpReward);
     recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, masteryReward);
     addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + masteryReward * 0.35) * 0.5)));
-    if (action.heatChange) {
+    if (action.heatChange && !actionHeatSuppressed(next, action)) {
       const heat = calculateHeatGain(next, action.heatChange, action.tags);
       next.resources.heat = clampRiskStat(next.resources.heat + heat);
       recap.heatGained += heat;

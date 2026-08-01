@@ -18,6 +18,7 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { applyDamage, estimateIncomingDamage, maybeAutoHeal } from "./healthSystem";
 import { addDistrictMasteryXp, districtMasteryDropBonus, districtMasteryRewardBonus } from "./districtMasteryProcessor";
+import { addFixerFactionReputation } from "./factionContacts";
 import type { Boss, GameState, OperationDefinition, OperationRoute, OperationRouteId } from "../types";
 
 export function getOperation(id: string) {
@@ -26,8 +27,7 @@ export function getOperation(id: string) {
 
 export function canStartOperation(state: GameState, operation: OperationDefinition) {
   if (!state.districts[operation.districtId]?.unlocked) return false;
-  if (operation.id === "op-backstreet-sweep" && !state.operationLeads[operation.id] && !state.operationLogs[operation.id]?.firstClear) return false;
-  if (operation.id === "op-backstreet-sweep" && state.skills.combat.level < 10) return false;
+  if (operation.id === "op-backstreet-sweep" && state.skills.combat.level < 5) return false;
   if (operation.id === "op-junkyard-lockdown" && state.skills.combat.level < 30) return false;
   if (operation.id === "op-contraband-raid" && state.resources.reputation < 150) return false;
   if (operation.id === "op-ghost-signal-dive" && state.skills.hacking.level < 60) return false;
@@ -38,8 +38,7 @@ export function canStartOperation(state: GameState, operation: OperationDefiniti
 
 export function operationRequirementDetails(state: GameState, operation: OperationDefinition) {
   const requirements = [
-    ...operation.unlockRequirements,
-    ...(operation.id === "op-backstreet-sweep" ? ["Street Combat level 5", "Operation lead: Backstreet Sweep"] : []),
+    ...operation.unlockRequirements.filter((requirement) => !requirement.trim().toLowerCase().endsWith(" unlocked")),
     ...(operation.id === "op-junkyard-lockdown" ? ["Street Combat level 15"] : []),
     ...(operation.id === "op-contraband-raid" ? ["Reputation 150"] : []),
     ...(operation.id === "op-ghost-signal-dive" ? ["Hacking level 25"] : []),
@@ -70,7 +69,6 @@ export function operationRouteSuccessChance(state: GameState, operation: Operati
 
 export function operationRequirementMet(state: GameState, operation: OperationDefinition, requirement: string) {
   const lower = requirement.toLowerCase();
-  if (operation.id === "op-backstreet-sweep" && lower.includes("operation lead")) return Boolean(state.operationLeads[operation.id] || state.operationLogs[operation.id]?.firstClear);
   const itemMatch = requirement.match(/^(\d+)\s+(.+)$/);
   if (itemMatch && operation.requiredItems?.[itemMatch[2]]) return (state.inventory[itemMatch[2]] ?? 0) >= Number(itemMatch[1]);
   return requirementMet(state, requirement);
@@ -141,14 +139,10 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
   const route = selectedRoute(operation, routeId);
   const operationTags = operationMatchupTags(operation, boss, route);
   const bossMatchup = combatEffectivenessForEnemy(state, boss, operationTags);
-  const stats = playerCombatStats(state);
-  const threatPenalty = districtThreatPenalty(state, operation.districtId);
   const threatBonus = districtThreatRewardBonus(state, operation.districtId);
-  const playerScore = stats.damage * 5 + stats.armor * 3 + stats.maxHp * 0.25;
-  const scenario = scenarioBonusForTags(state, operationTags);
-  const mechanicSuccess = (operation.mechanics ?? []).reduce((sum, mechanic) => sum + (mechanic.successModifier ?? 0), 0);
   const phaseEffects = bossPhaseEffects(boss);
-  const operationScore = bossMatchup.effectiveHp * 0.45 + boss.damage * 6 + boss.armor * 8;
+  const successChance = operationRouteSuccessChance(state, operation, route);
+  const successRoll = Math.random();
   const stageDamage = operation.stages.reduce((sum, stage) => {
     return sum + stage.enemyIds.reduce((stageSum, enemyId) => {
       const enemy = combatZones.flatMap((zone) => zone.enemies).find((entry) => entry.id === enemyId) ?? bosses.find((entry) => entry.id === enemyId);
@@ -161,8 +155,8 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
   if (state.health.lifeState === "downed") {
     state.healthStatistics.deathsByOperation[operation.id] = (state.healthStatistics.deathsByOperation[operation.id] ?? 0) + 1;
   }
-  const routeSuccess = route?.successModifier ?? 0;
-  const success = state.health.lifeState !== "downed" && playerScore * (1 + scenario.damageBonus + routeSuccess + mechanicSuccess) >= operationScore * (1 + threatPenalty);
+  const runnerDowned = state.health.lifeState === "downed";
+  const success = !runnerDowned && successRoll <= successChance;
   const firstClear = !state.operationLogs[operation.id]?.firstClear;
   const mechanicReward = (operation.mechanics ?? []).reduce((total, mechanic) => total * (mechanic.rewardMultiplier ?? 1), 1);
   const rewardMultiplier = (1 + threatBonus + districtMasteryRewardBonus(state, operation.districtId)) * bossMatchup.rewardMultiplier * (route?.rewardMultiplier ?? 1) * mechanicReward;
@@ -214,9 +208,7 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
       state.factions[id as keyof typeof state.factions].reputation += amount ?? 0;
     });
     Object.entries(operation.fixerTrust ?? {}).forEach(([id, amount]) => {
-      const trust = state.fixerTrust[id] ?? { trust: 0, completedJobs: 0 };
-      trust.trust += amount ?? 0;
-      state.fixerTrust[id] = trust;
+      addFixerFactionReputation(state, id, amount ?? 0);
     });
     changeDistrictThreat(state, operation.districtId, -8 + (operation.mechanics ?? []).reduce((sum, mechanic) => sum + (mechanic.threatChange ?? 0), 0));
     changeLocalStanding(state, operation.districtId, firstClear ? 8 : 4, `${operation.name} cleared`);
@@ -230,13 +222,13 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
     recordOperation(state, operation.id, clearMs, itemsGained);
     recordBoss(state, boss.id, clearMs);
     phaseEffects.messages.forEach((message) => pushCategorizedLog(state, "Combat", message));
-    pushCategorizedLog(state, "Combat", `Operation cleared: ${operation.name}${route ? ` via ${route.name}` : ""}. ${bossMatchup.rating}.`);
+    pushCategorizedLog(state, "Combat", `Operation cleared: ${operation.name}${route ? ` via ${route.name}` : ""}. Roll ${formatOperationPercent(successRoll)} vs ${formatOperationPercent(successChance)} chance. ${bossMatchup.rating}.`);
   } else {
     const failedHeat = Math.ceil(totalOperationHeatChange(state, operation, route, bossMatchup.heatChange, phaseEffects.heatChange) * 0.5);
     state.resources.heat = clampRiskStat(state.resources.heat + failedHeat);
     changeDistrictThreat(state, operation.districtId, 10);
     changeLocalStanding(state, operation.districtId, -3, `${operation.name} failed`);
-    pushCategorizedLog(state, "Warning", `Operation failed: ${operation.name}. District threat rose.${state.health.lifeState === "downed" ? " You were downed." : ""}`);
+    pushCategorizedLog(state, "Warning", `Operation failed: ${operation.name}. Roll ${formatOperationPercent(successRoll)} vs ${formatOperationPercent(successChance)} chance. ${runnerDowned ? "Runner was downed; survival is required. " : ""}District threat rose.`);
   }
 
   state.operationRecap = {
@@ -252,7 +244,9 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
     heatChange: totalOperationHeatChange(state, operation, route, bossMatchup.heatChange, phaseEffects.heatChange),
     neuralInstabilityChange: 0,
     firstClear: success && firstClear,
-    message: success ? `${operation.name} cleared${route ? ` via ${route.name}` : ""}. Took ${damageTaken} damage.` : `${operation.name} failed${route ? ` via ${route.name}` : ""}. Took ${damageTaken} damage.`,
+    successChance,
+    successRoll,
+    message: success ? `${operation.name} cleared${route ? ` via ${route.name}` : ""}. Rolled ${formatOperationPercent(successRoll)} against ${formatOperationPercent(successChance)} odds. Took ${damageTaken} damage.` : `${operation.name} failed${route ? ` via ${route.name}` : ""}. Rolled ${formatOperationPercent(successRoll)} against ${formatOperationPercent(successChance)} odds.${runnerDowned ? " You were downed; survival is required regardless of the roll." : ""} Took ${damageTaken} damage.`,
   };
   emitRewardPopupGroup(state, {
     title: success ? `${operation.name} Cleared` : `${operation.name} Failed`,
@@ -267,6 +261,10 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
   });
   applyRiskEvents(state);
   updateOperationAchievements(state);
+}
+
+function formatOperationPercent(value: number) {
+  return `${Math.round(value * 1000) / 10}%`;
 }
 
 function recordOperation(state: GameState, operationId: string, clearMs: number, drops: Record<string, number>) {

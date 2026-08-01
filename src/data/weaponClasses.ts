@@ -45,14 +45,14 @@ function cls(
     unlockRequirements,
     relatedArchetypes,
     relatedTags,
-    milestones: [
-      { level: 5, name: "Familiar Grip", description: "Small class-specific stat bonus.", modifiers: { combatDamage: 0.01 } },
-      { level: 10, name: "Attachment Ready", description: "First attachment slot mastery placeholder.", modifiers: { dropChance: 0.01 } },
-      { level: 20, name: "Mission Edge", description: "Class-specific mission bonus.", modifiers: { jobSuccessChance: 0.01 } },
-      { level: 35, name: "Tuned Hardware", description: "Improved attachment effectiveness.", modifiers: { actionSpeed: 0.01 } },
-      { level: 50, name: "Combat Passive", description: "Class combat passive.", modifiers: { combatDamage: 0.02 } },
-      { level: 75, name: "Rare Extraction", description: "Rare drop or operation bonus.", modifiers: { dropChance: 0.02 } },
-      { level: 99, name: "Class Mastery", description: "Mastery title placeholder.", modifiers: { combatDamage: 0.03, dropChance: 0.02 } },
-    ],
+    milestones: Array.from({ length: 10 }, (_, index) => {
+      const level = (index + 1) * 10;
+      return {
+        level,
+        name: `${name} Damage ${index + 1}`,
+        description: `+1% damage while a ${name.toLowerCase()} weapon is equipped. Total class milestone bonus: +${index + 1}%.`,
+        modifiers: { combatDamage: 0.01 },
+      };
+    }),
   };
 }

@@ -1,4 +1,5 @@
 import { recipes } from "../data/recipes";
+import { getItem } from "../data/items";
 import { addMasteryXp, addSkillXp } from "./actionProcessing";
 import { addItem, removeItem } from "./collectionSystem";
 import { adjustedDurationMs, getActiveModifiers } from "./modifiers";
@@ -15,11 +16,59 @@ export function getRecipe(recipeId: string) {
   return recipes.find((recipe) => recipe.id === recipeId);
 }
 
+export function nextPlayerUpgradeRecipe(itemId: string) {
+  return recipes.find((recipe) => recipe.category === "Player Upgrades" && (recipe.inputCosts[itemId] ?? 0) > 0);
+}
+
+export function canUpgradePlayerUpgradeFromInventory(state: GameState, itemId: string) {
+  const recipe = nextPlayerUpgradeRecipe(itemId);
+  return Boolean(recipe && (state.inventory[itemId] ?? 0) > 0 && canCraft(state, recipe));
+}
+
+export function upgradePlayerUpgradeFromInventory(state: GameState, itemId: string) {
+  const recipe = nextPlayerUpgradeRecipe(itemId);
+  if (!recipe || !canUpgradePlayerUpgradeFromInventory(state, itemId)) return state;
+  const next = cloneState(state);
+  completeCraft(next, recipe);
+  pushCategorizedLog(next, "World", `Permanent upgrade installed from inventory: ${recipe.name}.`);
+  next.lastSavedAt = Date.now();
+  return next;
+}
+
+const craftingDistrictOrder: DistrictId[] = [
+  "neonRow",
+  "rustYards",
+  "underpassMarket",
+  "blacknetQuarter",
+  "helixWard",
+  "glasslineDistrict",
+  "redlineBlocks",
+  "skylineCore",
+];
+
+export function craftingLevelRangeForDistrict(districtId: DistrictId | null) {
+  if (!districtId) return null;
+  const districtIndex = craftingDistrictOrder.indexOf(districtId);
+  if (districtIndex < 0) return null;
+  return { min: districtIndex * 20 + 1, max: (districtIndex + 1) * 20 };
+}
+
+export function recipeAvailableInCurrentDistrict(state: GameState, recipe: CraftingRecipe) {
+  const range = craftingLevelRangeForDistrict(state.selectedDistrict);
+  return Boolean(range && recipe.requiredLevel >= range.min && recipe.requiredLevel <= range.max);
+}
+
 export function canCraft(state: GameState, recipe: CraftingRecipe) {
+  if (!recipeAvailableInCurrentDistrict(state, recipe)) return false;
+  if (getRecipeOutput(recipe)?.tags.includes("player-upgrade") && state.discoveredItems[recipe.outputItemId]) return false;
   if (state.skills[recipe.requiredSkill].level < recipe.requiredLevel) return false;
   if (recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]) return false;
   if (recipe.requiredDistrict && !state.districts[recipe.requiredDistrict]?.unlocked) return false;
   return Object.entries(adjustCraftingCosts(state, recipe)).every(([id, amount]) => getCount(state, id) >= amount);
+}
+
+function getRecipeOutput(recipe: CraftingRecipe) {
+  return getItem(recipe.outputItemId);
 }
 
 export function startCraft(state: GameState, recipeId: string, now = Date.now()) {
@@ -46,11 +95,15 @@ export function processCrafting(state: GameState, now = Date.now()) {
   while (next.activeCraft && now - next.activeCraft.startedAt >= next.activeCraft.durationMs && guard < 100) {
     const recipe = getRecipe(next.activeCraft.recipeId);
     if (!recipe || !canCraft(next, recipe)) {
-      pushCategorizedLog(next, "Warning", "Crafting stopped because materials are missing.");
+      pushCategorizedLog(next, "Warning", "Crafting stopped because its requirements are no longer met in this district.");
       next.activeCraft = null;
       break;
     }
     completeCraft(next, recipe);
+    if (getRecipeOutput(recipe)?.tags.includes("player-upgrade")) {
+      next.activeCraft = null;
+      break;
+    }
     next.activeCraft = {
       ...next.activeCraft,
       startedAt: next.activeCraft.startedAt + next.activeCraft.durationMs,

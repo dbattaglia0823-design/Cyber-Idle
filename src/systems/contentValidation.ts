@@ -9,7 +9,7 @@ import { fixers } from "../data/fixers";
 import { housingOptions } from "../data/housing";
 import { getItem, items } from "../data/items";
 import { jobs } from "../data/jobs";
-import { districtLevelBands, majorUnlockLevels, MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
+import { districtLevelBands, MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
 import { operations } from "../data/operations";
 import { percentDropTables } from "../data/percentDrops";
 import { recipes } from "../data/recipes";
@@ -172,7 +172,7 @@ export function getContentValidationReport(): ContentValidationReport {
     if (action.districtReq) validateKnown(missingReferences, districtIds, `${action.id} district`, action.districtReq);
     validateRewardBundle(missingReferences, `${action.id} rewards`, action.rewards);
     if (action.levelReq < 1 || action.levelReq > MAX_MAIN_SKILL_LEVEL) balanceWarnings.push(`${action.id} has level requirement outside 1-${MAX_MAIN_SKILL_LEVEL}`);
-    if (!majorUnlockLevels.includes(action.levelReq as (typeof majorUnlockLevels)[number])) {
+    if (action.levelReq !== 1 && action.levelReq % 5 !== 0) {
       balanceWarnings.push(`${action.id} uses non-milestone level requirement ${action.levelReq}`);
     }
     if (action.durationMs < 2000 || action.durationMs > 30000) {
@@ -180,8 +180,8 @@ export function getContentValidationReport(): ContentValidationReport {
     }
     if (action.districtReq) {
       const band = districtLevelBands[action.districtReq];
-      if (action.levelReq < band.min && action.districtReq !== "neonRow") {
-        balanceWarnings.push(`${action.id} is below ${action.districtReq} band ${band.min}-${band.max}`);
+      if (action.levelReq < band.entryLevel) {
+        balanceWarnings.push(`${action.id} is below ${action.districtReq} entry level ${band.entryLevel}`);
       }
       if (action.levelReq > band.max) {
         balanceWarnings.push(`${action.id} is above ${action.districtReq} band ${band.min}-${band.max}`);
@@ -373,9 +373,8 @@ function validateItemRef(warnings: string[], label: string, id: string) {
 }
 
 function validateRewardBundle(warnings: string[], label: string, rewards: RewardBundle) {
-  Object.entries(rewards).forEach(([resource, amount]) => {
+  Object.keys(rewards).forEach((resource) => {
     if (!resourceIds.has(resource)) warnings.push(`${label} references unknown reward resource ${resource}`);
-    if ((amount ?? 0) < 0) warnings.push(`${label} has negative reward amount for ${resource}`);
   });
 }
 

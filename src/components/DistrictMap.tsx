@@ -40,15 +40,6 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
       <div className="city-image-stage">
         <img className="city-map-art" src={mapImage} alt="Cyberpunk city district map" />
         <svg className="city-map-overlay" viewBox="0 0 1122 1402" preserveAspectRatio="xMidYMid meet" aria-label="District selection overlay">
-          <defs>
-            <filter id="imageMapGlow" x="-35%" y="-35%" width="170%" height="170%">
-              <feGaussianBlur stdDeviation="5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
           {sortedRegions.map((region) => {
             const district = getDistrict(region.districtId);
             const unlocked = Boolean(state.districts[region.districtId]?.unlocked);
@@ -72,8 +63,7 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
                 }}
               >
                 <path className="image-map-hit" d={region.path} />
-                <path className="image-map-outline" d={region.path} filter="url(#imageMapGlow)" />
-                {(active || threat >= 75) && <circle className="image-map-marker" cx={region.marker.x} cy={region.marker.y} r="10" />}
+                <circle className="image-map-marker" cx={region.marker.x} cy={region.marker.y} r={selected ? 15 : 10} />
               </g>
             );
           })}

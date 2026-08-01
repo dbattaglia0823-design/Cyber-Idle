@@ -17,6 +17,7 @@ import { addItem, discoverItem } from "./collectionSystem";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { meetsActionAccessRequirement } from "./actionAccess";
+import { actionHeatSuppressed } from "../data/heatCountermeasures";
 import type { EnemyDrop, GameState, ResourceId, RewardBundle, SkillAction, SkillId } from "../types";
 
 export function getSkillAction(actionId: string) {
@@ -83,7 +84,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     }
     const xpReward = actionXpRewardWithMastery(next, action);
     applyRewards(next, rewards);
-    const heatDelta = action.heatChange ? calculateHeatGain(next, action.heatChange, action.tags) : 0;
+    const heatDelta = action.heatChange && !actionHeatSuppressed(next, action) ? calculateHeatGain(next, action.heatChange, action.tags) : 0;
     if (heatDelta) next.resources.heat = clampRiskStat(next.resources.heat + heatDelta);
     const neuralDelta = 0;
     const levelUps = addSkillXp(next, action.skillId, xpReward);
@@ -138,19 +139,27 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
 }
 
 function processSkillRareDrops(state: GameState, action: SkillAction) {
-  const messages: string[] = [];
-  const mastery = state.actionMastery[action.id]?.level ?? 1;
-  const masteryBonus = masteryDropBonusForLevel(mastery);
+  return rollSkillActionDrops(state, action).map((drop) => drop.name);
+}
+
+export function rollSkillActionDrops(state: GameState, action: SkillAction, chanceMultiplier = 1) {
+  const rolled: EnemyDrop[] = [];
   (action.rareDrops ?? []).forEach((drop) => {
-    const chance = calculateDropChance(drop.chance, state, [action.skillId, ...(action.tags ?? [])], masteryBonus + toolDropBonus(state, action));
+    const chance = skillActionDropChance(state, action, drop) * chanceMultiplier;
     if (Math.random() > chance) return;
     grantDrop(state, drop);
     state.marketStatistics.rareDropsBySkill[action.skillId] = (state.marketStatistics.rareDropsBySkill[action.skillId] ?? 0) + 1;
     state.achievements[`first-rare-${action.skillId}`] = true;
-    messages.push(drop.name);
+    rolled.push(drop);
     pushCategorizedLog(state, "Loot", `${action.name} rare drop: ${drop.name}.`);
   });
-  return messages;
+  return rolled;
+}
+
+export function skillActionDropChance(state: GameState, action: SkillAction, drop: EnemyDrop) {
+  const mastery = state.actionMastery[action.id]?.level ?? 1;
+  const masteryBonus = masteryDropBonusForLevel(mastery);
+  return calculateDropChance(drop.chance, state, [action.skillId, ...(action.tags ?? [])], masteryBonus + toolDropBonus(state, action));
 }
 
 function grantDrop(state: GameState, drop: EnemyDrop) {
@@ -164,6 +173,7 @@ function grantDrop(state: GameState, drop: EnemyDrop) {
 
 function processHackingTrace(state: GameState, action: SkillAction) {
   if (!action.traceChance) return "";
+  if (actionHeatSuppressed(state, action)) return "";
   const chance = Math.max(balanceConfig.risk.traceMinChance, action.traceChance - traceReduction(state, action));
   if (Math.random() > chance) return "";
   const severity = action.traceSeverity ?? 1;

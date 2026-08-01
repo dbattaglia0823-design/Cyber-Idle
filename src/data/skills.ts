@@ -1,4 +1,4 @@
-import type { EnemyDrop, SkillAction, SkillId } from "../types";
+import type { DistrictId, EnemyDrop, SkillAction, SkillId } from "../types";
 
 export const skillNames: Record<SkillId, string> = {
   scavenging: "Scavenging",
@@ -42,7 +42,7 @@ function baseMasteryXpReward() {
   return 10;
 }
 
-export const skillActions: SkillAction[] = [
+const baseSkillActions: SkillAction[] = [
   // ===== NEON ROW =====
   action({
     id: "scav-alley-scrap-run",
@@ -434,7 +434,7 @@ export const skillActions: SkillAction[] = [
     districtReq: "rustYards",
     description: "Patch a junk bike and learn the rhythm of street-grade vehicle systems.",
     levelReq: 20,
-    durationMs: 2000,
+    durationMs: 6000,
     xpReward: 25,
     masteryXpReward: 15,
     rewards: { vehicleParts: 1, scrap: -6, credits: 6 },
@@ -883,7 +883,7 @@ export const skillActions: SkillAction[] = [
     masteryXpReward: 150,
     rewards: { scrap: 28, circuitBoards: 8, credits: 28 },
     rareDrops: [drop("market-pass", "Market Pass", 0.0438), drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0498), drop("smugglerCompartment", "Smuggler Compartment", 0.0224)],
-    heatChange: 1,
+    heatChange: 0,
     recommendedTools: ["signal-locator"],
     tags: ["scavenging", "blackmarket", "salvage"],
   }),
@@ -1799,7 +1799,7 @@ export const skillActions: SkillAction[] = [
     masteryXpReward: 450,
     rewards: { cyberwareParts: 15, circuitBoards: 8, armorPlating: 4 },
     rareDrops: [drop("prototype-neural-core", "Prototype Neural Core", 0.0299), drop("stabilized-chrome-frame", "Stabilized Chrome Frame", 0.0374), drop("prototype-extractor", "Prototype Extractor", 0.0224)],
-    heatChange: 4,
+    heatChange: 0,
     threatChange: 2,
     recommendedTools: ["prototype-extractor"],
     tags: ["scavenging", "corporate", "prototype", "highThreat"],
@@ -2835,3 +2835,120 @@ export const skillActions: SkillAction[] = [
     tags: ["streetcraft", "broker-quiet-passage", "skyline-core"],
   }),
 ];
+
+const vehicleTuningDropTables: Record<string, EnemyDrop[]> = {
+  "gap-neon-row-vehicleTuning-1": [drop("navigationChip", "Navigation Chip", 0.03), drop("fuelCell", "Fuel Cell", 0.05)],
+  "gap-neon-row-vehicleTuning-2": [drop("navigationChip", "Navigation Chip", 0.04), drop("fuelCell", "Fuel Cell", 0.06), drop("street-coil", "Street Coil", 0.02)],
+  "gap-neon-row-vehicleTuning-3": [drop("navigationChip", "Navigation Chip", 0.05), drop("fuelCell", "Fuel Cell", 0.07), drop("neon-circuit-fragment", "Neon Circuit Fragment", 0.025)],
+  "vehicle-patch-junk-bike": [drop("fuelCell", "Fuel Cell", 0.06), drop("silent-tire-set", "Silent Tire Set", 0.04), drop("salvaged-servo", "Salvaged Servo", 0.03)],
+  "vehicle-tune-street-engine": [drop("engineCore", "Engine Core", 0.07), drop("navigationChip", "Navigation Chip", 0.05), drop("drone-motor", "Drone Motor", 0.035)],
+  "gap-rust-yards-vehicleTuning-3": [drop("engineCore", "Engine Core", 0.075), drop("silent-tire-set", "Silent Tire Set", 0.045), drop("chrome-jackal-gearset", "Chrome Jackal Gearset", 0.025)],
+  "vehicle-build-smuggler-compartment": [drop("market-pass", "Market Pass", 0.06), drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.055), drop("smuggler-seal", "Smuggler Seal", 0.03)],
+  "gap-underpass-market-vehicleTuning-2": [drop("market-pass", "Market Pass", 0.065), drop("smuggler-seal", "Smuggler Seal", 0.045), drop("illegal-mod-core", "Illegal Mod Core", 0.03)],
+  "gap-underpass-market-vehicleTuning-3": [drop("smugglerCompartment", "Smuggler Compartment", 0.05), drop("rare-listing-permit", "Rare Listing Permit", 0.04), drop("illegal-mod-core", "Illegal Mod Core", 0.035)],
+  "vehicle-ghost-route-calibration": [drop("ghost-route-program", "Ghost Route Program", 0.035), drop("engineCore", "Engine Core", 0.065), drop("district-permit", "District Permit", 0.035)],
+  "gap-blacknet-quarter-vehicleTuning-2": [drop("ghost-route-program", "Ghost Route Program", 0.032), drop("trace-scrambler-chip", "Trace Scrambler Chip", 0.04), drop("engineCore", "Engine Core", 0.07)],
+  "gap-blacknet-quarter-vehicleTuning-3": [drop("district-permit", "District Permit", 0.035), drop("encrypted-memory-stack", "Encrypted Memory Stack", 0.045), drop("ghost-route-program", "Ghost Route Program", 0.033)],
+  "gap-helix-ward-vehicleTuning-1": [drop("engineCore", "Engine Core", 0.07), drop("medical-access-pass", "Medical Access Pass", 0.045), drop("stabilizer-compound", "Stabilizer Compound", 0.035)],
+  "gap-helix-ward-vehicleTuning-2": [drop("engineCore", "Engine Core", 0.075), drop("bioware-thread", "Bioware Thread", 0.04), drop("helix-authorization", "Helix Authorization", 0.03)],
+  "gap-helix-ward-vehicleTuning-3": [drop("medical-gel-matrix", "Medical Gel Matrix", 0.05), drop("helix-authorization", "Helix Authorization", 0.035), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.03)],
+  "gap-glassline-district-vehicleTuning-1": [drop("engineCore", "Engine Core", 0.08), drop("corporate-access-token", "Corporate Access Token", 0.05), drop("glassline-alloy", "Glassline Alloy", 0.04)],
+  "gap-glassline-district-vehicleTuning-2": [drop("security-override-chip", "Security Override Chip", 0.045), drop("executive-processor", "Executive Processor", 0.04), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.035)],
+  "gap-glassline-district-vehicleTuning-3": [drop("glassline-alloy", "Glassline Alloy", 0.05), drop("district-permit", "District Permit", 0.04), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.04)],
+  "vehicle-redline-armor-kit": [drop("prototypeDriveUnit", "Prototype Drive Unit", 0.045), drop("armor-breaker-plate", "Armor Breaker Plate", 0.05), drop("fuelCell", "Fuel Cell", 0.09)],
+  "gap-redline-blocks-vehicleTuning-2": [drop("ballistic-core", "Ballistic Core", 0.055), drop("armor-breaker-plate", "Armor Breaker Plate", 0.05), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.045)],
+  "gap-redline-blocks-vehicleTuning-3": [drop("redline-trigger-kit", "Redline Trigger Kit", 0.06), drop("armor-breaker-plate", "Armor Breaker Plate", 0.055), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.05)],
+  "gap-skyline-core-vehicleTuning-3": [drop("luxury-processor", "Luxury Processor", 0.055), drop("skyline-authorization", "Skyline Authorization", 0.035), drop("prototypeDriveUnit", "Prototype Drive Unit", 0.065)],
+  "vehicle-prototype-interceptor-tuning": [drop("prototypeDriveUnit", "Prototype Drive Unit", 0.08), drop("district-permit", "District Permit", 0.06), drop("legendary-chrome-matrix", "Legendary Chrome Matrix", 0.025)],
+  "gap-skyline-core-vehicleTuning-2": [drop("luxury-processor", "Luxury Processor", 0.06), drop("skyline-authorization", "Skyline Authorization", 0.04), drop("relic-circuit", "Relic Circuit", 0.018)],
+};
+
+type HighLevelDropProfile = {
+  universal: EnemyDrop[];
+  bySkill: Partial<Record<SkillId, EnemyDrop[]>>;
+};
+
+const highLevelDropProfiles: Partial<Record<DistrictId, HighLevelDropProfile>> = {
+  blacknetQuarter: {
+    universal: [drop("rogue-packet-core", "Rogue Packet Core", 0.04)],
+    bySkill: {
+      scavenging: [drop("daemon-fragment", "Daemon Fragment", 0.014)],
+      hacking: [drop("blacknet-cipher", "Blacknet Cipher", 0.028)],
+      cyberware: [drop("encrypted-memory-stack", "Encrypted Memory Stack", 0.035)],
+      vehicleTuning: [drop("daemon-fragment", "Daemon Fragment", 0.012)],
+      blackMarket: [drop("district-permit", "District Permit", 0.018)],
+      medical: [drop("neural-dampener", "Neural Dampener", 0.03)],
+      streetcraft: [drop("faction-authorization", "Faction Authorization", 0.018)],
+    },
+  },
+  helixWard: {
+    universal: [drop("stabilizer-compound", "Stabilizer Compound", 0.045)],
+    bySkill: {
+      scavenging: [drop("bioware-thread", "Bioware Thread", 0.035)],
+      hacking: [drop("helix-authorization", "Helix Authorization", 0.018)],
+      cyberware: [drop("stabilized-chrome-frame", "Stabilized Chrome Frame", 0.022)],
+      vehicleTuning: [drop("helix-authorization", "Helix Authorization", 0.018)],
+      blackMarket: [drop("helix-authorization", "Helix Authorization", 0.016)],
+      medical: [drop("neural-dampener", "Neural Dampener", 0.04)],
+      streetcraft: [drop("faction-authorization", "Faction Authorization", 0.022)],
+    },
+  },
+  glasslineDistrict: {
+    universal: [drop("glassline-alloy", "Glassline Alloy", 0.045)],
+    bySkill: {
+      scavenging: [drop("executive-processor", "Executive Processor", 0.03)],
+      hacking: [drop("security-override-chip", "Security Override Chip", 0.035)],
+      cyberware: [drop("corporate-optic-lens", "Corporate Optic Lens", 0.035)],
+      vehicleTuning: [drop("executive-processor", "Executive Processor", 0.032)],
+      blackMarket: [drop("district-permit", "District Permit", 0.03)],
+      medical: [drop("stabilized-chrome-frame", "Stabilized Chrome Frame", 0.026)],
+      streetcraft: [drop("faction-authorization", "Faction Authorization", 0.03)],
+    },
+  },
+  redlineBlocks: {
+    universal: [drop("redline-trigger-kit", "Redline Trigger Kit", 0.05)],
+    bySkill: {
+      scavenging: [drop("armor-breaker-plate", "Armor Breaker Plate", 0.035)],
+      hacking: [drop("ballistic-core", "Ballistic Core", 0.03)],
+      cyberware: [drop("ballistic-core", "Ballistic Core", 0.032)],
+      vehicleTuning: [drop("armor-breaker-plate", "Armor Breaker Plate", 0.04)],
+      blackMarket: [drop("faction-authorization", "Faction Authorization", 0.032)],
+      medical: [drop("combat-stim-pack", "Combat Stim Pack", 0.045)],
+      streetcraft: [drop("armor-breaker-plate", "Armor Breaker Plate", 0.028)],
+    },
+  },
+  skylineCore: {
+    universal: [drop("luxury-processor", "Luxury Processor", 0.055)],
+    bySkill: {
+      scavenging: [drop("relic-circuit", "Relic Circuit", 0.012)],
+      hacking: [drop("skyline-authorization", "Skyline Authorization", 0.03)],
+      cyberware: [drop("legendary-chrome-matrix", "Legendary Chrome Matrix", 0.024)],
+      vehicleTuning: [drop("relic-circuit", "Relic Circuit", 0.016)],
+      blackMarket: [drop("skyline-authorization", "Skyline Authorization", 0.026)],
+      medical: [drop("apex-neural-core", "Apex Neural Core", 0.022)],
+      streetcraft: [drop("skyline-authorization", "Skyline Authorization", 0.024)],
+    },
+  },
+};
+
+function highLevelProgressionDrops(skillAction: SkillAction) {
+  if (skillAction.levelReq < 60 || !skillAction.districtReq) return [];
+  const profile = highLevelDropProfiles[skillAction.districtReq];
+  if (!profile) return [];
+  return [...profile.universal, ...(profile.bySkill[skillAction.skillId] ?? [])];
+}
+
+function mergeDrops(...tables: Array<EnemyDrop[] | undefined>) {
+  const merged = new Map<string, EnemyDrop>();
+  tables.flatMap((table) => table ?? []).forEach((entry) => {
+    const current = merged.get(entry.id);
+    if (!current || entry.chance > current.chance) merged.set(entry.id, entry);
+  });
+  return [...merged.values()];
+}
+
+export const skillActions: SkillAction[] = baseSkillActions.map((skillAction) => {
+  const vehicleDrops = vehicleTuningDropTables[skillAction.id];
+  const rareDrops = mergeDrops(vehicleDrops ?? skillAction.rareDrops, highLevelProgressionDrops(skillAction));
+  return rareDrops.length > 0 ? { ...skillAction, rareDrops } : skillAction;
+});

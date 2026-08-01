@@ -12,8 +12,9 @@ export const ripperdocServices: RipperdocService[] = [
     effects: ["Minor Neural Instability relief"],
   }),
   service("neon-patch-up", "Patch Up", "Fast street treatment that restores combat readiness without paperwork.", "neonRow", { credits: 45, cyberwareParts: 1 }, ["Available at start"], "treatment", {
+    healthRestorePercent: 0.35,
     neuralInstabilityChange: -4,
-    effects: ["Adds clinic supply support", "Medical crafting support"],
+    effects: ["Restores 35% max HP", "Adds clinic supply support"],
   }),
   service("neon-starter-stabilizer", "Starter Stabilizers", "Buy a Neural Stabilizer at street prices.", "neonRow", { credits: 60 }, ["Available early"], "stabilizer", {
     neuralInstabilityChange: 1,
@@ -28,6 +29,7 @@ export const ripperdocServices: RipperdocService[] = [
 
   // ===== RUST YARDS =====
   service("rust-field-patch", "Field Patch", "Patch combat damage with vehicle tools and medical tape.", "rustYards", { credits: 90, scrap: 10, cyberwareParts: 1 }, ["Rust Yards unlocked"], "treatment", {
+    healthRestorePercent: 0.5,
     factionDiscount: "helixOrder",
     neuralInstabilityChange: -28,
     heatChange: -2,
@@ -78,6 +80,7 @@ export const ripperdocServices: RipperdocService[] = [
     effects: ["Corporate cyberware access placeholder"],
   }),
   service("underpass-trauma-stitch", "Trauma Stitch", "Unlicensed emergency bodywork that keeps fighters moving.", "underpassMarket", { credits: 180, cyberwareParts: 1 }, ["Underpass Market unlocked"], "treatment", {
+    healthRestorePercent: 0.55,
     factionDiscount: "helixOrder",
     neuralInstabilityChange: -14,
     heatChange: 2,
@@ -97,6 +100,7 @@ export const ripperdocServices: RipperdocService[] = [
     effects: ["Vehicle/cyberware hybrid service", "Outrider build support"],
   }),
   service("blacknet-feedback-ground", "Feedback Grounding", "Ground neural feedback before dangerous data dives.", "blacknetQuarter", { credits: 260, encryptedData: 8 }, ["Hacking level 10"], "treatment", {
+    healthRestorePercent: 0.65,
     factionDiscount: "nullChoir",
     neuralInstabilityChange: -5,
     heatChange: -3,
@@ -122,6 +126,7 @@ export const ripperdocServices: RipperdocService[] = [
 
   // ===== HELIX WARD =====
   service("helix-emergency-stabilization", "Emergency Stabilization", "Heavy clinical intervention for dangerous instability spikes.", "helixWard", { credits: 520, cyberwareParts: 3 }, ["Helix Ward access", "Recommended at high Instability"], "treatment", {
+    healthRestorePercent: 1,
     neuralInstabilityChange: 2,
     risk: "Messy procedure.",
     effects: ["Combat recovery", "Small Instability cost"],
@@ -134,23 +139,30 @@ export const ripperdocServices: RipperdocService[] = [
     effects: ["Prototype loadout flexibility", "Black-market install support"],
   }),
   service("helix-recovery-lab", "Recovery Lab Treatment", "A safer treatment that lowers current Neural Instability.", "helixWard", { credits: 180 }, ["Helix Ward access"], "treatment", {
+    healthRestorePercent: 0.8,
     factionDiscount: "helixOrder",
     neuralInstabilityChange: -8,
     effects: ["Temporary damage reduction", "Corporate defensive tuning"],
     temporaryEffect: { id: "glassline-armor-weave-effect", name: "Armor Weave Calibration", description: "+5% damage reduction for 30 minutes.", modifiers: { damageReduction: 0.05 }, durationMs: 30 * 60 * 1000 },
   }),
   service("helix-combat-readiness", "Combat Readiness Injection", "A clinical booster for runners entering high-risk operations.", "helixWard", { credits: 460, cyberwareParts: 2 }, ["Medical Knowledge level 10"], "treatment", {
+    healthRestorePercent: 0.65,
     factionDiscount: "helixOrder",
     neuralInstabilityChange: 4,
     effects: ["Emergency reboot hook", "High-tier defensive cyberware prep"],
   }),
-  service("helix-safe-calibration", "Safe Calibration", "Careful tuning that reduces future implant strain in later systems.", "helixWard", { credits: 340, encryptedData: 2 }, ["Cyberware Engineering level 20 or Helix trust"], "calibration", {
+  service("helix-safe-calibration", "Safe Calibration", "Careful tuning that reduces future implant strain in later systems.", "helixWard", { credits: 340, encryptedData: 2 }, ["Cyberware Engineering level 20 or Helix Order rank 2"], "calibration", {
     factionDiscount: "chromeJackals",
     effects: ["Cheap recovery", "Vehicle runner support"],
     temporaryEffect: { id: "rust-field-patch-effect", name: "Field Patch", description: "+4% HP recovery for 30 minutes.", modifiers: { hpRegen: 0.04 }, durationMs: 30 * 60 * 1000 },
   }),
 
   // ===== GLASSLINE DISTRICT =====
+  service("glassline-trauma-restoration", "Trauma Restoration", "Clean-room trauma care restores a runner before corporate operations.", "glasslineDistrict", { credits: 720, cyberwareParts: 2 }, ["Glassline District unlocked"], "treatment", {
+    factionDiscount: "helixOrder",
+    healthRestorePercent: 0.9,
+    effects: ["Restores 90% max HP", "Premium corporate trauma care"],
+  }),
   service("glassline-clean-install", "Clean-Room Install", "Premium installation with sterile corporate tools.", "glasslineDistrict", { credits: 420, cyberwareParts: 3 }, ["Glassline District unlocked"], "install", {
     factionDiscount: "chromeJackals",
     neuralInstabilityChange: 1,

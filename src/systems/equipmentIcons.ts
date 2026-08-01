@@ -3,11 +3,9 @@ import assaultRifleIcon from "../assets/inventory/AssaultRifle.png";
 import bladesIcon from "../assets/inventory/Blades.png";
 import bluntIcon from "../assets/inventory/Blunt.png";
 import bootsIcon from "../assets/inventory/Boots.png";
-import cyberwareIcon from "../assets/inventory/Cyberware.png";
 import handsIcon from "../assets/inventory/Hands.png";
 import heavyIcon from "../assets/inventory/Heavy.png";
 import helmetIcon from "../assets/inventory/Helmet.png";
-import iconicCyberwareIcon from "../assets/inventory/IconicCyberware.png";
 import legsArmorIcon from "../assets/inventory/Legs.png";
 import pistolIcon from "../assets/inventory/Pistol.png";
 import shotgunIcon from "../assets/inventory/Shotgun.png";
@@ -15,6 +13,15 @@ import smartIcon from "../assets/inventory/Smart.png";
 import smgIcon from "../assets/inventory/SMG.png";
 import sniperIcon from "../assets/inventory/Sniper.png";
 import techIcon from "../assets/inventory/Tech.png";
+import armsCyberwareIcon from "../assets/cyberware/Arms.png";
+import iconicOperatingSystemIcon from "../assets/cyberware/IconicOperatingSytem.png";
+import legsCyberwareIcon from "../assets/cyberware/Legs.png";
+import neuralCyberwareIcon from "../assets/cyberware/Neural.png";
+import operatingSystemIcon from "../assets/cyberware/OperatingSystem.png";
+import opticsCyberwareIcon from "../assets/cyberware/Optics.png";
+import skeletonCyberwareIcon from "../assets/cyberware/Skeleton.png";
+import skinCyberwareIcon from "../assets/cyberware/Skin.png";
+import utilityCyberwareIcon from "../assets/cyberware/Utility.png";
 import armorPlatingIcon from "../assets/materials/ArmorPlating.png";
 import circuitBoardsIcon from "../assets/materials/CircuitBoards.png";
 import creditsIcon from "../assets/materials/Credits.png";
@@ -47,8 +54,8 @@ const weaponClassIcons: Record<WeaponClassId, EquipmentIconInfo> = {
   techWeapons: icon("TEC", "Tech weapon", "tech", techIcon),
   smartWeapons: icon("SMT", "Smart weapon", "tech", smartIcon),
   heavyWeapons: icon("HVY", "Heavy weapon", "heavy", heavyIcon),
-  cyberdeckWeapons: icon("NET", "Cyberdeck weapon", "net", cyberwareIcon),
-  exoticWeapons: icon("EXO", "Exotic weapon", "exotic", iconicCyberwareIcon),
+  cyberdeckWeapons: icon("NET", "Cyberdeck weapon", "net", operatingSystemIcon),
+  exoticWeapons: icon("EXO", "Exotic weapon", "exotic", iconicOperatingSystemIcon),
 };
 
 const gearSlotIcons: Record<GearSlot, EquipmentIconInfo> = {
@@ -63,14 +70,14 @@ const gearSlotIcons: Record<GearSlot, EquipmentIconInfo> = {
 };
 
 const cyberwareSlotIcons: Record<CyberwareSlot, EquipmentIconInfo> = {
-  neural: icon("NEU", "Neural cyberware", "cyberware", cyberwareIcon),
-  optics: icon("OPT", "Optics cyberware", "cyberware", cyberwareIcon),
-  arms: icon("ARM", "Arm cyberware", "cyberware", cyberwareIcon),
-  legs: icon("LEG", "Leg cyberware", "cyberware", cyberwareIcon),
-  skin: icon("SKN", "Skin cyberware", "cyberware", cyberwareIcon),
-  skeleton: icon("SKL", "Skeleton cyberware", "cyberware", cyberwareIcon),
-  operatingSystem: icon("OS", "Operating system", "cyberware", cyberwareIcon),
-  utility: icon("UTIL", "Utility cyberware", "cyberware", cyberwareIcon),
+  neural: icon("NEU", "Neural cyberware", "cyberware", neuralCyberwareIcon),
+  optics: icon("OPT", "Optics cyberware", "cyberware", opticsCyberwareIcon),
+  arms: icon("ARM", "Arm cyberware", "cyberware", armsCyberwareIcon),
+  legs: icon("LEG", "Leg cyberware", "cyberware", legsCyberwareIcon),
+  skin: icon("SKN", "Skin cyberware", "cyberware", skinCyberwareIcon),
+  skeleton: icon("SKL", "Skeleton cyberware", "cyberware", skeletonCyberwareIcon),
+  operatingSystem: icon("OS", "Operating system", "cyberware", operatingSystemIcon),
+  utility: icon("UTIL", "Utility cyberware", "cyberware", utilityCyberwareIcon),
 };
 
 const itemTypeIcons: Partial<Record<ItemType, EquipmentIconInfo>> = {
@@ -80,7 +87,7 @@ const itemTypeIcons: Partial<Record<ItemType, EquipmentIconInfo>> = {
   WeaponAttachment: icon("ATT", "Weapon attachment", "attachment"),
   WeaponMod: icon("MOD", "Weapon mod", "mod"),
   Armor: icon("ARM", "Armor", "armor"),
-  Cyberware: icon("CYB", "Cyberware", "cyberware"),
+  Cyberware: icon("CYB", "Cyberware", "cyberware", operatingSystemIcon),
   Consumable: icon("CON", "Consumable", "consumable"),
   Blueprint: icon("BP", "Blueprint", "blueprint"),
   Quest: icon("QST", "Quest item", "quest"),
@@ -104,7 +111,7 @@ const materialItemIcons: Record<string, EquipmentIconInfo> = {
 export function equipmentIconForItem(item?: ItemDefinition, fallbackSlot?: GearSlot | CyberwareSlot, fallbackKind?: "gear" | "cyberware"): EquipmentIconInfo | null {
   if (item?.id && materialItemIcons[item.id]) return materialItemIcons[item.id];
   if (item?.type === "Weapon" && item.weaponClass) return weaponClassIcons[item.weaponClass];
-  if (item?.type === "Cyberware" && item.rarity === "Prototype") return { ...(cyberwareSlotIcons[item.slot as CyberwareSlot] ?? itemTypeIcons.Cyberware ?? icon("CYB", "Cyberware", "cyberware")), src: iconicCyberwareIcon, className: "cyberware" };
+  if (item?.type === "Cyberware" && ["Prototype", "Relic"].includes(item.rarity)) return { ...(cyberwareSlotIcons[item.slot as CyberwareSlot] ?? itemTypeIcons.Cyberware ?? icon("CYB", "Cyberware", "cyberware")), src: iconicOperatingSystemIcon, className: "cyberware" };
   if (item?.type === "Cyberware" && item.slot) return cyberwareSlotIcons[item.slot as CyberwareSlot] ?? itemTypeIcons.Cyberware ?? null;
   if (item?.slot && item.type === "Armor") return gearSlotIcons[item.slot as GearSlot] ?? itemTypeIcons.Armor ?? null;
   if (item?.type && itemTypeIcons[item.type]) return itemTypeIcons[item.type] ?? null;

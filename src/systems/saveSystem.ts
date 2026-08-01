@@ -1,6 +1,9 @@
 import { startingResources } from "../data/resources";
 import { createInitialState, normalizeLogEntries, SAVE_VERSION } from "./gameState";
 import { calculateMaxHP } from "./healthSystem";
+import { heatCountermeasureTiers } from "../data/heatCountermeasures";
+import { dropRateAmplifierTiers } from "../data/dropRateAmplifiers";
+import { factionIdForFixer } from "./factionContacts";
 import type { GameState } from "../types";
 
 export const SAVE_KEY = "neon-row-idle-save";
@@ -254,5 +257,38 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
   if (!saved.health) normalized.health.currentHp = maxHp;
   normalized.health.currentHp = Math.max(0, Math.min(maxHp, normalized.health.currentHp || maxHp));
   if (!saved.health?.lifeState) normalized.health.lifeState = "alive";
+  mergeLegacyFixerTrustIntoFactions(normalized);
+  collapseLegacyHeatVeilInventory(normalized);
+  collapseLegacyDropAmplifierInventory(normalized);
   return normalized;
+}
+
+function mergeLegacyFixerTrustIntoFactions(state: GameState) {
+  Object.entries(state.fixerTrust).forEach(([fixerId, progress]) => {
+    const factionId = factionIdForFixer(fixerId);
+    if (factionId) state.factions[factionId].reputation += Math.max(0, progress.trust);
+  });
+  state.fixerTrust = {};
+}
+
+function collapseLegacyHeatVeilInventory(state: GameState) {
+  const districtIds = [...new Set(heatCountermeasureTiers.map((tier) => tier.districtId))];
+  districtIds.forEach((districtId) => {
+    const tiers = heatCountermeasureTiers.filter((tier) => tier.districtId === districtId);
+    const highestOwned = [...tiers].reverse().find((tier) => (state.inventory[tier.itemId] ?? 0) > 0);
+    if (!highestOwned) return;
+    tiers.forEach((tier) => delete state.inventory[tier.itemId]);
+    state.inventory[highestOwned.itemId] = 1;
+  });
+}
+
+function collapseLegacyDropAmplifierInventory(state: GameState) {
+  const districtIds = [...new Set(dropRateAmplifierTiers.map((tier) => tier.districtId))];
+  districtIds.forEach((districtId) => {
+    const tiers = dropRateAmplifierTiers.filter((tier) => tier.districtId === districtId);
+    const highestOwned = [...tiers].reverse().find((tier) => (state.inventory[tier.itemId] ?? 0) > 0);
+    if (!highestOwned) return;
+    tiers.forEach((tier) => delete state.inventory[tier.itemId]);
+    state.inventory[highestOwned.itemId] = 1;
+  });
 }

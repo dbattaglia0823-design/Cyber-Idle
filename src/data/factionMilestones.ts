@@ -10,10 +10,10 @@ export interface FactionMilestone {
 }
 
 export const factionMilestones: FactionMilestone[] = [
-  milestone("ghostMarket", "neonRow", 1, "Backroom Introductions", "Starter contraband prices improve.", "Ghost Market rank 1"),
-  milestone("ghostMarket", "neonRow", 2, "Courier Marks", "Sable offers safer package contracts.", "Ghost Market rank 2"),
-  milestone("ghostMarket", "neonRow", 3, "Market Rumors", "Underpass Market lead becomes clearer.", "Ghost Market rank 3"),
-  milestone("ghostMarket", "neonRow", 4, "Private Buyer Whisper", "Black Market private buyer routing improves.", "Ghost Market rank 4"),
+  milestone("redlineSaints", "neonRow", 1, "Backroom Introductions", "Starter contraband prices improve.", "Redline Saints rank 1"),
+  milestone("redlineSaints", "neonRow", 2, "Courier Marks", "Sable offers safer package contracts.", "Redline Saints rank 2"),
+  milestone("redlineSaints", "neonRow", 3, "Market Rumors", "Underpass Market lead becomes clearer.", "Redline Saints rank 3"),
+  milestone("redlineSaints", "neonRow", 4, "Private Buyer Whisper", "Black Market private buyer routing improves.", "Redline Saints rank 4"),
   milestone("redlineSaints", "neonRow", 5, "Block Ceasefire", "Neon Row combat operations lose threat pressure.", "Redline Saints rank 5"),
 
   milestone("chromeJackals", "rustYards", 1, "Yard Pass", "Basic vehicle parts become easier to source.", "Chrome Jackals rank 1"),
@@ -22,11 +22,11 @@ export const factionMilestones: FactionMilestone[] = [
   milestone("chromeJackals", "rustYards", 4, "Convoy Trust", "Smuggling contracts gain success support.", "Chrome Jackals rank 4"),
   milestone("chromeJackals", "rustYards", 5, "Fortress Key", "High-tier Rust operations reveal better routes.", "Chrome Jackals rank 5"),
 
-  milestone("ghostMarket", "underpassMarket", 1, "Buyer Screen", "Market listings become safer.", "Ghost Market rank 1"),
-  milestone("ghostMarket", "underpassMarket", 2, "Contraband Shelf", "Rare market items appear earlier.", "Ghost Market rank 2"),
-  milestone("ghostMarket", "underpassMarket", 3, "Private Auction", "Private bid contracts unlock.", "Ghost Market rank 3"),
-  milestone("ghostMarket", "underpassMarket", 4, "Broker Protection", "Underpass housing improves Heat decay.", "Ghost Market rank 4"),
-  milestone("ghostMarket", "underpassMarket", 5, "Kingpin Access", "Underpass boss routes gain rare-drop support.", "Ghost Market rank 5"),
+  milestone("redlineSaints", "underpassMarket", 1, "Buyer Screen", "Market listings become safer.", "Redline Saints rank 1"),
+  milestone("redlineSaints", "underpassMarket", 2, "Contraband Shelf", "Rare market items appear earlier.", "Redline Saints rank 2"),
+  milestone("redlineSaints", "underpassMarket", 3, "Private Auction", "Private bid contracts unlock.", "Redline Saints rank 3"),
+  milestone("redlineSaints", "underpassMarket", 4, "Broker Protection", "Underpass housing improves Heat decay.", "Redline Saints rank 4"),
+  milestone("redlineSaints", "underpassMarket", 5, "Kingpin Access", "Underpass boss routes gain rare-drop support.", "Redline Saints rank 5"),
 
   milestone("nullChoir", "blacknetQuarter", 1, "Quiet Handshake", "Trace cleanup jobs become available.", "Null Choir rank 1"),
   milestone("nullChoir", "blacknetQuarter", 2, "Cipher Choir", "Blacknet vendor cipher prices improve.", "Null Choir rank 2"),
@@ -53,9 +53,9 @@ export const factionMilestones: FactionMilestone[] = [
   milestone("redlineSaints", "redlineBlocks", 5, "Block Authority", "Redline threat cleanup improves.", "Redline Saints rank 5"),
 
   milestone("ghostMarket", "skylineCore", 1, "Concierge Whisper", "Luxury brokers acknowledge you.", "Ghost Market rank 1"),
-  milestone("helixOrder", "skylineCore", 2, "Executive Clinic Line", "Premium recovery access improves.", "Helix Order rank 2"),
+  milestone("ghostMarket", "skylineCore", 2, "Executive Clinic Line", "Premium recovery access improves.", "Ghost Market rank 2"),
   milestone("ghostMarket", "skylineCore", 3, "Private Buyer Seal", "High-value market sales improve.", "Ghost Market rank 3"),
-  milestone("helixOrder", "skylineCore", 4, "Prototype Lease", "Skyline prototype costs improve.", "Helix Order rank 4"),
+  milestone("ghostMarket", "skylineCore", 4, "Prototype Lease", "Skyline prototype costs improve.", "Ghost Market rank 4"),
   milestone("ghostMarket", "skylineCore", 5, "Blackout Invitation", "Skyline Blackout chain gains elite routing.", "Ghost Market rank 5"),
 ];
 

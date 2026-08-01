@@ -1,5 +1,5 @@
 import { getItem } from "../data/items";
-import type { GameState, ItemDefinition, ItemStats } from "../types";
+import type { ActiveModifiers, GameState, ItemDefinition, ItemStats } from "../types";
 
 export function upgradeCost(itemId: string, level: number) {
   const item = getItem(itemId);
@@ -33,16 +33,37 @@ function rarityMaterialMultiplier(rarity: string) {
 export function scaledStats(state: GameState, itemId: string): ItemStats {
   const item = getItem(itemId);
   const level = state.upgradeLevels[itemId] ?? 0;
-  const scale = 1 + level * 0.08;
   const stats = item?.stats ?? {};
   return Object.fromEntries(Object.entries(stats).map(([key, value]) => {
     if (typeof value !== "number") return [key, value];
-    const scaled = value * scale;
-    if (Math.abs(value) < 1 || key.toLowerCase().includes("chance") || key.toLowerCase().includes("modifier")) {
-      return [key, Number(scaled.toFixed(3))];
-    }
-    return [key, Math.round(scaled)];
+    const percentLike = Math.abs(value) < 1 || key.toLowerCase().includes("chance") || key.toLowerCase().includes("modifier");
+    const lowerIsBetter = ["attackSpeed", "heatModifier", "neuralInstabilityModifier"].includes(key);
+    if (percentLike) return [key, Number((value + level * 0.01 * (lowerIsBetter ? -1 : 1)).toFixed(3))];
+    const step = Math.max(1, Math.round(Math.abs(value) * 0.08));
+    return [key, Math.round(value + level * step * (lowerIsBetter ? -1 : 1))];
   }));
+}
+
+export function scaledModifiers(state: GameState, itemId: string): Partial<ActiveModifiers> {
+  const item = getItem(itemId);
+  const level = state.upgradeLevels[itemId] ?? 0;
+  const modifiers = item?.modifiers;
+  if (!modifiers || level <= 0) return modifiers ?? {};
+  const lowerIsBetter = new Set<keyof ActiveModifiers>([
+    "heatGain",
+    "neuralInstabilityGain",
+    "shopPrices",
+  ]);
+  const scaled: Partial<ActiveModifiers> = {
+    ...modifiers,
+    skillXp: Object.fromEntries(Object.entries(modifiers.skillXp ?? {}).map(([skill, value]) => [skill, Number(((value ?? 0) + level * 0.01).toFixed(3))])),
+  };
+  Object.entries(modifiers).forEach(([key, value]) => {
+    if (key === "skillXp" || typeof value !== "number") return;
+    const direction = lowerIsBetter.has(key as keyof ActiveModifiers) ? -1 : 1;
+    (scaled as Record<string, unknown>)[key] = Number((value + level * 0.01 * direction).toFixed(3));
+  });
+  return scaled;
 }
 
 export function scaledSellValue(state: GameState, itemId: string) {
