@@ -4539,11 +4539,11 @@ function rarityRank(rarity: string) {
 type InventoryFilter = "All" | "Resources" | "Components" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables" | "Blueprints";
 type InventorySortMode = "rarity" | "quantity" | "price";
 type InventorySortDirection = "asc" | "desc";
-type CraftingSortMode = "rarity" | "level" | "duration" | "name";
+type CraftingSortMode = "rarity" | "level";
 type CraftingFilter = "All" | CraftingRecipe["category"];
 
 const inventorySortModes: InventorySortMode[] = ["rarity", "quantity", "price"];
-const craftingSortModes: CraftingSortMode[] = ["rarity", "level", "duration", "name"];
+const craftingSortModes: CraftingSortMode[] = ["rarity", "level"];
 const craftingFilters: CraftingFilter[] = ["All", "Components", "Upgrade Parts", "Weapons", "Armor", "Cyberware", "Attachments", "Weapon Mods", "Consumables"];
 const inventoryRarityRanks: Record<string, number> = {
   Common: 1,
@@ -4898,20 +4898,19 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [filter, setFilter] = useState<CraftingFilter>("All");
-  const [sortMode, setSortMode] = useState<CraftingSortMode>("level");
-  const [sortDirection, setSortDirection] = useState<InventorySortDirection>("asc");
+  const [sortMode, setSortMode] = useState<CraftingSortMode>("rarity");
+  const [sortDirection, setSortDirection] = useState<InventorySortDirection>("desc");
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const filteredRecipes = recipes.filter((recipe) => filter === "All" || recipe.category === filter);
   const sortedRecipes = [...filteredRecipes].sort((left, right) => {
     const leftItem = getItem(left.outputItemId);
     const rightItem = getItem(right.outputItemId);
-    let value = 0;
-    if (sortMode === "rarity") value = (inventoryRarityRanks[leftItem?.rarity ?? "Common"] ?? 0) - (inventoryRarityRanks[rightItem?.rarity ?? "Common"] ?? 0);
-    if (sortMode === "level") value = left.requiredLevel - right.requiredLevel;
-    if (sortMode === "duration") value = left.durationMs - right.durationMs;
-    if (sortMode === "name") value = left.name.localeCompare(right.name);
-    if (!value) value = left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name);
-    return sortDirection === "asc" ? value : -value;
+    const leftValue = sortMode === "rarity" ? inventoryRarityRanks[leftItem?.rarity ?? "Common"] ?? 0 : left.requiredLevel;
+    const rightValue = sortMode === "rarity" ? inventoryRarityRanks[rightItem?.rarity ?? "Common"] ?? 0 : right.requiredLevel;
+    const direction = sortDirection === "asc" ? 1 : -1;
+    const primaryDifference = (leftValue - rightValue) * direction;
+    if (primaryDifference !== 0) return primaryDifference;
+    return left.name.localeCompare(right.name);
   });
   const selectedRecipe = (selectedRecipeId ? sortedRecipes.find((recipe) => recipe.id === selectedRecipeId) : null) ?? sortedRecipes[0] ?? null;
   const selectedOutput = selectedRecipe ? getItem(selectedRecipe.outputItemId) : null;
