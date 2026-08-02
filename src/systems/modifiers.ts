@@ -1,4 +1,3 @@
-import { companions } from "../data/companions";
 import { housingOptions } from "../data/housing";
 import { getItem } from "../data/items";
 import { vehicles } from "../data/vehicles";
@@ -11,6 +10,7 @@ import { applyPerkModifiers } from "./perkSystem";
 import { streetLegendMilestones } from "../data/streetLegendData";
 import { totalFactionReputation } from "./factionContacts";
 import { activeDistrictDropAmplifier } from "../data/dropRateAmplifiers";
+import { activeCraftingSpeedUpgrade, activeDoubleCraftUpgrade } from "../data/craftingEnhancements";
 import type { ActiveModifiers, GameState, RewardBundle, SkillId } from "../types";
 
 export function getActiveModifiers(state: GameState): ActiveModifiers {
@@ -40,6 +40,8 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
     offlineProgressCapHours: 12,
     fixerTrustGain: 0,
     masteryXpGain: 0,
+    craftingSpeed: 0,
+    doubleCraftChance: 0,
     craftingCostReduction: 0,
     upgradeCostReduction: 0,
     vehicleUpgradeCostReduction: 0,
@@ -57,15 +59,28 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyFactions(state, modifiers);
   applyMasteryPools(state, modifiers);
   applyFactionNetwork(state, modifiers);
-  applyCompanion(state, modifiers);
   applyEquipment(state, modifiers);
   applyVehicle(state, modifiers);
   applyRipperdocEffects(state, modifiers);
   applyStreetLegend(state, modifiers);
   applyDistrictDropAmplifier(state, modifiers);
+  applyCraftingEnhancements(state, modifiers);
   applyRiskState(state, modifiers);
 
   return modifiers;
+}
+
+function applyCraftingEnhancements(state: GameState, modifiers: ActiveModifiers) {
+  const speedUpgrade = activeCraftingSpeedUpgrade(state);
+  if (speedUpgrade) {
+    modifiers.craftingSpeed += speedUpgrade.bonus;
+    modifiers.activeSources.push(`${speedUpgrade.name} +${Math.round(speedUpgrade.bonus * 100)}% crafting speed`);
+  }
+  const doubleUpgrade = activeDoubleCraftUpgrade(state);
+  if (doubleUpgrade) {
+    modifiers.doubleCraftChance += doubleUpgrade.bonus;
+    modifiers.activeSources.push(`${doubleUpgrade.name} ${Math.round(doubleUpgrade.bonus * 100)}% double craft`);
+  }
 }
 
 function applyDistrictDropAmplifier(state: GameState, modifiers: ActiveModifiers) {
@@ -141,7 +156,9 @@ export function applyNeuralModifier(state: GameState, amount: number, tags: stri
 
 export function adjustedDurationMs(state: GameState, durationMs: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
-  const speed = modifiers.actionSpeed + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
+  const speed = modifiers.actionSpeed
+    + (tags.includes("crafting") ? modifiers.craftingSpeed : 0)
+    + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
   return Math.max(250, Math.round(durationMs * Math.max(0.05, 1 - speed)));
 }
 
@@ -224,34 +241,6 @@ function applyFactionNetwork(state: GameState, modifiers: ActiveModifiers) {
   const totalReputation = totalFactionReputation(state);
   if (totalReputation >= 25) modifiers.jobRewards += 0.02;
   if (totalReputation >= 75) modifiers.jobSuccessChance += 0.03;
-}
-
-function applyCompanion(state: GameState, modifiers: ActiveModifiers) {
-  const companion = companions.find((entry) => entry.id === state.activeCompanion);
-  const companionState = state.activeCompanion ? state.companions[state.activeCompanion] : null;
-  if (!companion || !companionState?.unlocked) return;
-  const scale = Math.min(0.1, companionState.relationship / 1000);
-  modifiers.activeSources.push(companion.name);
-  if (companion.id === "nyra-vale") {
-    modifiers.actionSpeed += scale;
-    modifiers.heatGain -= scale;
-  }
-  if (companion.id === "dex-riven") {
-    modifiers.actionSpeed += scale;
-    modifiers.skillRewards += scale;
-  }
-  if (companion.id === "mara-voss") {
-    modifiers.combatDamage += scale;
-    modifiers.combatXp += scale;
-  }
-  if (companion.id === "iris-kade") {
-    modifiers.neuralInstabilityGain -= scale;
-    modifiers.skillXp.cyberware = (modifiers.skillXp.cyberware ?? 0) + scale;
-  }
-  if (companion.id === "sable-quinn") {
-    modifiers.jobRewards += scale;
-    modifiers.fixerTrustGain += scale;
-  }
 }
 
 function applyRiskState(state: GameState, modifiers: ActiveModifiers) {
@@ -338,6 +327,8 @@ function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModi
     "shopPrices",
     "fixerTrustGain",
     "masteryXpGain",
+    "craftingSpeed",
+    "doubleCraftChance",
     "craftingCostReduction",
     "upgradeCostReduction",
     "vehicleUpgradeCostReduction",

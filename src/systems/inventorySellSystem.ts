@@ -16,7 +16,8 @@ export function inventoryQuickSellValue(state: GameState, itemId: string) {
 export function canQuickSellInventoryItem(state: GameState, itemId: string) {
   const item = getItem(itemId);
   if (!item || inventoryQuickSellValue(state, itemId) <= 0) return false;
-  return spareInventoryCopies(state, itemId) > 0;
+  const copiesToKeep = item.tags.includes("permanent-market") ? 1 : 0;
+  return spareInventoryCopies(state, itemId) > copiesToKeep;
 }
 
 export function quickSellInventoryItem(state: GameState, itemId: string) {

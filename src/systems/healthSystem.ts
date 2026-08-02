@@ -1,8 +1,8 @@
 import { getItem } from "../data/items";
 import { housingOptions } from "../data/housing";
 import { removeItem } from "./collectionSystem";
-import { calculatePlayerCombatStats } from "./balanceFormulas";
-import { combatEffectivenessForEnemy } from "./combatMatchups";
+import { calculateHitChance, calculatePlayerCombatStats, enemyAccuracy, enemyCritChance } from "./balanceFormulas";
+import { combatDifficultyStats, combatEffectivenessForEnemy, scaledDifficulty } from "./combatMatchups";
 import { getActiveModifiers } from "./modifiers";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clampRiskStat } from "./formulas";
@@ -28,18 +28,16 @@ export function calculateCurrentHP(state: GameState) {
 
 export function clampPlayerHP(state: GameState) {
   const maxHp = calculateMaxHP(state);
-  state.health.currentHp = Math.max(0, Math.min(maxHp, Math.round(state.health.currentHp || maxHp)));
+  const savedHp = Number.isFinite(state.health.currentHp) ? state.health.currentHp : maxHp;
+  // Passive recovery accrues in sub-point increments between game ticks. Preserve
+  // that fraction internally so it can accumulate into a full point of health.
+  state.health.currentHp = Math.max(0, Math.min(maxHp, savedHp));
   if (state.health.currentHp > 0 && state.health.lifeState === "downed") state.health.lifeState = "alive";
   return state;
 }
 
 export function applyDamage(state: GameState, rawAmount: number, source: string) {
-  const stats = calculatePlayerCombatStats(state);
-  const modifiers = getActiveModifiers(state);
-  const armorReduction = Math.min(rawAmount * 0.7, stats.armor * 0.85);
-  const percentReduction = Math.min(0.75, modifiers.damageReduction + modifiers.combatDefense * 0.35);
-  const afterArmor = Math.max(1, rawAmount - armorReduction);
-  const damage = Math.max(1, Math.round(afterArmor * (1 - percentReduction)));
+  const damage = calculateDamageTaken(state, rawAmount);
   state.health.currentHp = Math.max(0, state.health.currentHp - damage);
   state.health.lastDamageTaken = damage;
   state.health.lastDamageSource = source;
@@ -51,6 +49,16 @@ export function applyDamage(state: GameState, rawAmount: number, source: string)
   }
   if (state.health.currentHp <= 0) markDowned(state, source);
   return damage;
+}
+
+export function calculateDamageTaken(state: GameState, rawAmount: number) {
+  if (rawAmount <= 0) return 0;
+  const stats = calculatePlayerCombatStats(state);
+  const modifiers = getActiveModifiers(state);
+  const armorReduction = Math.min(rawAmount * 0.7, stats.armor * 0.85);
+  const percentReduction = Math.min(0.75, modifiers.damageReduction + modifiers.combatDefense * 0.35);
+  const afterArmor = Math.max(1, rawAmount - armorReduction);
+  return Math.max(1, Math.round(afterArmor * (1 - percentReduction)));
 }
 
 export function applyHealing(state: GameState, amount: number, source: string) {
@@ -67,6 +75,7 @@ export function applyHealing(state: GameState, amount: number, source: string) {
 }
 
 export function useHealingItem(state: GameState, itemId: string, source = "Manual healing") {
+  clampPlayerHP(state);
   const item = getItem(itemId);
   const healing = healingItems[itemId];
   if (!item || !healing || (state.inventory[itemId] ?? 0) <= 0) return { used: false, healed: 0 };
@@ -93,22 +102,38 @@ export function maybeAutoHeal(state: GameState, source: string) {
   unlockAutoHeal(state);
   if (!state.autoHeal.unlocked || !state.autoHeal.enabled || state.health.lifeState === "downed") return false;
   const maxHp = calculateMaxHP(state);
-  if (state.health.currentHp > maxHp * (state.autoHeal.threshold / 100)) return false;
-  const preferred = state.autoHeal.itemId;
-  const fallback = Object.keys(healingItems).find((id) => healingItems[id].autoEligible && (state.inventory[id] ?? 0) > 0);
-  const itemId = (state.inventory[preferred] ?? 0) > 0 ? preferred : fallback;
-  if (!itemId) {
+  const thresholdHp = maxHp * (state.autoHeal.threshold / 100);
+  if (state.health.currentHp > thresholdHp) return false;
+
+  let usedAny = false;
+  let attempts = 0;
+  while (state.health.currentHp <= thresholdHp && state.health.currentHp < maxHp && attempts < 1000) {
+    const itemId = nextAutoHealItem(state);
+    if (!itemId) break;
+    const result = useHealingItem(state, itemId, "Auto Heal");
+    if (!result.used || result.healed <= 0) break;
+    usedAny = true;
+    attempts += 1;
+  }
+
+  if (state.health.currentHp <= thresholdHp && !nextAutoHealItem(state)) {
     if (state.autoHeal.stopIfNoHealing) {
       state.currentCombat = null;
       state.activeOperation = null;
     }
     emitRewardPopupGroup(state, { title: "Auto Heal Failed", category: "warning", warnings: [`No healing item available after ${source}`] });
-    return false;
   }
-  return useHealingItem(state, itemId, "Auto Heal").used;
+  return usedAny;
+}
+
+function nextAutoHealItem(state: GameState) {
+  const preferred = state.autoHeal.itemId;
+  if (healingItems[preferred]?.autoEligible && (state.inventory[preferred] ?? 0) > 0) return preferred;
+  return Object.keys(healingItems).find((id) => healingItems[id].autoEligible && (state.inventory[id] ?? 0) > 0);
 }
 
 export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
+  clampPlayerHP(state);
   if (state.currentCombat || state.activeOperation || state.health.lifeState === "downed") return state;
   const maxHp = calculateMaxHP(state);
   if (state.health.currentHp >= maxHp) return state;
@@ -120,9 +145,13 @@ export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
   if (healing <= 0) return state;
   const before = state.health.currentHp;
   state.health.currentHp = Math.min(maxHp, state.health.currentHp + healing);
-  state.health.lastHealingReceived = state.health.currentHp - before;
-  state.health.lastHealingSource = "Passive recovery";
-  state.healthStatistics.totalHealingReceived += Math.max(0, state.health.lastHealingReceived);
+  const recovered = Math.max(0, state.health.currentHp - before);
+  const visibleHealing = Math.floor(state.health.currentHp) - Math.floor(before);
+  if (visibleHealing > 0) {
+    state.health.lastHealingReceived = visibleHealing;
+    state.health.lastHealingSource = "Passive recovery";
+  }
+  state.healthStatistics.totalHealingReceived += recovered;
   return state;
 }
 
@@ -166,11 +195,16 @@ export function estimateCombatSafety(state: GameState, enemy: Enemy) {
 
 export function estimateIncomingDamage(state: GameState, enemy: Enemy, durationMs: number) {
   const attacks = Math.max(1, Math.floor(durationMs / Math.max(600, enemy.attackSpeedMs)));
-  const modifiers = getActiveModifiers(state);
-  const dodge = Math.min(0.65, modifiers.dodgeChance + equippedDodge(state));
-  const expectedHits = attacks * (1 - dodge);
+  const stats = calculatePlayerCombatStats(state);
+  const hitChance = calculateHitChance(enemyAccuracy(enemy), stats.dodge);
   const threatScale = 1 + (enemy.threatScaling ?? 0) * 0.08;
-  return Math.max(1, Math.round(enemy.damage * expectedHits * threatScale));
+  const difficultyMultiplier = combatDifficultyStats[scaledDifficulty(state, enemy)].damage;
+  const critChance = enemyCritChance(enemy);
+  const rawDamage = enemy.damage * threatScale * difficultyMultiplier;
+  const normalDamage = calculateDamageTaken(state, Math.round(rawDamage));
+  const criticalDamage = calculateDamageTaken(state, Math.round(rawDamage * Math.max(1, enemy.critDamage ?? 1.5)));
+  const expectedDamagePerAttack = hitChance * ((1 - critChance) * normalDamage + critChance * criticalDamage);
+  return Math.max(1, Math.round(attacks * expectedDamagePerAttack));
 }
 
 export function unlockAutoHeal(state: GameState) {
@@ -198,11 +232,4 @@ function markDowned(state: GameState, source: string) {
     heat: 2,
     durationMs: 6000,
   });
-}
-
-function equippedDodge(state: GameState) {
-  return [...Object.values(state.equippedGear), ...Object.values(state.equippedCyberware)].reduce((sum, itemId) => {
-    if (!itemId) return sum;
-    return sum + (getItem(itemId)?.stats?.dodge ?? 0);
-  }, 0);
 }

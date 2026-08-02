@@ -2607,12 +2607,16 @@ const baseSkillActions: SkillAction[] = [
     district: "Skyline Labs",
     districtReq: "skylineCore",
     description: "Recover Rare Wreckage keeps Skyline Core progression moving for Scavenging.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 23000,
     xpReward: 915,
     masteryXpReward: 10,
     rewards: { scrap: 50, circuitBoards: 5, credits: 240 },
-    rareDrops: [drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0482)],
+    rareDrops: [
+      drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.15),
+      drop("luxury-processor", "Luxury Processor", 0.12),
+      drop("relic-circuit", "Relic Circuit", 0.06),
+    ],
     heatChange: 0,
     tags: ["scavenging", "recover-rare-wreckage", "skyline-core"],
   }),
@@ -2863,6 +2867,21 @@ const vehicleTuningDropTables: Record<string, EnemyDrop[]> = {
   "gap-skyline-core-vehicleTuning-2": [drop("luxury-processor", "Luxury Processor", 0.06), drop("skyline-authorization", "Skyline Authorization", 0.04), drop("relic-circuit", "Relic Circuit", 0.018)],
 };
 
+const skillActionDropChanceOverrides: Record<string, Record<string, number>> = {
+  // Skyline scavenging uses an explicit endgame curve so each five-level
+  // unlock is visibly better without turning relic materials into common loot.
+  "gap-skyline-core-scavenging-2": {
+    "rare-blueprint-fragment": 0.115,
+    "luxury-processor": 0.08,
+    "relic-circuit": 0.02,
+  },
+  "gap-skyline-core-scavenging-3": {
+    "rare-blueprint-fragment": 0.13,
+    "luxury-processor": 0.095,
+    "relic-circuit": 0.03,
+  },
+};
+
 type HighLevelDropProfile = {
   universal: EnemyDrop[];
   bySkill: Partial<Record<SkillId, EnemyDrop[]>>;
@@ -2935,7 +2954,20 @@ function highLevelProgressionDrops(skillAction: SkillAction) {
   if (skillAction.levelReq < 60 || !skillAction.districtReq) return [];
   const profile = highLevelDropProfiles[skillAction.districtReq];
   if (!profile) return [];
-  return [...profile.universal, ...(profile.bySkill[skillAction.skillId] ?? [])];
+  return progressionAdjustedDrops(skillAction, [...profile.universal, ...(profile.bySkill[skillAction.skillId] ?? [])]);
+}
+
+/**
+ * Later skill actions should always be a better place to chase their drops.
+ * This scales every action's authored table with its unlock level, while the
+ * monotonic pass below prevents a repeated item from becoming worse later.
+ */
+function progressionAdjustedDrops(skillAction: SkillAction, drops: EnemyDrop[]) {
+  const multiplier = 1 + Math.min(0.3, skillAction.levelReq * 0.002);
+  return drops.map((entry) => ({
+    ...entry,
+    chance: Math.min(0.5, Number((entry.chance * multiplier).toFixed(4))),
+  }));
 }
 
 function mergeDrops(...tables: Array<EnemyDrop[] | undefined>) {
@@ -2947,8 +2979,40 @@ function mergeDrops(...tables: Array<EnemyDrop[] | undefined>) {
   return [...merged.values()];
 }
 
+function applyDropChanceOverrides(skillAction: SkillAction, drops: EnemyDrop[]) {
+  const overrides = skillActionDropChanceOverrides[skillAction.id];
+  if (!overrides) return drops;
+  return drops.map((entry) => ({
+    ...entry,
+    chance: overrides[entry.id] ?? entry.chance,
+  }));
+}
+
+const bestDropBySkill = new Map<SkillId, Map<string, { level: number; chance: number }>>();
+
 export const skillActions: SkillAction[] = baseSkillActions.map((skillAction) => {
   const vehicleDrops = vehicleTuningDropTables[skillAction.id];
-  const rareDrops = mergeDrops(vehicleDrops ?? skillAction.rareDrops, highLevelProgressionDrops(skillAction));
+  const authoredDrops = progressionAdjustedDrops(skillAction, vehicleDrops ?? skillAction.rareDrops ?? []);
+  const mergedDrops = applyDropChanceOverrides(
+    skillAction,
+    mergeDrops(authoredDrops, highLevelProgressionDrops(skillAction)),
+  );
+  const priorDrops = bestDropBySkill.get(skillAction.skillId) ?? new Map<string, { level: number; chance: number }>();
+  const rareDrops = mergedDrops.map((entry) => {
+    const prior = priorDrops.get(entry.id);
+    let chance = entry.chance;
+    if (prior && skillAction.levelReq >= prior.level && chance <= prior.chance) {
+      const levelGain = skillAction.levelReq - prior.level;
+      chance = levelGain > 0
+        ? Math.min(0.5, prior.chance + Math.max(0.001, levelGain * 0.0002))
+        : prior.chance;
+    }
+    const adjusted = { ...entry, chance: Number(chance.toFixed(4)) };
+    if (!prior || skillAction.levelReq >= prior.level) {
+      priorDrops.set(entry.id, { level: skillAction.levelReq, chance: adjusted.chance });
+    }
+    return adjusted;
+  });
+  bestDropBySkill.set(skillAction.skillId, priorDrops);
   return rareDrops.length > 0 ? { ...skillAction, rareDrops } : skillAction;
 });

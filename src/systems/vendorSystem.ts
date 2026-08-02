@@ -61,7 +61,7 @@ export function canBuyVendorItem(state: GameState, vendorId: string, itemId: str
   const vendor = vendors.find((entry) => entry.id === vendorId);
   const item = vendor?.inventory.find((entry) => entry.itemId === itemId);
   if (!vendor || !item || !canUseVendor(state, vendor) || !vendorItemUnlocked(state, item)) return false;
-  if (getItem(itemId)?.tags.includes("heat-countermeasure") && state.discoveredItems[itemId]) return false;
+  if (permanentMarketItemAcquired(state, itemId)) return false;
   if (item.stockType === "limited" && vendorLimitedStockRemaining(state, vendorId, item) <= 0) return false;
   return state.resources.credits >= vendorPrice(state, vendor, item);
 }
@@ -95,7 +95,15 @@ export function buyVendorItem(state: GameState, vendorId: string, itemId: string
 export function canSellVendorItem(state: GameState, vendorId: string, itemId: string) {
   const vendor = vendors.find((entry) => entry.id === vendorId);
   if (!vendor?.canSell || !state.districts[vendor.districtId]?.unlocked) return false;
+  if (getItem(itemId)?.tags.includes("permanent-market") && getOwnedCount(state, itemId) <= 1) return false;
   return getOwnedCount(state, itemId) > 0 && sellValue(state, vendor, itemId) > 0;
+}
+
+export function permanentMarketItemAcquired(state: GameState, itemId: string) {
+  const item = getItem(itemId);
+  if (!item) return false;
+  if (item.tags.includes("heat-countermeasure")) return Boolean(state.discoveredItems[itemId]);
+  return item.tags.includes("permanent-market") && (state.inventory[itemId] ?? 0) > 0;
 }
 
 export function sellVendorItem(state: GameState, vendorId: string, itemId: string) {

@@ -10,7 +10,7 @@ import { skillActions } from "../data/skills";
 import { storyArcs } from "../data/storyArcs";
 import { vehicles } from "../data/vehicles";
 import { vendors } from "../data/vendors";
-import { districtCombatZones, districtCompanions, districtFixers } from "./districtActivities";
+import { districtCombatZones, districtFixers } from "./districtActivities";
 import { meetsActionAccessRequirement } from "./actionAccess";
 import type { DistrictId, GameState } from "../types";
 
@@ -43,7 +43,6 @@ export interface DistrictContentMap {
   garage: string[];
   blacknet: string[];
   story: string[];
-  companions: string[];
   events: string[];
 }
 
@@ -82,7 +81,6 @@ export function districtContentMap(state: GameState, districtId: DistrictId): Di
       ? skillActions.filter((action) => action.districtReq === districtId && (action.skillId === "hacking" || action.tags?.includes("blacknet"))).map((action) => action.id)
       : [],
     story: storyArcs.filter((arc) => arc.districtId === districtId).map((arc) => arc.id),
-    companions: districtCompanions(districtId).map((companion) => companion.id),
     events: districtEvents.filter((event) => event.districtId === districtId).map((event) => event.id),
   };
 }

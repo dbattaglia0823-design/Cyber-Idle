@@ -1,4 +1,3 @@
-import { companions } from "../data/companions";
 import { districtEvents } from "../data/districtEvents";
 import { districts } from "../data/districts";
 import { factions } from "../data/factions";
@@ -90,13 +89,8 @@ export function createInitialState(now = Date.now()): GameState {
     fixerTrust: {},
     ownedHousing: {},
     activeResidence: null,
-    companions: Object.fromEntries(
-      companions.map((companion) => [
-        companion.id,
-        { unlocked: companion.id === "sable-quinn", relationship: companion.id === "sable-quinn" ? 1 : 0 },
-      ]),
-    ),
-    activeCompanion: "sable-quinn",
+    companions: {},
+    activeCompanion: null,
     worldUnlocks: {},
     equippedGear: {},
     equippedCyberware: {},

@@ -1,4 +1,5 @@
 import type { Boss, CombatAffinity } from "../types";
+import { attackIntervalFromFormerBaseline } from "./combatTiming";
 
 const weak = (id: string, label: string, damageMultiplier: number, tags: Partial<CombatAffinity>): CombatAffinity => ({ id, label, damageMultiplier, ...tags });
 
@@ -147,7 +148,7 @@ function boss(id: string, name: string, hp: number, damage: number, attackSpeedM
     description: `${name} controls an operation endpoint.`,
     hp,
     damage,
-    attackSpeedMs,
+    attackSpeedMs: attackIntervalFromFormerBaseline(attackSpeedMs),
     armor,
     accuracy: 0,
     mechanics,

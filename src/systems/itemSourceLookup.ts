@@ -11,7 +11,14 @@ import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { resourceSourceHint } from "../data/resourceTiers";
 import { actionAccessRequirementText, meetsActionAccessRequirement } from "./actionAccess";
-import type { DistrictId, GameState } from "../types";
+import type { DistrictActivityCategory } from "./districtActivityMap";
+import type { DistrictId, GameState, SkillId } from "../types";
+
+export interface ItemSourceDestination {
+  districtId: DistrictId;
+  category: DistrictActivityCategory | `skill-${SkillId}`;
+  targetId?: string;
+}
 
 export type ItemSourceType =
   | "Skill action"
@@ -36,6 +43,7 @@ export interface ItemSourceEntry {
   unlocked: boolean;
   requirement?: string;
   goLabel?: string;
+  destination?: ItemSourceDestination;
 }
 
 export function getItemSources(itemId: string, state: GameState): ItemSourceEntry[] {
@@ -51,6 +59,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
         requirement: actionAccessRequirementText(state, action),
         goLabel: `Go to ${action.name}`,
+        destination: action.districtReq ? { districtId: action.districtReq, category: `skill-${action.skillId}`, targetId: action.id } : undefined,
       });
     }
     action.rareDrops?.filter((drop) => drop.id === itemId).forEach((drop) => {
@@ -63,6 +72,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
         requirement: actionAccessRequirementText(state, action),
         goLabel: `Go to ${action.name}`,
+        destination: action.districtReq ? { districtId: action.districtReq, category: `skill-${action.skillId}`, targetId: action.id } : undefined,
       });
     });
   });
@@ -78,6 +88,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
           chance: drop.chance,
           unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
           goLabel: `Go to ${enemy.name}`,
+          destination: enemy.preferredDistrict ? { districtId: enemy.preferredDistrict, category: "combat", targetId: enemy.id } : undefined,
         });
       });
       percentDropTables[enemy.id]?.filter((drop) => drop.itemId === itemId).forEach((drop) => {
@@ -90,6 +101,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
           unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
           requirement: drop.requirements?.join(", "),
           goLabel: `Go to ${enemy.name}`,
+          destination: enemy.preferredDistrict ? { districtId: enemy.preferredDistrict, category: "combat", targetId: enemy.id } : undefined,
         });
       });
     });
@@ -97,7 +109,18 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
 
   bosses.forEach((boss) => {
     boss.drops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      sources.push({ type: "Boss drop", name: boss.name, detail: `${formatChance(drop.chance)} from boss drops.`, chance: drop.chance, unlocked: true, goLabel: `Go to ${boss.name}` });
+      const operation = operations.find((entry) => entry.bossId === boss.id);
+      const districtId = operation?.districtId ?? boss.preferredDistrict;
+      sources.push({
+        type: "Boss drop",
+        name: boss.name,
+        detail: `${formatChance(drop.chance)} from boss drops.`,
+        districtId,
+        chance: drop.chance,
+        unlocked: sourceDistrictUnlocked(state, districtId),
+        goLabel: `Go to ${boss.name}`,
+        destination: districtId ? { districtId, category: operation ? "operations" : "combat", targetId: operation?.id ?? boss.id } : undefined,
+      });
     });
   });
 
@@ -111,6 +134,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
         requirement: operation.unlockRequirements.join(", "),
         goLabel: `Go to ${operation.name}`,
+        destination: { districtId: operation.districtId, category: "operations", targetId: operation.id },
       });
     }
     operation.rareDrops.filter((drop) => drop.id === itemId).forEach((drop) => {
@@ -123,6 +147,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
         requirement: operation.unlockRequirements.join(", "),
         goLabel: `Go to ${operation.name}`,
+        destination: { districtId: operation.districtId, category: "operations", targetId: operation.id },
       });
     });
   });
@@ -137,11 +162,13 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: Boolean(state.districts[job.districtId]?.unlocked),
         requirement: job.requirements.join(", "),
         goLabel: `Go to ${job.name}`,
+        destination: { districtId: job.districtId, category: "contracts", targetId: job.id },
       });
     }
   });
 
   recipes.filter((recipe) => recipe.outputItemId === itemId).forEach((recipe) => {
+    const districtId = recipe.requiredDistrict ?? state.selectedDistrict ?? undefined;
     sources.push({
       type: "Crafting recipe",
       name: recipe.name,
@@ -149,6 +176,8 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
       unlocked: state.skills[recipe.requiredSkill].level >= recipe.requiredLevel && (!recipe.requiredBlueprint || state.unlockedBlueprints[recipe.requiredBlueprint]),
       requirement: recipe.requiredBlueprint ? `Blueprint: ${getItem(recipe.requiredBlueprint)?.name ?? recipe.requiredBlueprint}` : `${skillNames[recipe.requiredSkill]} level ${recipe.requiredLevel}`,
       goLabel: `Go to ${recipe.name}`,
+      districtId,
+      destination: districtId ? { districtId, category: "crafting", targetId: recipe.id } : undefined,
     });
   });
 
@@ -162,6 +191,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: Boolean(state.districts[vendor.districtId]?.unlocked),
         requirement: vendor.unlockRequirements.join(", "),
         goLabel: `Go to ${vendor.name}`,
+        destination: { districtId: vendor.districtId, category: "market", targetId: itemId },
       });
     });
   });
@@ -176,6 +206,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         unlocked: Boolean(state.districts[clinic.districtId]?.unlocked),
         requirement: clinic.unlockRequirements.join(", "),
         goLabel: `Go to ${clinic.name}`,
+        destination: { districtId: clinic.districtId, category: "market", targetId: itemId },
       });
     }
   });
@@ -183,7 +214,11 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   const item = getItem(itemId);
   const hint = resourceSourceHint(itemId) ?? item?.sourceHint;
   if (hint) sources.push({ type: "Item note", name: resourceName(itemId), detail: hint, unlocked: true });
-  if (!sources.length) sources.push({ type: "Black Market", name: "Black Market", detail: "Watch vendors, contracts, and rare market listings.", unlocked: Boolean(state.districts.blacknetQuarter?.unlocked || state.districts.underpassMarket?.unlocked), goLabel: "Go to Black Market" });
+  if (!sources.length) {
+    const districtId = state.districts.underpassMarket?.unlocked ? "underpassMarket" : "blacknetQuarter";
+    const unlocked = Boolean(state.districts[districtId]?.unlocked);
+    sources.push({ type: "Black Market", name: "Black Market", detail: "Watch vendors, contracts, and rare market listings.", districtId, unlocked, goLabel: "Go to Black Market", destination: { districtId, category: "market" } });
+  }
   return sources;
 }
 

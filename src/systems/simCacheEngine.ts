@@ -163,12 +163,12 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
       recap.stoppedReason = "Stopped early: missing materials.";
       break;
     }
-    completeCraft(state, recipe, recap.efficiency.masteryXp, false, false);
+    const producedQuantity = completeCraft(state, recipe, recap.efficiency.masteryXp, false, false);
     recap.completions += 1;
     recap.xpGained += recipe.xpReward;
     recap.masteryXpGained += Math.round(recipe.masteryXpReward * recap.efficiency.masteryXp);
     recap.poolXpGained += Math.ceil(recipe.masteryXpReward * 0.25);
-    recap.dropsGained[recipe.outputItemId] = (recap.dropsGained[recipe.outputItemId] ?? 0) + recipe.outputQuantity;
+    recap.dropsGained[recipe.outputItemId] = (recap.dropsGained[recipe.outputItemId] ?? 0) + producedQuantity;
   }
 }
 

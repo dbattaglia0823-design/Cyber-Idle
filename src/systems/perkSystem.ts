@@ -116,7 +116,6 @@ function meetsNamedUnlock(state: GameState, perk: PerkDefinition) {
   if (perk.id === "outrider-rust-yard-regular") return state.districts.rustYards?.unlocked;
   if (perk.id === "fixer-local-leverage") return Object.keys(state.manualDiscovery.jobs).length > 0;
   if (perk.id === "fixer-negotiated-prices") return Object.values(state.vendors).some((vendor) => vendor.discovered);
-  if (perk.id === "fixer-contact-chain") return Object.values(state.companions).some((companion) => companion.unlocked);
   if (perk.id === "fixer-favor-economy") return Object.values(state.factions).some((faction) => faction.reputation >= 20);
   if (perk.id === "ghost-evidence-cleaner") return state.resources.heat < 50;
   if (perk.id === "ghost-shadow-market") return state.factions.ghostMarket.reputation > 0;

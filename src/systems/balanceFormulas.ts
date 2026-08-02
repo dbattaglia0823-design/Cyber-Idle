@@ -8,7 +8,7 @@ import { effectiveNeuralInstability } from "./itemFormulas";
 import { scaledStats } from "./itemFormulas";
 import { equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import { totalFactionReputation } from "./factionContacts";
-import type { BlackMarketStrategy, DistrictId, EnemyDrop, GameState, ItemDefinition, JobContract, PlayerCombatStats, RewardBundle, SkillAction } from "../types";
+import type { BlackMarketStrategy, DistrictId, Enemy, EnemyDrop, GameState, ItemDefinition, JobContract, PlayerCombatStats, RewardBundle, SkillAction } from "../types";
 
 export interface FormulaBreakdown {
   label: string;
@@ -30,9 +30,13 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
       totals.damage += stats.damage ?? 0;
       totals.attackSpeedMs += stats.attackSpeed ?? 0;
       totals.armor += stats.armor ?? 0;
+      totals.accuracy += stats.accuracy ?? 0;
+      totals.dodge += stats.dodge ?? 0;
+      totals.critChance += stats.critChance ?? 0;
+      totals.critDamage += stats.critDamage ?? 0;
       return totals;
     },
-    { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0 },
+    { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0, accuracy: 0, dodge: 0, critChance: 0, critDamage: 0 },
   );
   const rawMaxHp = balanceConfig.combat.baseMaxHp + state.skills.combat.level * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
   const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs;
@@ -47,7 +51,26 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
     ),
     attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(rawAttackSpeed * (1 - Math.min(0.45, modifiers.combatAttackSpeed)))),
     armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(state.skills.combat.level / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
+    accuracy: clampPercent(balanceConfig.combat.baseAccuracy + gearStats.accuracy / 100, balanceConfig.combat.minHitChance, balanceConfig.combat.maxHitChance),
+    dodge: clampPercent(balanceConfig.combat.baseDodge + gearStats.dodge + modifiers.dodgeChance, 0, 0.65),
+    critChance: calculateCritChance(balanceConfig.combat.baseCritChance, gearStats.critChance),
+    critDamage: Math.max(1, balanceConfig.combat.baseCritDamage + gearStats.critDamage),
   };
+}
+
+export function enemyDodgeChance(enemy: Enemy) {
+  const traits = new Set(enemy.traits ?? []);
+  const traitDodge = (traits.has("highDodge") ? 0.12 : 0) + (traits.has("agile") ? 0.06 : 0);
+  return clampPercent((enemy.dodge ?? 0) + traitDodge, 0, 0.45);
+}
+
+export function enemyAccuracy(enemy: Enemy) {
+  return clampPercent(enemy.accuracy ?? balanceConfig.combat.baseAccuracy + (enemy.threatScaling ?? 0) * 0.02, balanceConfig.combat.minHitChance, balanceConfig.combat.maxHitChance);
+}
+
+export function enemyCritChance(enemy: Enemy) {
+  const traitBonus = enemy.traits?.includes("highCrit") ? 0.12 : 0;
+  return calculateCritChance(enemy.critChance ?? balanceConfig.combat.baseCritChance, traitBonus);
 }
 
 export function calculateEstimatedKillTime(state: GameState, effectiveHp: number) {
@@ -218,11 +241,39 @@ export function calculateBlackMarketRisk(state: GameState, strategy: BlackMarket
 export function calculateVendorPrice(state: GameState, basePrice: number, districtId: DistrictId, modifier = 1) {
   const standingDiscount = Math.min(0.18, (state.districtStanding[districtId]?.standing ?? 0) / 600);
   const threatMarkup = districtThreatPenalty(state, districtId);
-  return Math.max(balanceConfig.economy.vendorMinPrice, Math.round(basePrice * modifier * (1 + threatMarkup - standingDiscount + getActiveModifiers(state).shopPrices)));
+  return Math.max(balanceConfig.economy.vendorMinPrice, Math.round(basePrice * districtMarketPriceMultiplier(districtId) * modifier * (1 + threatMarkup - standingDiscount + getActiveModifiers(state).shopPrices)));
+}
+
+export function districtMarketPriceMultiplier(districtId: DistrictId) {
+  const multipliers: Record<DistrictId, number> = {
+    neonRow: 1,
+    rustYards: 1.1,
+    underpassMarket: 1.25,
+    blacknetQuarter: 1.4,
+    helixWard: 1.55,
+    glasslineDistrict: 1.7,
+    redlineBlocks: 1.85,
+    skylineCore: 2,
+  };
+  return multipliers[districtId];
 }
 
 export function calculateRarityShopBasePrice(item: ItemDefinition) {
   if (item.type === "Resource") return 0;
+  if (item.type === "Weapon" || item.type === "Armor" || item.type === "Cyberware") {
+    const equipmentBase: Record<ItemDefinition["rarity"], number> = {
+      Common: 1_000,
+      Uncommon: 4_000,
+      Rare: 9_000,
+      Epic: 60_000,
+      Legendary: 450_000,
+      Prototype: 2_250_000,
+      Relic: 8_000_000,
+    };
+    const typeMultiplier = item.type === "Cyberware" ? 1.2 : item.type === "Armor" ? 1.05 : 1;
+    const tierMultiplier = 0.8 + Math.min(6, Math.max(1, item.tier ?? 1)) * 0.08;
+    return Math.round(equipmentBase[item.rarity] * typeMultiplier * tierMultiplier);
+  }
   const rarityMultiplier: Record<ItemDefinition["rarity"], number> = {
     Common: 1,
     Uncommon: 1.45,

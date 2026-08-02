@@ -4,6 +4,8 @@ import { cyberwareSpecs, type CyberwareSpec } from "./cyberware";
 import { weaponSpecs, type WeaponSpec } from "./weapons";
 import { heatCountermeasureItems } from "./heatCountermeasures";
 import { dropRateAmplifierItems } from "./dropRateAmplifiers";
+import { craftingEnhancementItems } from "./craftingEnhancements";
+import { balancedWeaponStats, weaponAcquisitionLevel } from "./weaponBalance";
 
 export const cyberwareSlots: Array<{ id: CyberwareSlot; label: string }> = [
   { id: "neural", label: "Neural" },
@@ -102,19 +104,20 @@ export const items: ItemDefinition[] = [
   component("stabilized-chrome-frame", "Stabilized Chrome Frame", "A hardened frame for prototype chrome.", 300, "Epic"),
   component("boss-data-key", "Boss Data Key", "Future boss and dungeon unlock bottleneck.", 400, "Legendary"),
   component("faction-authorization", "Faction Authorization", "A permit token for faction-gated unlocks.", 250, "Epic"),
-  component("district-permit", "District Permit", "A district access bottleneck for later progression.", 250, "Epic"),
+  accessComponent("district-permit", "District Permit", "A permanent district credential for later progression.", 250, "Epic"),
   component("rare-blueprint-fragment", "Rare Blueprint Fragment", "Fragments used to reconstruct rare blueprints.", 180, "Rare"),
   component("neural-stabilizer-compound", "Neural Stabilizer Compound", "A compound needed for better stabilizers.", 160),
-  component("rust-access-key", "Rust Access Key", "Entry key for Junkyard Lockdown.", 80),
-  component("market-pass", "Market Pass", "Contraband route pass for Underpass Market operations.", 100),
+  accessComponent("rust-access-key", "Rust Access Key", "Permanent entry credential for Junkyard Lockdown.", 80),
+  accessComponent("market-pass", "Market Pass", "Permanent contraband-route credential for Underpass Market operations.", 100),
   component("glassline-access-token", "Glassline Access Token", "Corporate access token for extraction operations.", 180),
-  component("medical-access-pass", "Medical Access Pass", "Clinic clearance for Helix Ward services.", 160),
+  accessComponent("medical-access-pass", "Medical Access Pass", "Permanent clinic clearance for Helix Ward services.", 160),
   component("bounty-token", "Bounty Token", "Proof marker for Redline bounty boards.", 140),
   component("corporate-access-token", "Corporate Access Token", "Temporary corporate credential for Glassline work.", 220),
   component("hacking-script", "Hacking Script", "Single-use exploit package for future Blacknet automations.", 95),
-  component("data-job-pass", "Data Job Pass", "Broker-signed packet that opens higher-risk data contracts.", 130),
+  accessComponent("data-job-pass", "Data Job Pass", "Permanent broker credential for higher-risk data contracts.", 130),
   ...heatCountermeasureItems,
   ...dropRateAmplifierItems,
+  ...craftingEnhancementItems,
   component("medical-gel", "Medical Gel", "Sterile gel used by clinics and emergency patch kits.", 65),
   component("basic-scanner", "Basic Scanner", "A pocket scanner that improves early salvage reads.", 70),
   component("magnetic-scrapper", "Magnetic Scrapper", "A compact tool for faster metal and board recovery.", 95),
@@ -243,6 +246,11 @@ function component(id: string, name: string, description: string, sellValue: num
   return { id, name, description, type: "Component", rarity, tags: ["component", "crafting", rarity.toLowerCase()], stackable: true, maxStack: 9999, sellValue, sourceHint: "Crafted from components." };
 }
 
+function accessComponent(id: string, name: string, description: string, sellValue: number, rarity: ItemRarity = "Uncommon"): ItemDefinition {
+  const item = component(id, name, description, sellValue, rarity);
+  return { ...item, tags: [...item.tags, "access-key", "permanent-market"] };
+}
+
 function districtMaterial(id: string, name: string, description: string, sourceHint: string, sellValue: number, rarity: ItemRarity = "Rare"): ItemDefinition {
   return { id, name, description, type: "Material", rarity, tags: ["district", rarity.toLowerCase(), "crafting"], stackable: true, maxStack: 9999, sellValue, sourceHint };
 }
@@ -271,6 +279,7 @@ function weapon(
   modSlots: number,
   sourceHint: string,
 ): ItemDefinition {
+  const requiredLevel = weaponAcquisitionLevel(id, Math.max(1, tier * 2 - 1));
   return {
     id,
     name,
@@ -284,9 +293,9 @@ function weapon(
     slot: "weapon",
     tier,
     requiredSkill: "combat",
-    requiredLevel: Math.max(1, tier * 2 - 1),
-    stats,
-    maxUpgradeLevel: 10,
+    requiredLevel,
+    stats: balancedWeaponStats(id, weaponClass, stats, requiredLevel, tier),
+    maxUpgradeLevel: 5,
     weaponClass,
     attachmentSlots,
     modSlots,
@@ -403,8 +412,8 @@ function weaponFromSpec(spec: WeaponSpec): ItemDefinition {
     tier: spec.tier,
     requiredSkill: "combat",
     requiredLevel: spec.requiredLevel,
-    stats: spec.stats,
-    maxUpgradeLevel: 10,
+    stats: balancedWeaponStats(spec.id, classIds[spec.weaponClass], spec.stats, spec.requiredLevel, spec.tier),
+    maxUpgradeLevel: 5,
   };
 }
 
@@ -425,7 +434,7 @@ function armorFromSpec(spec: ArmorSpec): ItemDefinition {
     requiredLevel: spec.requiredLevel,
     stats: spec.stats,
     setName: spec.name.slice(0, spec.name.lastIndexOf(" ")),
-    maxUpgradeLevel: 10,
+    maxUpgradeLevel: 5,
   };
 }
 
@@ -444,7 +453,7 @@ function districtName(id: WeaponSpec["districtId"]) {
 }
 
 function armor(id: string, name: string, description: string, slot: GearSlot, tier: number, stats: ItemDefinition["stats"]): ItemDefinition {
-  return { id, name, description, type: "Armor", rarity: "Common", tags: ["armor", "combat"], stackable: false, sellValue: 55 * tier, sourceHint: "Crafted or dropped in Neon Row.", slot, tier, requiredSkill: "combat", requiredLevel: 1, stats, maxUpgradeLevel: 10 };
+  return { id, name, description, type: "Armor", rarity: "Common", tags: ["armor", "combat"], stackable: false, sellValue: 55 * tier, sourceHint: "Crafted or dropped in Neon Row.", slot, tier, requiredSkill: "combat", requiredLevel: 1, stats, maxUpgradeLevel: 5 };
 }
 
 function expandedArmorAndAccessories(): ItemDefinition[] {
@@ -584,11 +593,12 @@ function expandedCyberware(): ItemDefinition[] {
 }
 
 function gear(id: string, name: string, description: string, slot: GearSlot, rarity: ItemRarity, tier: number, requiredLevel: number, stats: ItemDefinition["stats"], modifiers: ItemDefinition["modifiers"], tags: string[], sourceHint: string): ItemDefinition {
-  return { id, name, description, type: "Armor", rarity, tags: ["armor", "equipment", ...tags], stackable: false, sellValue: raritySellValue(rarity, 55, tier), sourceHint, slot, tier, requiredSkill: "combat", requiredLevel, stats, modifiers, maxUpgradeLevel: rarity === "Relic" ? 15 : 10 };
+  return { id, name, description, type: "Armor", rarity, tags: ["armor", "equipment", ...tags], stackable: false, sellValue: raritySellValue(rarity, 55, tier), sourceHint, slot, tier, requiredSkill: "combat", requiredLevel, stats, modifiers, maxUpgradeLevel: 5 };
 }
 
 function customWeapon(id: string, name: string, description: string, rarity: ItemRarity, tier: number, requiredLevel: number, weaponClass: WeaponClassId, stats: ItemDefinition["stats"], tags: string[], attachmentSlots: AttachmentCategory[], modSlots: number, sourceHint: string, specialEffect?: string, modifiers?: ItemDefinition["modifiers"]): ItemDefinition {
-  return { id, name, description, type: "Weapon", rarity, tags: ["weapon", "combat", ...tags], stackable: false, sellValue: raritySellValue(rarity, 70, tier), sourceHint, slot: "weapon", tier, requiredSkill: "combat", requiredLevel, stats, modifiers, specialEffect, maxUpgradeLevel: rarity === "Relic" || rarity === "Prototype" ? 15 : 10, weaponClass, attachmentSlots, modSlots };
+  const acquisitionLevel = weaponAcquisitionLevel(id, requiredLevel);
+  return { id, name, description, type: "Weapon", rarity, tags: ["weapon", "combat", ...tags], stackable: false, sellValue: raritySellValue(rarity, 70, tier), sourceHint, slot: "weapon", tier, requiredSkill: "combat", requiredLevel: acquisitionLevel, stats: balancedWeaponStats(id, weaponClass, stats, acquisitionLevel, tier), modifiers, specialEffect, maxUpgradeLevel: 5, weaponClass, attachmentSlots, modSlots };
 }
 
 function chrome(id: string, name: string, description: string, slot: CyberwareSlot, rarity: ItemRarity, tier: number, requiredLevel: number, modifiers: ItemDefinition["modifiers"], instabilityLoad: number, tags: string[], sourceHint: string): ItemDefinition {

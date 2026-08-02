@@ -32,7 +32,7 @@ function rarityMaterialMultiplier(rarity: string) {
 
 export function scaledStats(state: GameState, itemId: string): ItemStats {
   const item = getItem(itemId);
-  const level = state.upgradeLevels[itemId] ?? 0;
+  const level = effectiveItemUpgradeLevel(state, itemId);
   const stats = item?.stats ?? {};
   return Object.fromEntries(Object.entries(stats).map(([key, value]) => {
     if (typeof value !== "number") return [key, value];
@@ -46,7 +46,7 @@ export function scaledStats(state: GameState, itemId: string): ItemStats {
 
 export function scaledModifiers(state: GameState, itemId: string): Partial<ActiveModifiers> {
   const item = getItem(itemId);
-  const level = state.upgradeLevels[itemId] ?? 0;
+  const level = effectiveItemUpgradeLevel(state, itemId);
   const modifiers = item?.modifiers;
   if (!modifiers || level <= 0) return modifiers ?? {};
   const lowerIsBetter = new Set<keyof ActiveModifiers>([
@@ -68,7 +68,13 @@ export function scaledModifiers(state: GameState, itemId: string): Partial<Activ
 
 export function scaledSellValue(state: GameState, itemId: string) {
   const item = getItem(itemId);
-  return Math.round((item?.sellValue ?? 0) * (1 + (state.upgradeLevels[itemId] ?? 0) * 0.12));
+  return Math.round((item?.sellValue ?? 0) * (1 + effectiveItemUpgradeLevel(state, itemId) * 0.12));
+}
+
+function effectiveItemUpgradeLevel(state: GameState, itemId: string) {
+  const item = getItem(itemId);
+  const savedLevel = Math.max(0, Math.floor(state.upgradeLevels[itemId] ?? 0));
+  return item?.maxUpgradeLevel ? Math.min(savedLevel, item.maxUpgradeLevel) : savedLevel;
 }
 
 export function cyberwareLoad(state: GameState) {

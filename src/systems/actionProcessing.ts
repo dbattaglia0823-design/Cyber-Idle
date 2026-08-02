@@ -238,6 +238,7 @@ export function applyRewards(state: GameState, rewards: RewardBundle) {
 export function addSkillXp(state: GameState, skillId: SkillId, xp: number) {
   const skill = state.skills[skillId];
   let levels = 0;
+  skill.level = Math.min(MAX_MAIN_SKILL_LEVEL, skill.level);
   skill.xp += xp;
   while (skill.level < MAX_MAIN_SKILL_LEVEL && skill.xp >= xpForNextLevel(skill.level)) {
     skill.xp -= xpForNextLevel(skill.level);
@@ -261,11 +262,12 @@ export function addMasteryXp(state: GameState, actionId: string, xp: number) {
   const mastery = state.actionMastery[actionId] ?? { level: 1, xp: 0 };
   let levels = 0;
   mastery.xp += xp;
-  while (mastery.xp >= xpForNextMastery(mastery.level)) {
+  while (mastery.level < balanceConfig.levels.actionMasteryMax && mastery.xp >= xpForNextMastery(mastery.level)) {
     mastery.xp -= xpForNextMastery(mastery.level);
     mastery.level += 1;
     levels += 1;
   }
+  if (mastery.level >= balanceConfig.levels.actionMasteryMax) mastery.xp = 0;
   state.actionMastery[actionId] = mastery;
   return levels;
 }

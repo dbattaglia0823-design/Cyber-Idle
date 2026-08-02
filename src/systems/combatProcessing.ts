@@ -1,7 +1,7 @@
 import { combatZones } from "../data/combat";
 import { resourceNames } from "../data/resources";
 import { addSkillXp } from "./actionProcessing";
-import { calculateCombatRewards, calculateDropChance, calculatePlayerCombatStats } from "./balanceFormulas";
+import { calculateCombatRewards, calculateDropChance, calculateHitChance, calculatePlayerCombatStats, enemyAccuracy, enemyCritChance, enemyDodgeChance } from "./balanceFormulas";
 import { addItem, discoverItem } from "./collectionSystem";
 import { clampRiskStat } from "./formulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -11,7 +11,7 @@ import { updateWorldUnlocks } from "./worldUnlocks";
 import { markEnemyManual } from "./manualDiscovery";
 import { processPercentDrops } from "./percentDrops";
 import { addWeaponClassXp, equippedWeaponClass } from "./weaponSystem";
-import { combatEffectivenessForEnemy, combatTagsForEnemy } from "./combatMatchups";
+import { combatDifficultyStats, combatEffectivenessForEnemy, combatTagsForEnemy, scaledDifficulty } from "./combatMatchups";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { applyDamage, clampPlayerHP, maybeAutoHeal } from "./healthSystem";
@@ -31,10 +31,10 @@ export function getEnemy(enemyId: string) {
 export function startCombat(state: GameState, enemyId: string, now = Date.now()) {
   const enemy = getEnemy(enemyId);
   if (!enemy) return state;
-  if (state.health.lifeState === "downed") return state;
   if (!canFightEnemy(state, enemy)) return state;
   const next = cloneState(state);
   clampPlayerHP(next);
+  if (next.health.lifeState === "downed" || next.health.currentHp <= 0) return state;
   clearActiveActivityForSwitch(state, next, enemy.name);
   next.currentCombat = createCombatState(next, enemy, now);
   return next;
@@ -79,33 +79,42 @@ export function processCombat(state: GameState, now = Date.now()) {
 
     if (playerActsNext && nextPlayerAttackAt <= now) {
       const stats = calculatePlayerCombatStats(next);
-      const damage = Math.max(1, stats.damage);
+      const missed = Math.random() > calculateHitChance(stats.accuracy, enemyDodgeChance(enemy));
+      const critical = !missed && Math.random() <= stats.critChance;
+      const damage = missed ? 0 : Math.max(1, Math.round(stats.damage * (critical ? stats.critDamage : 1)));
       combat.enemyCurrentHp = Math.max(0, (combat.enemyCurrentHp ?? combat.enemyMaxHp ?? enemy.hp) - damage);
       combat.lastPlayerAttackAt = nextPlayerAttackAt;
-      combat.lastPlayerHit = { amount: damage, at: nextPlayerAttackAt };
+      combat.lastPlayerHit = { amount: damage, at: nextPlayerAttackAt, missed, critical };
       combat.nextPlayerAttackAt = nextPlayerAttackAt + stats.attackSpeedMs;
       if (combat.enemyCurrentHp <= 0) {
         const killDuration = Math.max(1, nextPlayerAttackAt - combat.startedAt);
         completeKill(next, enemy, killDuration);
         if (next.health.lifeState === "downed") break;
         const healed = maybeAutoHeal(next, enemy.name);
+        // Begin the respawn delay when the kill is processed. Using the scheduled
+        // attack timestamp allowed a late/throttled frame to consume the entire
+        // cooldown before the defeated state was ever rendered.
+        const respawnAt = Math.max(now, nextPlayerAttackAt) + COMBAT_RESPAWN_DELAY_MS;
         next.currentCombat = {
           ...combat,
           enemyCurrentHp: 0,
-          respawnAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
-          nextPlayerAttackAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
-          nextEnemyAttackAt: nextPlayerAttackAt + COMBAT_RESPAWN_DELAY_MS,
+          respawnAt,
+          nextPlayerAttackAt: respawnAt,
+          nextEnemyAttackAt: respawnAt,
         };
         if (healed) next.currentCombat.lastHealingReceived = next.health.lastHealingReceived;
         break;
       }
     } else if (nextEnemyAttackAt <= now) {
-      const rawDamage = enemyAttackDamage(enemy);
-      const damageTaken = applyDamage(next, rawDamage, enemy.name);
+      const stats = calculatePlayerCombatStats(next);
+      const missed = Math.random() > calculateHitChance(enemyAccuracy(enemy), stats.dodge);
+      const critical = !missed && Math.random() <= enemyCritChance(enemy);
+      const rawDamage = missed ? 0 : enemyAttackDamage(next, enemy, critical);
+      const damageTaken = missed ? 0 : applyDamage(next, rawDamage, enemy.name);
       if (next.currentCombat) {
         next.currentCombat.lastDamageTaken = damageTaken;
         next.currentCombat.lastEnemyAttackAt = nextEnemyAttackAt;
-        next.currentCombat.lastEnemyHit = { amount: damageTaken, at: nextEnemyAttackAt };
+        next.currentCombat.lastEnemyHit = { amount: damageTaken, at: nextEnemyAttackAt, missed, critical };
         next.currentCombat.nextEnemyAttackAt = nextEnemyAttackAt + enemy.attackSpeedMs;
       }
       if (next.health.lifeState === "downed") {
@@ -156,9 +165,11 @@ function normalizeCombatState(state: GameState, enemy: Enemy, now: number): Curr
   };
 }
 
-function enemyAttackDamage(enemy: Enemy) {
+function enemyAttackDamage(state: GameState, enemy: Enemy, critical = false) {
   const threatScale = 1 + (enemy.threatScaling ?? 0) * 0.08;
-  return Math.max(1, Math.round(enemy.damage * threatScale));
+  const difficultyMultiplier = combatDifficultyStats[scaledDifficulty(state, enemy)].damage;
+  const criticalMultiplier = critical ? Math.max(1, enemy.critDamage ?? 1.5) : 1;
+  return Math.max(1, Math.round(enemy.damage * threatScale * difficultyMultiplier * criticalMultiplier));
 }
 
 function completeKill(state: GameState, enemy: Enemy, durationMs: number) {

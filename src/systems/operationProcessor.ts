@@ -1,5 +1,6 @@
 import { bosses } from "../data/bosses";
 import { combatZones } from "../data/combat";
+import { getItem } from "../data/items";
 import { operations } from "../data/operations";
 import { balanceConfig } from "../data/balanceConfig";
 import { addSkillXp, applyRewards } from "./actionProcessing";
@@ -106,7 +107,9 @@ export function startOperation(state: GameState, operationId: string, routeId?: 
   if (!operation || !canStartOperation(state, operation)) return state;
   const route = selectedRoute(operation, routeId);
   const next = cloneState(state);
-  Object.entries(operation.requiredItems ?? {}).forEach(([id, amount]) => removeItem(next, id, amount));
+  Object.entries(operation.requiredItems ?? {}).forEach(([id, amount]) => {
+    if (!getItem(id)?.tags.includes("permanent-market")) removeItem(next, id, amount);
+  });
   clearActiveActivityForSwitch(state, next, operation.name);
   next.activeOperation = {
     operationId,

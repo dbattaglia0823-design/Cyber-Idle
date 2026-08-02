@@ -6,7 +6,7 @@ export const perkTrees: Array<{ id: PerkTreeId; name: string; color: string; ide
   { id: "netrunner", name: "Netrunner", color: "blue", identity: "Hacking, encrypted data, Blacknet work, and trace control." },
   { id: "techie", name: "Techie", color: "green", identity: "Cyberware engineering, crafting, upgrades, and clinics." },
   { id: "outrider", name: "Outrider", color: "amber", identity: "Vehicles, scavenging, smuggling, and Rust Yard routes." },
-  { id: "fixer", name: "Fixer", color: "violet", identity: "Jobs, reputation, trust, companions, and market leverage." },
+  { id: "fixer", name: "Fixer", color: "violet", identity: "Jobs, reputation, trust, and market leverage." },
   { id: "ghost", name: "Ghost", color: "pink", identity: "Low Heat, stealth safety, clean exits, and quiet extraction." },
 ];
 
@@ -38,7 +38,7 @@ export const perks: PerkDefinition[] = [
 
   perk("fixer-better-terms", "Better Terms", "Contracts pay more and contact reputation rises faster.", "fixer", 1, 1, 5, { jobRewards: 0.03, fixerTrustGain: 0.02 }, ["Available"]),
   perk("fixer-negotiated-prices", "Negotiated Prices", "Vendor prices fall while local standing improves.", "fixer", 2, 1, 5, { shopPrices: -0.02, localStandingGain: 0.02 }, ["Discover a vendor"]),
-  perk("fixer-favor-economy", "Favor Economy", "Faction reputation and companion relationships grow faster.", "fixer", 3, 2, 4, { factionReputationGain: 0.03, reputationGained: 0.02, companionRelationshipGain: 0.02 }, ["Faction rank 2"]),
+  perk("fixer-favor-economy", "Favor Economy", "Faction reputation and local standing grow faster.", "fixer", 3, 2, 4, { factionReputationGain: 0.03, reputationGained: 0.02, localStandingGain: 0.02 }, ["Faction rank 2"]),
   perk("fixer-contract-automation", "Contract Automation", "A mature contact network improves job success and rewards.", "fixer", 4, 3, 3, { jobSuccessChance: 0.04, jobRewards: 0.02 }, ["Spend 9 Fixer points"]),
 
   perk("ghost-low-profile", "Low Profile", "Quiet methods reduce Heat and improve job success.", "ghost", 1, 1, 5, { heatGain: -0.03, jobSuccessChance: 0.01 }, ["Available"]),

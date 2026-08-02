@@ -13,10 +13,6 @@ export function updateWorldUnlocks(state: GameState) {
   syncDistrictUnlock(state, "redlineBlocks", hasAnyMainSkillLevel(state, 120));
   syncDistrictUnlock(state, "skylineCore", hasAnyMainSkillLevel(state, 140));
 
-  if (state.districts.blacknetQuarter?.unlocked) unlockCompanion(state, "nyra-vale");
-  if (state.districts.rustYards?.unlocked) unlockCompanion(state, "dex-riven");
-  if (state.skills.combat.level >= 5 || state.districts.redlineBlocks?.unlocked) unlockCompanion(state, "mara-voss");
-  if (state.districts.helixWard?.unlocked) unlockCompanion(state, "iris-kade");
 }
 
 function syncDistrictUnlock(state: GameState, id: DistrictId, condition: boolean) {
@@ -40,12 +36,4 @@ function districtUnlockProgress(state: GameState, id: DistrictId) {
   if (requiredLevel <= 1) return 100;
   const highestLevel = Math.max(...Object.values(state.skills).map((skill) => skill.level));
   return Math.max(0, Math.min(99, Math.floor((highestLevel / requiredLevel) * 100)));
-}
-
-function unlockCompanion(state: GameState, id: string) {
-  const companion = state.companions[id];
-  if (!companion || companion.unlocked) return;
-  companion.unlocked = true;
-  companion.relationship = Math.max(1, companion.relationship);
-  pushCategorizedLog(state, "World", `Companion contact unlocked: ${id}.`);
 }

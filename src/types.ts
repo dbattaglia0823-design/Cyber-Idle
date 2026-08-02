@@ -138,7 +138,7 @@ export type StoryCategory =
   | "District Arc"
   | "Fixer Chain"
   | "Faction Conflict"
-  | "Companion Quest"
+  | "Contact Quest"
   | "Operation Lead"
   | "Ripperdoc Case"
   | "Black Market Deal"
@@ -251,6 +251,7 @@ export interface CombatAffinity {
   modTags?: string[];
   scenarioTags?: string[];
   cyberwareTags?: string[];
+  matchMode?: "any" | "allGroups";
   damageMultiplier: number;
   heatMultiplier?: number;
   dropChance?: number;
@@ -387,6 +388,10 @@ export interface Enemy {
   hp: number;
   damage: number;
   attackSpeedMs: number;
+  accuracy?: number;
+  dodge?: number;
+  critChance?: number;
+  critDamage?: number;
   archetype?: EnemyArchetypeId;
   difficulty?: EnemyDifficultyTier;
   variants?: EnemyVariantId[];
@@ -431,6 +436,10 @@ export interface PlayerCombatStats {
   damage: number;
   attackSpeedMs: number;
   armor: number;
+  accuracy: number;
+  dodge: number;
+  critChance: number;
+  critDamage: number;
 }
 
 export interface ActiveAction {
@@ -474,10 +483,14 @@ export interface CurrentCombat {
   lastPlayerHit?: {
     amount: number;
     at: number;
+    missed?: boolean;
+    critical?: boolean;
   };
   lastEnemyHit?: {
     amount: number;
     at: number;
+    missed?: boolean;
+    critical?: boolean;
   };
   lastDamageTaken?: number;
   lastHealingReceived?: number;
@@ -1170,6 +1183,8 @@ export interface ActiveModifiers {
   offlineProgressCapHours: number;
   fixerTrustGain: number;
   masteryXpGain: number;
+  craftingSpeed: number;
+  doubleCraftChance: number;
   craftingCostReduction: number;
   upgradeCostReduction: number;
   vehicleUpgradeCostReduction: number;

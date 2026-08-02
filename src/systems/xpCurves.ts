@@ -6,7 +6,14 @@ export function getXpForLevel(level: number, curveType: XpCurveType) {
   const curve = balanceConfig.xpCurves[curveType];
   const safeLevel = Math.max(1, Math.min(curve.maxLevel, Math.floor(level)));
   const baseXp = curve.base * Math.pow(safeLevel, curve.exponent);
-  return Math.floor(baseXp * idleTierMultiplier(safeLevel, curveType));
+  return Math.floor(baseXp * idleTierMultiplier(safeLevel, curveType) * endgameCurveMultiplier(safeLevel, curveType));
+}
+
+function endgameCurveMultiplier(level: number, curveType: XpCurveType) {
+  if (curveType !== "skill" || level <= 100) return 1;
+  // Preserve the exact curve through level 100, then gently reduce its slope.
+  // Level 150 requires roughly 10% less XP than before without a discontinuity.
+  return Math.pow(100 / level, 0.25);
 }
 
 export function getSkillXpForLevel(level: number) {

@@ -185,7 +185,6 @@ function completeJob(state: GameState, job: JobContract) {
     applySkillXp(state, job, 1);
     const factionReputationReward = applyFactionReputation(state, job);
     applyContractFactionProgress(state, job, factionReputationReward);
-    applyCompanionRelationship(state, job);
     const rareReward = maybeRareReward(state, job);
     markJobManual(state, job.id);
     state.marketStatistics.contractsCompletedByFixer[job.fixerId] = (state.marketStatistics.contractsCompletedByFixer[job.fixerId] ?? 0) + 1;
@@ -275,15 +274,6 @@ function applyFactionReputation(state: GameState, job: JobContract) {
 function applyContractFactionProgress(state: GameState, job: JobContract, gain: number) {
   if (factionRank(state.factions[job.factionId].reputation) >= 5) unlockAchievement(state, "fixer-rank-5", "Reach Contact Faction Rank 5");
   pushCategorizedLog(state, "World", `${factionName(job.factionId)} reputation +${gain} through its local contact.`);
-}
-
-function applyCompanionRelationship(state: GameState, job: JobContract) {
-  Object.entries(job.companionRelationship ?? {}).forEach(([id, amount]) => {
-    const companion = state.companions[id];
-    if (!companion?.unlocked) return;
-    companion.relationship = Math.min(100, companion.relationship + Math.round((amount ?? 0) * (1 + getActiveModifiers(state).companionRelationshipGain)));
-    pushCategorizedLog(state, "World", `Companion relationship +${amount}: ${id}.`);
-  });
 }
 
 function maybeRareReward(state: GameState, job: JobContract) {

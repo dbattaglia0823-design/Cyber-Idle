@@ -3,6 +3,8 @@ import { createInitialState, normalizeLogEntries, SAVE_VERSION } from "./gameSta
 import { calculateMaxHP } from "./healthSystem";
 import { heatCountermeasureTiers } from "../data/heatCountermeasures";
 import { dropRateAmplifierTiers } from "../data/dropRateAmplifiers";
+import { balanceConfig } from "../data/balanceConfig";
+import { getItem } from "../data/items";
 import { factionIdForFixer } from "./factionContacts";
 import type { GameState } from "../types";
 
@@ -93,8 +95,19 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     startingPath: saved.startingPath ?? null,
     resources: { ...startingResources, ...saved.resources },
     neuralInstability: 0,
-    skills: { ...initial.skills, ...saved.skills },
-    actionMastery: { ...initial.actionMastery, ...saved.actionMastery },
+    skills: Object.fromEntries(
+      Object.entries(initial.skills).map(([id, initialSkill]) => {
+        const savedSkill = saved.skills?.[id as keyof typeof initial.skills];
+        const level = Math.max(1, Math.min(balanceConfig.levels.skillsMax, savedSkill?.level ?? initialSkill.level));
+        return [id, { ...initialSkill, ...savedSkill, level, xp: level >= balanceConfig.levels.skillsMax ? 0 : Math.max(0, savedSkill?.xp ?? initialSkill.xp) }];
+      }),
+    ) as GameState["skills"],
+    actionMastery: Object.fromEntries(
+      Object.entries(saved.actionMastery ?? {}).map(([id, mastery]) => {
+        const level = Math.max(1, Math.min(balanceConfig.levels.actionMasteryMax, mastery.level));
+        return [id, { ...mastery, level, xp: level >= balanceConfig.levels.actionMasteryMax ? 0 : Math.max(0, mastery.xp) }];
+      }),
+    ),
     inventory: { ...initial.inventory, ...saved.inventory },
     activeAction: saved.activeAction ?? null,
     activeJob: saved.activeJob ?? null,
@@ -143,8 +156,9 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     fixerTrust: { ...initial.fixerTrust, ...saved.fixerTrust },
     ownedHousing: { ...initial.ownedHousing, ...saved.ownedHousing },
     activeResidence: saved.activeResidence ?? null,
-    companions: { ...initial.companions, ...saved.companions },
-    activeCompanion: saved.activeCompanion ?? initial.activeCompanion,
+    // Retain the legacy fields in the save shape, but companion gameplay has been removed.
+    companions: {},
+    activeCompanion: null,
     worldUnlocks: { ...initial.worldUnlocks, ...saved.worldUnlocks },
     equippedGear: { ...initial.equippedGear, ...saved.equippedGear },
     equippedCyberware: { ...initial.equippedCyberware, ...saved.equippedCyberware },
@@ -253,10 +267,15 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     offlineRecap: saved.offlineRecap ?? null,
     lastSavedAt: saved.lastSavedAt ?? Date.now(),
   };
+  Object.entries(normalized.upgradeLevels).forEach(([itemId, savedLevel]) => {
+    const maxUpgradeLevel = getItem(itemId)?.maxUpgradeLevel;
+    normalized.upgradeLevels[itemId] = Math.max(0, Math.min(Math.floor(savedLevel), maxUpgradeLevel ?? savedLevel));
+  });
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
-  normalized.health.currentHp = Math.max(0, Math.min(maxHp, normalized.health.currentHp || maxHp));
-  if (!saved.health?.lifeState) normalized.health.lifeState = "alive";
+  const savedHp = Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp;
+  normalized.health.currentHp = Math.max(0, Math.min(maxHp, savedHp));
+  normalized.health.lifeState = normalized.health.currentHp > 0 ? "alive" : "downed";
   mergeLegacyFixerTrustIntoFactions(normalized);
   collapseLegacyHeatVeilInventory(normalized);
   collapseLegacyDropAmplifierInventory(normalized);

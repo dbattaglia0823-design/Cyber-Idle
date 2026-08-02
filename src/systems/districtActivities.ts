@@ -1,5 +1,4 @@
 import { combatZones } from "../data/combat";
-import { companions } from "../data/companions";
 import { fixers } from "../data/fixers";
 import { housingOptions } from "../data/housing";
 import { jobs } from "../data/jobs";
@@ -14,8 +13,10 @@ const combatZoneIds: Partial<Record<DistrictId, string[]>> = {
   rustYards: ["rust-yards"],
   underpassMarket: ["underpass-market"],
   blacknetQuarter: ["blacknet-quarter"],
+  helixWard: ["helix-ward"],
   glasslineDistrict: ["glassline-district"],
   redlineBlocks: ["redline-blocks"],
+  skylineCore: ["skyline-core"],
 };
 
 export function districtSkillActions(districtId: DistrictId) {
@@ -50,10 +51,6 @@ export function districtRipperdocs(districtId: DistrictId) {
 
 export function districtFixers(districtId: DistrictId) {
   return fixers.filter((fixer) => fixer.districtId === districtId);
-}
-
-export function districtCompanions(districtId: DistrictId) {
-  return companions.filter((companion) => companion.districtId === districtId);
 }
 
 export function districtCombatZones(districtId: DistrictId) {

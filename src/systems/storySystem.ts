@@ -183,10 +183,6 @@ function applyChoice(state: GameState, arc: StoryArcDefinition, step: StoryStepD
   Object.entries(choice.fixerTrust ?? {}).forEach(([id, amount]) => {
     addFixerFactionReputation(state, id, amount ?? 0);
   });
-  Object.entries(choice.companionRelationship ?? {}).forEach(([id, amount]) => {
-    const companion = state.companions[id];
-    if (companion) companion.relationship += amount ?? 0;
-  });
   (choice.worldFlags ?? []).forEach((flag) => {
     state.storyFlags[flag] = true;
     state.worldUnlocks[flag] = true;

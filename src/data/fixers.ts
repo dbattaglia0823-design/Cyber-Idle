@@ -7,12 +7,12 @@ export const fixers: Fixer[] = [
     name: "Sable Quinn",
     districtId: "neonRow",
     factionId: "redlineSaints",
-    specialty: "Starter street contracts, contraband introductions, and companion routes.",
+    specialty: "Starter street contracts and contraband introductions.",
     startingPathNotes: {
       streetborn: "Streetborn runners gain trust faster through Sable's local contacts.",
       corporateDefector: "Corporate defectors get cleaner data-theft leads.",
     },
-    companionUnlocks: ["sable-quinn"],
+    companionUnlocks: [],
     housingUnlocks: ["capsule-room"],
     jobChains: ["Neon Row onboarding", "Ghost Market introductions"],
     uniqueUnlocks: ["Underpass Market lead", "starter contraband routes", "basic Black Market introductions"],
@@ -32,7 +32,7 @@ export const fixers: Fixer[] = [
     startingPathNotes: {
       outrider: "Outriders receive faster vehicle work and smoother smuggling introductions.",
     },
-    companionUnlocks: ["dex-riven"],
+    companionUnlocks: [],
     housingUnlocks: ["rust-yard-garage"],
     jobChains: ["Rust lane access", "Chrome Jackals garage work"],
     uniqueUnlocks: ["Rust Yards access", "vehicle recovery contracts", "salvaged implant leads"],
@@ -52,7 +52,7 @@ export const fixers: Fixer[] = [
     startingPathNotes: {
       streetborn: "Streetborn runners get warmer introductions to Underpass crews.",
     },
-    companionUnlocks: ["mara-voss"],
+    companionUnlocks: [],
     housingUnlocks: ["underpass-safehouse"],
     jobChains: ["Underpass protection", "Redline bounty access"],
     uniqueUnlocks: ["Redline bounty boards", "Underpass protection rackets", "crew introductions"],
@@ -72,7 +72,7 @@ export const fixers: Fixer[] = [
     startingPathNotes: {
       corporateDefector: "Corporate defectors get cleaner credential angles but carry noisier signatures.",
     },
-    companionUnlocks: ["nyra-vale"],
+    companionUnlocks: [],
     housingUnlocks: ["blacknet-loft"],
     jobChains: ["Null Choir access", "Blacknet relay work"],
     uniqueUnlocks: ["Blacknet Quarter lead", "cyberdeck service referrals", "trace-storm intel"],
@@ -92,7 +92,7 @@ export const fixers: Fixer[] = [
     startingPathNotes: {
       corporateDefector: "Corporate defectors get better clinic introductions but attract attention.",
     },
-    companionUnlocks: ["iris-kade"],
+    companionUnlocks: [],
     housingUnlocks: ["glassline-apartment", "skyline-penthouse"],
     jobChains: ["Helix clinic clearance", "Prototype recovery"],
     uniqueUnlocks: ["Helix Ward clearance", "Glassline clinic access", "safe upgrade referrals"],

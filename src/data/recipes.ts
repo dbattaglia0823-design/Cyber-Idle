@@ -4,6 +4,9 @@ import { cyberwareSpecs } from "./cyberware";
 import { weaponSpecs } from "./weapons";
 import { heatCountermeasureRecipes } from "./heatCountermeasures";
 import { dropRateAmplifierRecipes } from "./dropRateAmplifiers";
+import { craftingEnhancementRecipes } from "./craftingEnhancements";
+import { weaponAcquisitionLevel } from "./weaponBalance";
+import { getItem } from "./items";
 
 export const recipes: CraftingRecipe[] = [
   recipe("recipe-circuit-bundle", "Circuit Bundle", "Components", 1, { scrap: 4, circuitBoards: 1 }, "circuit-bundle", 1, 4500, 12),
@@ -45,6 +48,7 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-helix-governor-os", "Helix Governor OS", "Cyberware", 14, { "neural-connector": 2, "stabilizer-compound": 3, encryptedData: 8 }, "helix-governor-os", 1, 26000, 110, "neural-dampener-blueprint"),
   ...heatCountermeasureRecipes,
   ...dropRateAmplifierRecipes,
+  ...craftingEnhancementRecipes,
   ...expandedEquipmentRecipes(),
   ...expandedHighTierWeaponRecipes(),
   ...weaponSpecs.map((weapon) =>
@@ -102,15 +106,19 @@ function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
 }
 
 function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = "cyberware"): CraftingRecipe {
+  const acquisitionLevel = category === "Weapons" ? weaponAcquisitionLevel(outputItemId, requiredLevel) : requiredLevel;
+  const craftingCosts = category === "Weapons" || category === "Armor"
+    ? focusedEquipmentCraftingCosts(inputCosts, acquisitionLevel)
+    : inputCosts;
   return {
     id,
     name,
     category,
     requiredSkill,
-    requiredLevel,
+    requiredLevel: acquisitionLevel,
     requiredBlueprint,
     requiredDistrict,
-    inputCosts,
+    inputCosts: craftingCosts,
     outputItemId,
     outputQuantity,
     durationMs,
@@ -123,6 +131,31 @@ function recipe(id: string, name: string, category: CraftingRecipe["category"], 
       ...(!requiredBlueprint && !requiredDistrict ? ["Unlocked by default"] : []),
     ],
   };
+}
+
+function focusedEquipmentCraftingCosts(inputCosts: Record<string, number>, requiredLevel: number) {
+  const entries = Object.entries(inputCosts).filter(([, amount]) => amount > 0);
+  if (!entries.length) return inputCosts;
+
+  // Keep equipment grinding focused on a few material sources. Quantities stay
+  // meaningful, but low/mid recipes use at most three distinct material types
+  // and only true endgame recipes are allowed to reach six.
+  const maxMaterialTypes = requiredLevel <= 80 ? 3 : requiredLevel <= 120 ? 4 : requiredLevel <= 140 ? 5 : 6;
+  if (entries.length <= maxMaterialTypes) return Object.fromEntries(entries);
+
+  const rarityRank: Record<string, number> = { Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Prototype: 5, Relic: 6 };
+  const bulkIngredient = [...entries].sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0];
+  const specialistIngredients = entries
+    .filter(([itemId]) => itemId !== bulkIngredient[0])
+    .sort((left, right) => {
+      const rarityDifference = (rarityRank[getItem(right[0])?.rarity ?? "Common"] ?? 0) - (rarityRank[getItem(left[0])?.rarity ?? "Common"] ?? 0);
+      return rarityDifference || right[1] - left[1] || left[0].localeCompare(right[0]);
+    })
+    .slice(0, maxMaterialTypes - 1);
+  const kept = [bulkIngredient, ...specialistIngredients];
+  const keptIds = new Set(kept.map(([itemId]) => itemId));
+  const removedQuantity = entries.reduce((sum, [itemId, amount]) => sum + (keptIds.has(itemId) ? 0 : amount), 0);
+  return Object.fromEntries(kept.map(([itemId, amount]) => [itemId, amount + (itemId === bulkIngredient[0] ? removedQuantity : 0)]));
 }
 
 function expandedEquipmentRecipes(): CraftingRecipe[] {

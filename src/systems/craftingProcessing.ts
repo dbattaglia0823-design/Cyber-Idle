@@ -46,6 +46,14 @@ const craftingDistrictOrder: DistrictId[] = [
   "skylineCore",
 ];
 
+const cumulativeCraftingCategories = new Set<CraftingRecipe["category"]>([
+  "Components",
+  "Upgrade Parts",
+  "Attachments",
+  "Weapon Mods",
+  "Consumables",
+]);
+
 export function craftingLevelRangeForDistrict(districtId: DistrictId | null) {
   if (!districtId) return null;
   const districtIndex = craftingDistrictOrder.indexOf(districtId);
@@ -55,7 +63,9 @@ export function craftingLevelRangeForDistrict(districtId: DistrictId | null) {
 
 export function recipeAvailableInCurrentDistrict(state: GameState, recipe: CraftingRecipe) {
   const range = craftingLevelRangeForDistrict(state.selectedDistrict);
-  return Boolean(range && recipe.requiredLevel >= range.min && recipe.requiredLevel <= range.max);
+  if (!range) return false;
+  if (cumulativeCraftingCategories.has(recipe.category)) return recipe.requiredLevel <= range.max;
+  return recipe.requiredLevel >= range.min && recipe.requiredLevel <= range.max;
 }
 
 export function canCraft(state: GameState, recipe: CraftingRecipe) {
@@ -117,25 +127,30 @@ export function processCrafting(state: GameState, now = Date.now()) {
 
 export function completeCraft(state: GameState, recipe: CraftingRecipe, masteryEfficiency = 1, markManual = true, emitPopup = true) {
   Object.entries(adjustCraftingCosts(state, recipe)).forEach(([id, amount]) => consume(state, id, amount));
-  addItem(state, recipe.outputItemId, recipe.outputQuantity);
+  const output = getRecipeOutput(recipe);
+  const doubleCraftChance = output?.tags.includes("player-upgrade") ? 0 : getActiveModifiers(state).doubleCraftChance;
+  const doubled = doubleCraftChance > 0 && Math.random() < doubleCraftChance;
+  const producedQuantity = recipe.outputQuantity * (doubled ? 2 : 1);
+  addItem(state, recipe.outputItemId, producedQuantity);
   const levelUps = addSkillXp(state, recipe.requiredSkill, recipe.xpReward);
   const masteryXp = Math.round(recipe.masteryXpReward * masteryEfficiency * (1 + getActiveModifiers(state).masteryXpGain));
   const masteryUps = addMasteryXp(state, recipe.id, masteryXp);
   addMasteryPoolXp(state, recipe.requiredSkill, Math.ceil(masteryXp * 0.25));
   addDistrictMasteryXp(state, recipeDistrict(recipe), "craft", Math.max(3, Math.round(recipe.xpReward * 0.25)));
   if (markManual) markRecipeManual(state, recipe.id);
-  pushCategorizedLog(state, "Skill", `Crafted ${recipe.name}: +${recipe.xpReward} ${recipe.requiredSkill} XP.`);
+  pushCategorizedLog(state, "Skill", `Crafted ${recipe.name}${doubled ? " (Replication Matrix doubled the output)" : ""}: +${recipe.xpReward} ${recipe.requiredSkill} XP.`);
   if (emitPopup) {
     emitRewardPopupGroup(state, {
       title: `Crafted ${recipe.name}`,
       xp: { [recipe.requiredSkill]: recipe.xpReward },
       masteryXp,
       poolXp: Math.ceil(masteryXp * 0.25),
-      items: { [recipe.outputItemId]: recipe.outputQuantity },
+      items: { [recipe.outputItemId]: producedQuantity },
       levelUps: levelUps ? [`${recipe.requiredSkill} ${state.skills[recipe.requiredSkill].level}`] : [],
       masteryLevelUps: masteryUps ? [`${recipe.name} ${state.actionMastery[recipe.id].level}`] : [],
     });
   }
+  return producedQuantity;
 }
 
 function recipeDistrict(recipe: CraftingRecipe): DistrictId | null {
