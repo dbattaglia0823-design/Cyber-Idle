@@ -7,6 +7,44 @@ import { dropRateAmplifierRecipes } from "./dropRateAmplifiers";
 import { craftingEnhancementRecipes } from "./craftingEnhancements";
 import { weaponAcquisitionLevel } from "./weaponBalance";
 import { getItem } from "./items";
+import { districtSpecificMaterials } from "./districtMastery";
+
+const districtCraftingLevel: Record<NonNullable<CraftingRecipe["requiredDistrict"]>, number> = {
+  neonRow: 1,
+  rustYards: 21,
+  underpassMarket: 41,
+  blacknetQuarter: 61,
+  helixWard: 81,
+  glasslineDistrict: 101,
+  redlineBlocks: 121,
+  skylineCore: 141,
+};
+
+// Blueprints are permanent unlocks, so their recipes must not appear before the
+// district where the blueprint can first be earned or purchased.
+const blueprintCraftingLevel: Record<string, number> = {
+  "bp-precision-grip": districtCraftingLevel.rustYards,
+  "bp-scavenger-rig": districtCraftingLevel.rustYards,
+  "bp-blacknet-tool": districtCraftingLevel.blacknetQuarter,
+  "bp-stabilized-buffer": districtCraftingLevel.helixWard,
+  "neural-dampener-blueprint": districtCraftingLevel.helixWard,
+  "bp-corporate-cyberware": districtCraftingLevel.glasslineDistrict,
+  "bp-prototype-implant": districtCraftingLevel.skylineCore,
+};
+
+const materialCraftingLevel = Object.fromEntries(
+  Object.entries(districtSpecificMaterials).flatMap(([districtId, itemIds]) =>
+    itemIds.map((itemId) => [itemId, districtCraftingLevel[districtId as keyof typeof districtCraftingLevel]]),
+  ),
+) as Record<string, number>;
+
+// These shared rare parts are not district-mastery materials, but their first
+// reliable sources still establish when a recipe using them can be completed.
+Object.assign(materialCraftingLevel, {
+  "prototype-neural-core": districtCraftingLevel.underpassMarket,
+  "prototype-weapon-core": districtCraftingLevel.blacknetQuarter,
+  "stabilized-chrome-frame": districtCraftingLevel.helixWard,
+});
 
 export const recipes: CraftingRecipe[] = [
   recipe("recipe-circuit-bundle", "Circuit Bundle", "Components", 1, { scrap: 4, circuitBoards: 1 }, "circuit-bundle", 1, 4500, 12),
@@ -99,23 +137,38 @@ export const recipes: CraftingRecipe[] = [
       "cyberware",
     ),
   ),
-].sort(sortRecipes);
+].map(alignRecipeAvailability).sort(sortRecipes);
 
 function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
   return a.requiredLevel - b.requiredLevel || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
 }
 
+function craftingAvailabilityLevel(recipe: Pick<CraftingRecipe, "requiredLevel" | "requiredBlueprint" | "requiredDistrict" | "inputCosts">) {
+  return Math.max(
+    recipe.requiredLevel,
+    recipe.requiredDistrict ? districtCraftingLevel[recipe.requiredDistrict] : 1,
+    recipe.requiredBlueprint ? blueprintCraftingLevel[recipe.requiredBlueprint] ?? 1 : 1,
+    ...Object.keys(recipe.inputCosts).map((itemId) => materialCraftingLevel[itemId] ?? 1),
+  );
+}
+
+function alignRecipeAvailability(recipe: CraftingRecipe): CraftingRecipe {
+  const requiredLevel = craftingAvailabilityLevel(recipe);
+  return requiredLevel === recipe.requiredLevel ? recipe : { ...recipe, requiredLevel };
+}
+
 function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = "cyberware"): CraftingRecipe {
   const acquisitionLevel = category === "Weapons" ? weaponAcquisitionLevel(outputItemId, requiredLevel) : requiredLevel;
+  const availabilityLevel = craftingAvailabilityLevel({ requiredLevel: acquisitionLevel, requiredBlueprint, requiredDistrict, inputCosts });
   const craftingCosts = category === "Weapons" || category === "Armor"
-    ? focusedEquipmentCraftingCosts(inputCosts, acquisitionLevel)
+    ? focusedEquipmentCraftingCosts(inputCosts, availabilityLevel)
     : inputCosts;
   return {
     id,
     name,
     category,
     requiredSkill,
-    requiredLevel: acquisitionLevel,
+    requiredLevel: availabilityLevel,
     requiredBlueprint,
     requiredDistrict,
     inputCosts: craftingCosts,

@@ -81,7 +81,7 @@ import { recipes } from "./data/recipes";
 import { actionHeatSuppressed } from "./data/heatCountermeasures";
 import { cyberwareInstabilityLoad, cyberwareLoad, effectiveNeuralInstability, scaledModifiers, scaledStats } from "./systems/itemFormulas";
 import { equipItem, unequipCyberware, unequipGear, useItem } from "./systems/equipmentSystem";
-import { canQuickSellInventoryItem, inventoryQuickSellValue, quickSellInventoryItem } from "./systems/inventorySellSystem";
+import { canQuickSellAllButOneInventoryItem, canQuickSellInventoryItem, inventoryQuickSellAllButOneValue, inventoryQuickSellValue, quickSellAllButOneInventoryItem, quickSellInventoryItem } from "./systems/inventorySellSystem";
 import { canAffordItemUpgrade, itemUpgradeCost, upgradeItem } from "./systems/upgradeSystem";
 import { scaledCraftingCosts } from "./systems/craftingCosts";
 import { compatibleAttachments, compatibleMods, equippedWeaponClass, installAttachment, installWeaponMod, removeAttachment, removeWeaponMod, weaponXpForNextLevel } from "./systems/weaponSystem";
@@ -434,6 +434,7 @@ function App() {
               useHealingItem(next, id, "Manual Healing");
               return next;
             })}
+            onAutoHealChange={(patch) => setState((current) => ({ ...current, autoHeal: { ...current.autoHeal, ...patch } }))}
             onStopActive={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))}
             onNavigateSource={navigateToItemSource}
             notices={cityNotices}
@@ -449,6 +450,7 @@ function App() {
             onUnequipCyberware={(slot) => setState((current) => unequipCyberware(current, slot))}
             onUse={(id) => setState((current) => useItem(current, id))}
             onSell={(id) => setState((current) => quickSellInventoryItem(current, id))}
+            onSellAllButOne={(id) => setState((current) => quickSellAllButOneInventoryItem(current, id))}
             onUpgrade={(id) => setState((current) => upgradeItem(current, id))}
             onUpgradePlayerItem={(id) => setState((current) => upgradePlayerUpgradeFromInventory(current, id))}
             onInstallAttachment={(weaponId, attachmentId) => setState((current) => installAttachment(current, weaponId, attachmentId))}
@@ -779,7 +781,7 @@ function FloatingSimCacheButton({
             <p className="eyebrow">Sim Cache</p>
             <h3>{active?.name ?? "No active loop"}</h3>
             <p className="muted">{eligibility.reason}</p>
-            <p className="fine">Skill-action drops roll at {Math.round(dropEfficiency * 100)}% of their normal chance.</p>
+            <p className="fine">Skill and combat drops roll at {Math.round(dropEfficiency * 100)}% of their normal chance.</p>
             <div className="card-list compact">
               {options.map((option) => (
                 <button key={option.label} className="secondary-button full" disabled={!eligibility.eligible || option.count <= 0 || available < option.count} onClick={() => onRun(option.count)}>
@@ -876,6 +878,7 @@ function CityTab({
   onSetVehicle,
   onUpgradeVehicle,
   onUseHealingItem,
+  onAutoHealChange,
   onStopActive,
   onNavigateSource,
   notices,
@@ -902,6 +905,7 @@ function CityTab({
   onSetVehicle: (id: string) => void;
   onUpgradeVehicle: (id: string) => void;
   onUseHealingItem: (id: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
   onStopActive: () => void;
   onNavigateSource: (source: ItemSourceEntry) => void;
   notices: TabNotice[];
@@ -952,6 +956,7 @@ function CityTab({
         onSetVehicle={onSetVehicle}
         onUpgradeVehicle={onUpgradeVehicle}
         onUseHealingItem={onUseHealingItem}
+        onAutoHealChange={onAutoHealChange}
         onStopActive={onStopActive}
         onNavigateSource={onNavigateSource}
       />
@@ -988,6 +993,7 @@ function DistrictHub({
   onSetVehicle,
   onUpgradeVehicle,
   onUseHealingItem,
+  onAutoHealChange,
   onStopActive,
   onNavigateSource,
 }: {
@@ -1013,6 +1019,7 @@ function DistrictHub({
   onSetVehicle: (id: string) => void;
   onUpgradeVehicle: (id: string) => void;
   onUseHealingItem: (id: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
   onStopActive: () => void;
   onNavigateSource: (source: ItemSourceEntry) => void;
 }) {
@@ -1041,14 +1048,7 @@ function DistrictHub({
         <div>
           <p className="eyebrow">District Hub</p>
           <h2>{district.name}</h2>
-          <p className="fine">{districtLevelBandLabel(districtId)} / {threatTier(threat)} threat / Standing {localStanding} / {completion.total}% complete</p>
-          <p className="fine">Dominant faction: {factions.find((faction) => faction.id === dominantFaction)?.name ?? "Contested"}</p>
-          {activeActivity?.districtId === districtId && <p className="warning-badge inline">Live: {activeActivity.name}</p>}
         </div>
-        <DistrictMasteryPanel state={state} districtId={districtId} />
-        <DistrictReturnGoalsPanel state={state} districtId={districtId} />
-        <ThreatMeter value={threat} tier={threatTier(threat)} />
-        {!unlocked && <CompactRequirementList state={state} districtId={districtId} requirements={district.unlockRequirements} />}
       </article>
 
       {infoOpen && <DistrictInfoPanel state={state} districtId={districtId} />}
@@ -1074,6 +1074,17 @@ function DistrictHub({
 
       {category === "overview" ? (
         <>
+          <article className="panel district-overview-progress">
+            <div className="district-overview-status">
+              <p className="fine">{districtLevelBandLabel(districtId)} / {threatTier(threat)} threat / Standing {localStanding} / {completion.total}% complete</p>
+              <p className="fine">Dominant faction: {factions.find((faction) => faction.id === dominantFaction)?.name ?? "Contested"}</p>
+              {activeActivity?.districtId === districtId && <p className="warning-badge inline">Live: {activeActivity.name}</p>}
+            </div>
+            <DistrictMasteryPanel state={state} districtId={districtId} />
+            <DistrictReturnGoalsPanel state={state} districtId={districtId} />
+            <ThreatMeter value={threat} tier={threatTier(threat)} />
+            {!unlocked && <CompactRequirementList state={state} districtId={districtId} requirements={district.unlockRequirements} />}
+          </article>
           <DistrictIntelPanel state={state} districtId={districtId} />
           <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
           <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
@@ -1100,6 +1111,7 @@ function DistrictHub({
           onSetVehicle={onSetVehicle}
           onUpgradeVehicle={onUpgradeVehicle}
           onUseHealingItem={onUseHealingItem}
+          onAutoHealChange={onAutoHealChange}
           onStopActive={onStopActive}
           onNavigateSource={onNavigateSource}
           sourceTargetRequest={openCategoryRequest ? { targetId: openCategoryRequest.targetId, token: openCategoryRequest.token } : null}
@@ -1824,6 +1836,7 @@ function DistrictActivityMenu({
   onSetVehicle,
   onUpgradeVehicle,
   onUseHealingItem,
+  onAutoHealChange,
   onStopActive,
   onNavigateSource,
   sourceTargetRequest,
@@ -1848,6 +1861,7 @@ function DistrictActivityMenu({
   onSetVehicle: (id: string) => void;
   onUpgradeVehicle: (id: string) => void;
   onUseHealingItem: (id: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
   onStopActive: () => void;
   onNavigateSource: (source: ItemSourceEntry) => void;
   sourceTargetRequest: { targetId?: string; token: number } | null;
@@ -1864,6 +1878,7 @@ function DistrictActivityMenu({
         onCraft={onCraft}
         onStopCraft={onStopCraft}
         onUseHealingItem={onUseHealingItem}
+        onAutoHealChange={onAutoHealChange}
         onStopActive={onStopActive}
         sourceTargetRequest={sourceTargetRequest}
       />
@@ -1915,11 +1930,11 @@ function DistrictActivityMenu({
     return (
       <CombatDashboard
         state={state}
-        districtId={districtId}
         zones={districtCombatZones(districtId)}
         onStartCombat={onStartCombat}
         onStopActive={onStopActive}
         onUseHealingItem={onUseHealingItem}
+        onAutoHealChange={onAutoHealChange}
         targetEnemyRequest={sourceTargetRequest}
       />
     );
@@ -2038,6 +2053,7 @@ function DistrictSkillWorkPanel({
   onCraft,
   onStopCraft,
   onUseHealingItem,
+  onAutoHealChange,
   onStopActive,
   sourceTargetRequest,
 }: {
@@ -2049,6 +2065,7 @@ function DistrictSkillWorkPanel({
   onCraft: (id: string) => void;
   onStopCraft: () => void;
   onUseHealingItem: (id: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
   onStopActive: () => void;
   sourceTargetRequest: { targetId?: string; token: number } | null;
 }) {
@@ -2093,11 +2110,11 @@ function DistrictSkillWorkPanel({
       {hasCombatWork && (
         <CombatDashboard
           state={state}
-          districtId={districtId}
           zones={enemies}
           onStartCombat={onStartCombat}
           onStopActive={onStopActive}
           onUseHealingItem={onUseHealingItem}
+          onAutoHealChange={onAutoHealChange}
           targetEnemyRequest={sourceTargetRequest}
         />
       )}
@@ -4091,25 +4108,26 @@ function CombatTab({
 
 function CombatDashboard({
   state,
-  districtId,
   zones,
   onStartCombat,
   onStopActive,
   onUseHealingItem,
+  onAutoHealChange,
   targetEnemyRequest,
 }: {
   state: GameState;
-  districtId: DistrictId;
   zones: CombatZone[];
   onStartCombat: (enemyId: string) => void;
   onStopActive: () => void;
   onUseHealingItem: (itemId: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
   targetEnemyRequest?: { targetId?: string; token: number } | null;
 }) {
   const enemies = zones.flatMap((zone) => zone.enemies.map((enemy) => ({ zone, enemy })));
   const activeEnemy = state.currentCombat ? enemies.find((entry) => entry.enemy.id === state.currentCombat?.enemyId) : null;
   const [selectedEnemyId, setSelectedEnemyId] = useState(activeEnemy?.enemy.id ?? enemies[0]?.enemy.id ?? "");
-  const selected = activeEnemy ?? enemies.find((entry) => entry.enemy.id === selectedEnemyId) ?? enemies[0] ?? null;
+  const selected = enemies.find((entry) => entry.enemy.id === selectedEnemyId) ?? activeEnemy ?? enemies[0] ?? null;
+  const combatDisplay = activeEnemy ?? selected;
   const [mobilePanel, setMobilePanel] = useState<"Enemies" | "Drops" | "Stats" | "Log">("Enemies");
 
   useEffect(() => {
@@ -4125,14 +4143,14 @@ function CombatDashboard({
 
   return (
     <section className="combat-dashboard">
-      <CombatAreaHeader state={state} districtId={districtId} zones={zones} selectedEnemy={selected.enemy} />
       <ActiveCombatPanel
         state={state}
-        zone={selected.zone}
-        enemy={selected.enemy}
-        onStart={() => onStartCombat(selected.enemy.id)}
+        zone={combatDisplay.zone}
+        enemy={combatDisplay.enemy}
+        onStart={() => onStartCombat(combatDisplay.enemy.id)}
         onStop={onStopActive}
         onUseHealingItem={onUseHealingItem}
+        onAutoHealChange={onAutoHealChange}
       />
       <div className="combat-mobile-tabs">
         {(["Enemies", "Drops", "Stats", "Log"] as const).map((tab) => (
@@ -4169,31 +4187,6 @@ function CombatDashboard({
   );
 }
 
-function CombatAreaHeader({ state, districtId, zones, selectedEnemy }: { state: GameState; districtId: DistrictId; zones: CombatZone[]; selectedEnemy: Enemy }) {
-  const district = getDistrict(districtId);
-  const allEnemies = zones.flatMap((zone) => zone.enemies);
-  const minLevel = Math.min(...allEnemies.map((enemy) => enemy.requiredCombatLevel ?? 1));
-  const maxLevel = Math.max(...allEnemies.map((enemy) => enemy.requiredCombatLevel ?? 1));
-  const safety = estimateCombatSafety(state, selectedEnemy);
-  const playerStats = calculatePlayerCombatStats(state);
-  return (
-    <article className="combat-area-header">
-      <div>
-        <p className="eyebrow">{district?.name ?? "District"} Combat</p>
-        <h2>{zones.map((zone) => zone.name).join(" / ")}</h2>
-        <p className="muted">Street Threat {minLevel}-{maxLevel} / Recommended HP {safety.recommendedHp} / Combat Lv {minLevel}</p>
-      </div>
-      <div className="combat-summary-strip">
-        <span><b>HP</b>{Math.ceil(state.health.currentHp)}/{playerStats.maxHp}</span>
-        <span><b>Damage</b>{playerStats.damage}</span>
-        <span><b>Attack</b>{formatDuration(playerStats.attackSpeedMs)}</span>
-        <span><b>Armor</b>{playerStats.armor}</span>
-        <span className={`safety-${safety.rating.toLowerCase()}`}><b>Safety</b>{combatSafetyLabel(safety.rating)}</span>
-      </div>
-    </article>
-  );
-}
-
 function ActiveCombatPanel({
   state,
   zone,
@@ -4201,6 +4194,7 @@ function ActiveCombatPanel({
   onStart,
   onStop,
   onUseHealingItem,
+  onAutoHealChange,
 }: {
   state: GameState;
   zone: CombatZone;
@@ -4208,6 +4202,7 @@ function ActiveCombatPanel({
   onStart: () => void;
   onStop: () => void;
   onUseHealingItem: (itemId: string) => void;
+  onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void;
 }) {
   const active = state.currentCombat?.enemyId === enemy.id;
   const combat = active ? state.currentCombat : null;
@@ -4267,7 +4262,7 @@ function ActiveCombatPanel({
         />
       </div>
       <div className="combat-utility-row">
-        <AutoHealPanel state={state} quickHealId={quickHealId} onUseHealingItem={onUseHealingItem} />
+        <AutoHealPanel state={state} quickHealId={quickHealId} onUseHealingItem={onUseHealingItem} onAutoHealChange={onAutoHealChange} />
         <FightControls active={active} selectedEnemy={enemy} fightUnlocked={fightUnlocked && runnerReady} recoveryRequired={!runnerReady} onStart={onStart} onStop={onStop} />
       </div>
     </article>
@@ -4364,7 +4359,8 @@ function EnemySelectionGrid({
           state={state}
           zone={zone}
           enemy={enemy}
-          selected={selectedEnemyId === enemy.id || state.currentCombat?.enemyId === enemy.id}
+          selected={selectedEnemyId === enemy.id}
+          fighting={state.currentCombat?.enemyId === enemy.id}
           onSelect={() => onSelect(enemy.id)}
           onStart={() => onStart(enemy.id)}
         />
@@ -4373,7 +4369,7 @@ function EnemySelectionGrid({
   );
 }
 
-function EnemySelectionCard({ state, zone, enemy, selected, onSelect, onStart }: { state: GameState; zone: CombatZone; enemy: Enemy; selected: boolean; onSelect: () => void; onStart: () => void }) {
+function EnemySelectionCard({ state, zone, enemy, selected, fighting, onSelect, onStart }: { state: GameState; zone: CombatZone; enemy: Enemy; selected: boolean; fighting: boolean; onSelect: () => void; onStart: () => void }) {
   const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
   const safety = estimateCombatSafety(state, enemy);
   const matchup = combatEffectivenessForEnemy(state, enemy);
@@ -4382,7 +4378,7 @@ function EnemySelectionCard({ state, zone, enemy, selected, onSelect, onStart }:
   const drops = combatDisplayDrops(enemy);
   const discovered = drops.filter((drop) => Boolean(log.discoveredDrops[drop.id])).length;
   return (
-    <article className={`enemy-selection-card rarity-${(enemy.difficulty ?? "Common").toLowerCase()} ${selected ? "selected" : ""} ${unlocked ? "" : "locked-card"}`} onClick={onSelect}>
+    <article className={`enemy-selection-card rarity-${(enemy.difficulty ?? "Common").toLowerCase()} ${selected ? "selected" : ""} ${fighting ? "fighting" : ""} ${unlocked ? "" : "locked-card"}`} onClick={onSelect}>
       <div className="enemy-selection-top">
         <div className="enemy-selection-identity">
           <img src={enemyPortraitFor(enemy.id)} alt="" loading="lazy" decoding="async" />
@@ -4492,13 +4488,32 @@ function CombatLogPanel({ state }: { state: GameState }) {
   );
 }
 
-function AutoHealPanel({ state, quickHealId, onUseHealingItem }: { state: GameState; quickHealId: string; onUseHealingItem: (itemId: string) => void }) {
+function AutoHealPanel({ state, quickHealId, onUseHealingItem, onAutoHealChange }: { state: GameState; quickHealId: string; onUseHealingItem: (itemId: string) => void; onAutoHealChange: (patch: Partial<GameState["autoHeal"]>) => void }) {
   const count = state.inventory[quickHealId] ?? 0;
   return (
     <div className="auto-heal-panel">
-      <div>
-        <p className="eyebrow">Combat Utility</p>
-        <h3>Auto Heal: {state.autoHeal.enabled ? "On" : "Off"}</h3>
+      <div className="action-row">
+        <div>
+          <p className="eyebrow">Combat Utility</p>
+          <h3>Auto Heal</h3>
+        </div>
+        <div className="combat-auto-heal-controls">
+          <button className={`secondary-button ${state.autoHeal.enabled ? "active" : ""}`} disabled={!state.autoHeal.unlocked} onClick={() => onAutoHealChange({ enabled: !state.autoHeal.enabled })}>
+            {state.autoHeal.enabled ? "On" : "Off"}
+          </button>
+          <div className="inventory-filter-row combat-auto-heal-thresholds" aria-label="Auto Heal threshold">
+            {([25, 40, 60, 75] as const).map((threshold) => (
+              <button
+                key={threshold}
+                className={state.autoHeal.threshold === threshold ? "active" : ""}
+                disabled={!state.autoHeal.unlocked}
+                onClick={() => onAutoHealChange({ threshold })}
+              >
+                {threshold}%
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <p className="fine">{getItem(state.autoHeal.itemId)?.name ?? state.autoHeal.itemId}: {state.inventory[state.autoHeal.itemId] ?? 0} / Threshold {state.autoHeal.threshold}%</p>
       <button className="secondary-button full" disabled={count <= 0} onClick={() => onUseHealingItem(quickHealId)}>
@@ -4516,10 +4531,6 @@ function FightControls({ active, selectedEnemy, fightUnlocked, recoveryRequired,
       ) : (
         <button className="primary-button full" disabled={!fightUnlocked} onClick={onStart}>{recoveryRequired ? "Recovery Required" : `Start ${selectedEnemy.name}`}</button>
       )}
-      <div className="combat-control-hints">
-        <span>Auto Repeat: Idle loop</span>
-        <span>Sim Cache: Manual kills first</span>
-      </div>
     </div>
   );
 }
@@ -4680,15 +4691,16 @@ function rarityRank(rarity: string) {
   return inventoryRarityRanks[rarity] ?? 0;
 }
 
-type InventoryFilter = "All" | "Upgrades" | "Resources" | "Components" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables" | "Blueprints";
+type InventoryFilter = "Upgrades" | "Resources" | "Components" | "Cyberware" | "Weapons" | "Attachments" | "Mods" | "Armor" | "Consumables" | "Blueprints";
 type InventorySortMode = "rarity" | "quantity" | "price";
 type InventorySortDirection = "asc" | "desc";
 type CraftingSortMode = "rarity" | "level";
-type CraftingFilter = "All" | CraftingRecipe["category"];
+type CraftingFilter = CraftingRecipe["category"];
 
 const inventorySortModes: InventorySortMode[] = ["rarity", "quantity", "price"];
 const craftingSortModes: CraftingSortMode[] = ["rarity", "level"];
-const craftingFilters: CraftingFilter[] = ["All", "Player Upgrades", "Components", "Upgrade Parts", "Weapons", "Armor", "Cyberware", "Attachments", "Weapon Mods", "Consumables"];
+const inventoryFilters: InventoryFilter[] = ["Upgrades", "Resources", "Components", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables", "Blueprints"];
+const craftingFilters: CraftingFilter[] = ["Player Upgrades", "Components", "Upgrade Parts", "Weapons", "Armor", "Cyberware", "Attachments", "Weapon Mods", "Consumables"];
 const inventoryRarityRanks: Record<string, number> = {
   Common: 1,
   Uncommon: 2,
@@ -4707,6 +4719,7 @@ function InventoryTab({
   onUnequipCyberware,
   onUse,
   onSell,
+  onSellAllButOne,
   onUpgrade,
   onUpgradePlayerItem,
   onInstallAttachment,
@@ -4723,6 +4736,7 @@ function InventoryTab({
   onUnequipCyberware: (slot: CyberwareSlot) => void;
   onUse: (id: string) => void;
   onSell: (id: string) => void;
+  onSellAllButOne: (id: string) => void;
   onUpgrade: (id: string) => void;
   onUpgradePlayerItem: (id: string) => void;
   onInstallAttachment: (weaponId: string, attachmentId: string) => void;
@@ -4733,7 +4747,7 @@ function InventoryTab({
   onReviewNotice: (key: string) => void;
   onReviewAllNotices: () => void;
 }) {
-  const [filter, setFilter] = useState<InventoryFilter>("All");
+  const [filter, setFilter] = useState<InventoryFilter>(inventoryFilters[0]);
   const [sortMode, setSortMode] = useState<InventorySortMode>("rarity");
   const [sortDirection, setSortDirection] = useState<InventorySortDirection>("desc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -4749,7 +4763,6 @@ function InventoryTab({
   const drops = [...inventoryIds].map((id) => [id, Math.max(state.inventory[id] ?? 0, equippedItemLabel(state, id) ? 1 : 0)] as [string, number]);
   const filtered = drops.filter(([id]) => {
     const item = getItem(id);
-    if (filter === "All") return true;
     if (filter === "Upgrades") return Boolean(item?.tags.includes("player-upgrade"));
     if (filter === "Resources") return item?.type === "Resource" && !["credits", "reputation", "heat"].includes(id);
     if (filter === "Components") return item?.type === "Material" || item?.type === "Component";
@@ -4785,6 +4798,8 @@ function InventoryTab({
   const selectedCount = activeId ? state.inventory[activeId] ?? 0 : 0;
   const selectedQuickSellValue = activeId ? inventoryQuickSellValue(state, activeId) : 0;
   const selectedCanSell = activeId ? canQuickSellInventoryItem(state, activeId) : false;
+  const selectedSellAllButOneValue = activeId ? inventoryQuickSellAllButOneValue(state, activeId) : 0;
+  const selectedCanSellAllButOne = activeId ? canQuickSellAllButOneInventoryItem(state, activeId) : false;
   const selectedUpgradeLevel = activeId ? state.upgradeLevels[activeId] ?? 0 : 0;
   const selectedMaxUpgrade = Boolean(selectedItem?.maxUpgradeLevel && selectedUpgradeLevel >= selectedItem.maxUpgradeLevel);
   const selectedPlayerUpgradeRecipe = activeId && selectedItem?.tags.includes("player-upgrade") ? nextPlayerUpgradeRecipe(activeId) : undefined;
@@ -4835,7 +4850,7 @@ function InventoryTab({
           </button>
         </div>
         <div className="inventory-filter-row">
-          {(["All", "Upgrades", "Resources", "Components", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables", "Blueprints"] as InventoryFilter[]).map((entry) => (
+          {inventoryFilters.map((entry) => (
             <button key={entry} className={filter === entry ? "active" : ""} onClick={() => setFilter(entry)}>
               {entry}
             </button>
@@ -4916,6 +4931,9 @@ function InventoryTab({
             )}
             <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>
               Sell 1 for {selectedQuickSellValue.toLocaleString()} Credits
+            </button>
+            <button className="secondary-button full" disabled={!selectedCanSellAllButOne} onClick={() => onSellAllButOne(activeId)}>
+              Sell All but 1 for {selectedSellAllButOneValue.toLocaleString()} Credits
             </button>
             {selectedItem.type === "WeaponAttachment" && <p className="fine">Attachment: {titleCase(selectedItem.attachmentCategory ?? "")} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
             {selectedItem.type === "WeaponMod" && <p className="fine">Mod: {selectedItem.specialEffect} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
@@ -5272,8 +5290,8 @@ function CraftingPanel({
 }) {
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [filter, setFilter] = useState<CraftingFilter>("All");
-  const [equipmentTypeFilter, setEquipmentTypeFilter] = useState("All");
+  const [filter, setFilter] = useState<CraftingFilter>(craftingFilters[0]);
+  const [equipmentTypeFilter, setEquipmentTypeFilter] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<CraftingSortMode>("rarity");
   const [sortDirection, setSortDirection] = useState<InventorySortDirection>("desc");
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
@@ -5282,13 +5300,14 @@ function CraftingPanel({
     if (!targetId) return;
     const targetRecipe = recipes.find((recipe) => recipe.id === targetId);
     if (!targetRecipe || !recipeAvailableInCurrentDistrict(state, targetRecipe)) return;
-    setFilter(craftingFilters.includes(targetRecipe.category as CraftingFilter) ? targetRecipe.category as CraftingFilter : "All");
-    setEquipmentTypeFilter("All");
+    setFilter(craftingFilters.includes(targetRecipe.category as CraftingFilter) ? targetRecipe.category as CraftingFilter : craftingFilters[0]);
+    const targetOutput = getItem(targetRecipe.outputItemId);
+    setEquipmentTypeFilter(targetRecipe.category === "Weapons" ? targetOutput?.weaponClass ?? null : targetRecipe.category === "Armor" || targetRecipe.category === "Cyberware" ? targetOutput?.slot ?? null : null);
     setSelectedRecipeId(targetId);
   }, [targetRecipeRequest?.token]);
   const districtRange = craftingLevelRangeForDistrict(state.selectedDistrict);
   const districtRecipes = recipes.filter((recipe) => recipeAvailableInCurrentDistrict(state, recipe) && playerUpgradeRecipeVisible(state, recipe));
-  const categoryRecipes = districtRecipes.filter((recipe) => filter === "All" || recipe.category === filter);
+  const categoryRecipes = districtRecipes.filter((recipe) => recipe.category === filter);
   const categoryItems = categoryRecipes
     .map((recipe) => getItem(recipe.outputItemId))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -5305,12 +5324,15 @@ function CraftingPanel({
           .filter((slot) => categoryItems.some((item) => item.slot === slot.id))
           .map((slot) => ({ id: slot.id, label: slot.label }))
         : [];
+  const activeEquipmentTypeFilter = equipmentTypeOptions.some((option) => option.id === equipmentTypeFilter)
+    ? equipmentTypeFilter
+    : equipmentTypeOptions[0]?.id ?? null;
   const filteredRecipes = categoryRecipes.filter((recipe) => {
-    if (equipmentTypeFilter === "All" || !["Weapons", "Armor", "Cyberware"].includes(filter)) return true;
+    if (!activeEquipmentTypeFilter || !["Weapons", "Armor", "Cyberware"].includes(filter)) return true;
     const output = getItem(recipe.outputItemId);
     return filter === "Weapons"
-      ? output?.weaponClass === equipmentTypeFilter
-      : output?.slot === equipmentTypeFilter;
+      ? output?.weaponClass === activeEquipmentTypeFilter
+      : output?.slot === activeEquipmentTypeFilter;
   });
   const sortedRecipes = [...filteredRecipes].sort((left, right) => {
     const leftItem = getItem(left.outputItemId);
@@ -5401,7 +5423,7 @@ function CraftingPanel({
             className={filter === entry ? "active" : ""}
             onClick={() => {
               setFilter(entry);
-              setEquipmentTypeFilter("All");
+              setEquipmentTypeFilter(null);
             }}
           >
             {entry}
@@ -5410,13 +5432,10 @@ function CraftingPanel({
       </div>
       {equipmentTypeOptions.length > 0 && (
         <div className="inventory-filter-row crafting-filter-row crafting-equipment-type-row" aria-label={`${filter} type filter`}>
-          <button className={equipmentTypeFilter === "All" ? "active" : ""} onClick={() => setEquipmentTypeFilter("All")}>
-            All {filter}
-          </button>
           {equipmentTypeOptions.map((option) => (
             <button
               key={option.id}
-              className={equipmentTypeFilter === option.id ? "active" : ""}
+              className={activeEquipmentTypeFilter === option.id ? "active" : ""}
               onClick={() => setEquipmentTypeFilter(option.id)}
             >
               {option.label}
@@ -5441,7 +5460,7 @@ function CraftingPanel({
             return (
               <button
                 type="button"
-                className={`crafting-recipe-tile rarity-${(output?.rarity ?? "Common").toLowerCase()} ${selected ? "active" : ""} ${active ? "running" : ""} ${craftable ? "craftable-card" : ""} ${locked ? "locked-card" : ""} ${missing ? "missing-card" : ""}`}
+                className={`crafting-recipe-tile rarity-${(output?.rarity ?? "Common").toLowerCase()} ${selected ? "active" : ""} ${active ? "running" : ""} ${craftable ? "craftable-card" : "uncraftable-card"}`}
                 key={recipe.id}
                 onClick={() => setSelectedRecipeId(recipe.id)}
               >
@@ -5726,7 +5745,7 @@ function PerksPanel({
       <PerkPointSummary state={state} onRespecPerks={onRespecPerks} />
       <header className="perk-matrix-header">
         <div>
-          <p className="eyebrow">Build Matrix</p>
+          <p className="eyebrow">Skills</p>
           <h2>Specializations</h2>
           <p className="muted">Shape a coherent build or combine specialties. Each path offers one focused upgrade per tier.</p>
         </div>
@@ -5941,8 +5960,8 @@ function perkLockReason(state: GameState, perk: PerkDefinition) {
 type CharacterPopupId = "build" | "skills" | "gear" | "cyberware" | "presets";
 
 const characterPopupDetails: Record<CharacterPopupId, { title: string; subtitle: string }> = {
-  build: { title: "Build Matrix", subtitle: "Specializations & Perks" },
-  skills: { title: "Skill Levels", subtitle: "Progress & Proficiency" },
+  build: { title: "Skills", subtitle: "Specializations & Perks" },
+  skills: { title: "Weapon Levels", subtitle: "Weapon Class Progress" },
   gear: { title: "Gear Loadout", subtitle: "Weapons & Armor" },
   cyberware: { title: "Cyberware Loadout", subtitle: "Implants & Instability" },
   presets: { title: "Loadout Presets", subtitle: "Equipment Switching" },
@@ -5988,12 +6007,12 @@ function CharacterTab({
         <div className="character-tool-grid">
           <button className="character-tool-button" onClick={() => setPopup("build")}>
             <BrainCircuit size={22} />
-            <span><strong>Build Matrix</strong><small>Spend perk points and shape specializations.</small></span>
+            <span><strong>Skills</strong><small>Spend perk points and shape specializations.</small></span>
             <b>{availablePerkPoints(state)} available</b>
           </button>
           <button className="character-tool-button" onClick={() => setPopup("skills")}>
             <Activity size={22} />
-            <span><strong>Skill Levels</strong><small>Review action skills and weapon proficiency.</small></span>
+            <span><strong>Weapon Levels</strong><small>Review action skills and weapon proficiency.</small></span>
             <b>{totalLevel(state)} total</b>
           </button>
           <button className="character-tool-button" onClick={() => setPopup("gear")}>
@@ -6256,7 +6275,7 @@ function LegacyCharacterTab({
         </div>
       </article>
       <article className="panel weapon-classes-panel">
-        <h2>Weapon Classes</h2>
+        <h2>Weapon Levels</h2>
         <div className="card-list weapon-class-grid">
           {weaponClassOrder.map((classId) => {
             const weaponClass = weaponClasses.find((entry) => entry.id === classId)!;
@@ -7350,7 +7369,7 @@ const itemIndexCategories: ItemIndexCategory[] = ["Resources", "Components", "Cy
 const itemIndexSortModes: ItemIndexSortMode[] = ["name", "rarity", "price", "tier", "requiredLevel", "owned", "category", "slot", "instability", "damage", "armor"];
 function ItemIndexPanel({ state }: { state: GameState }) {
   const [category, setCategory] = useState<ItemIndexCategory>("Resources");
-  const [secondary, setSecondary] = useState("All");
+  const [secondary, setSecondary] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<ItemIndexSortMode>("rarity");
   const [sortDirection, setSortDirection] = useState<ItemIndexSortDirection>("desc");
   const [query, setQuery] = useState("");
@@ -7359,9 +7378,10 @@ function ItemIndexPanel({ state }: { state: GameState }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const categoryItems = items.filter((item) => itemIndexCategoryFor(item) === category);
   const secondaryOptions = itemIndexSecondaryFilters(category, categoryItems);
+  const activeSecondary = secondaryOptions.includes(secondary ?? "") ? secondary! : secondaryOptions[0] ?? "";
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = categoryItems
-    .filter((item) => secondary === "All" || itemIndexSecondaryValue(item, category) === secondary)
+    .filter((item) => itemIndexSecondaryValue(item, category) === activeSecondary)
     .filter((item) => showHidden || itemDiscoveredForIndex(state, item))
     .filter((item) => !normalizedQuery || itemIndexSearchText(item, state).includes(normalizedQuery));
   const sorted = [...filtered].sort((left, right) => itemIndexSortValue(left, state, sortMode).localeCompare(itemIndexSortValue(right, state, sortMode), undefined, { numeric: true }) * (sortDirection === "asc" ? 1 : -1) || left.name.localeCompare(right.name));
@@ -7391,14 +7411,14 @@ function ItemIndexPanel({ state }: { state: GameState }) {
       </div>
       <div className="inventory-filter-row item-index-tabs">
         {itemIndexCategories.map((entry) => (
-          <button key={entry} className={category === entry ? "active" : ""} onClick={() => { setCategory(entry); setSecondary("All"); setSelectedId(null); }}>
+          <button key={entry} className={category === entry ? "active" : ""} onClick={() => { setCategory(entry); setSecondary(null); setSelectedId(null); }}>
             {entry}
           </button>
         ))}
       </div>
       <div className="item-index-controls">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, slot, rarity, tags, source..." aria-label="Search item index" />
-        <select value={secondary} onChange={(event) => { setSecondary(event.target.value); setSelectedId(null); }}>
+        <select value={activeSecondary} onChange={(event) => { setSecondary(event.target.value); setSelectedId(null); }}>
           {secondaryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
         <button className="inventory-sort-cycle" onClick={() => setSortMode((current) => itemIndexSortModes[(itemIndexSortModes.indexOf(current) + 1) % itemIndexSortModes.length])}>
@@ -7506,7 +7526,7 @@ function itemIndexCategoryFor(item: ItemDefinition): ItemIndexCategory | null {
 
 function itemIndexSecondaryFilters(category: ItemIndexCategory, categoryItems: ItemDefinition[]) {
   const values = categoryItems.map((item) => itemIndexSecondaryValue(item, category)).filter(Boolean);
-  return ["All", ...Array.from(new Set(values)).sort()];
+  return Array.from(new Set(values)).sort();
 }
 
 function itemIndexSecondaryValue(item: ItemDefinition, category: ItemIndexCategory) {
@@ -7777,8 +7797,8 @@ function SimCacheSection({ state, onRun }: { state: GameState; onRun: (count: nu
         </div>
         <p className="muted">Current activity: {current}</p>
         <p className="fine">Eligibility: {eligibility.reason}</p>
-        <p className="fine">Manual discovery required: skill actions and recipes must be completed manually once before Basic Sim Cache can repeat them.</p>
-        <p className="fine">Skill-action drops roll at {Math.round(efficiency.rareDrops * 100)}% of their normal chance and are included in the simulation recap.</p>
+        <p className="fine">Manual discovery required: skill actions, recipes, and combat targets must be completed manually once before Basic Sim Cache can repeat them.</p>
+        <p className="fine">Skill and combat drops roll at {Math.round(efficiency.rareDrops * 100)}% of their normal chance and are included in the simulation recap.</p>
         <p className="fine">Safety: stops early for missing materials, high Heat, or high Neural Instability.</p>
         <button className="primary-button full" disabled={!eligibility.eligible || cacheCount <= 0} onClick={() => onRun(1)}>
           Simulate 5m

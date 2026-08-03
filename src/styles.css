@@ -3152,7 +3152,6 @@ button:disabled {
   gap: 12px;
 }
 
-.combat-area-header,
 .active-combat-panel,
 .combat-panel {
   border: 1px solid rgba(62, 231, 255, 0.22);
@@ -3163,26 +3162,11 @@ button:disabled {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 24px rgba(62, 231, 255, 0.05);
 }
 
-.combat-area-header {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.combat-area-header h2,
 .active-combat-title h2 {
   margin: 2px 0 4px;
 }
 
-.combat-summary-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.combat-summary-strip span,
-.combatant-stat-grid span,
-.combat-control-hints span {
+.combatant-stat-grid span {
   border: 1px solid rgba(62, 231, 255, 0.18);
   border-radius: 7px;
   padding: 7px 8px;
@@ -3191,7 +3175,6 @@ button:disabled {
   font-size: 0.78rem;
 }
 
-.combat-summary-strip b,
 .combatant-stat-grid b {
   display: block;
   color: var(--muted);
@@ -3372,10 +3355,16 @@ button:disabled {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.combat-control-hints {
+.combat-auto-heal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.combat-auto-heal-thresholds {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .danger-button {
@@ -3458,6 +3447,10 @@ button:disabled {
 .enemy-selection-card.selected {
   border-color: var(--cyan);
   box-shadow: 0 0 18px rgba(62, 231, 255, 0.13);
+}
+
+.enemy-selection-card.fighting {
+  box-shadow: inset 3px 0 0 var(--gold);
 }
 
 .enemy-selection-card h3 {
@@ -3586,15 +3579,6 @@ button:disabled {
 }
 
 @media (min-width: 920px) {
-  .combat-area-header {
-    grid-template-columns: minmax(260px, 1fr) minmax(420px, 0.9fr);
-    align-items: center;
-  }
-
-  .combat-summary-strip {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
   .combatant-row {
     grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
     align-items: stretch;
@@ -4383,17 +4367,22 @@ button:disabled {
 }
 
 .crafting-recipe-tile.craftable-card {
-  border-color: rgba(113, 255, 158, 0.42);
+  background:
+    linear-gradient(135deg, rgba(62, 231, 255, 0.12), rgba(113, 255, 158, 0.06)),
+    rgba(10, 16, 22, 0.94);
+  box-shadow:
+    inset 0 0 18px rgba(62, 231, 255, 0.08),
+    0 0 12px rgba(62, 231, 255, 0.08);
 }
 
-.crafting-recipe-tile.locked-card,
-.crafting-recipe-tile.missing-card {
-  border-color: rgba(255, 92, 122, 0.36);
+.crafting-recipe-tile.uncraftable-card {
+  opacity: 0.42;
+  filter: saturate(0.35) brightness(0.72);
 }
 
-.crafting-recipe-tile.locked-card strong,
-.crafting-recipe-tile.missing-card strong {
-  color: #ff9aae;
+.crafting-recipe-tile.uncraftable-card:hover,
+.crafting-recipe-tile.uncraftable-card.active {
+  opacity: 0.58;
 }
 
 .crafting-detail-panel {
@@ -7247,6 +7236,16 @@ button:disabled {
   display: grid;
   gap: 12px;
   padding: 14px;
+}
+
+.district-overview-progress {
+  display: grid;
+  gap: 12px;
+}
+
+.district-overview-status {
+  display: grid;
+  gap: 4px;
 }
 
 .district-mastery-panel {

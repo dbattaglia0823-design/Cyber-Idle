@@ -5,7 +5,7 @@ import { addItem, discoverItem } from "./collectionSystem";
 import { calculateDropChance } from "./balanceFormulas";
 import type { GameState, PercentDropEntry, ResourceId } from "../types";
 
-export function processPercentDrops(state: GameState, sourceId: string, sourceTags: string[] = [], excludedItemIds: string[] = []) {
+export function processPercentDrops(state: GameState, sourceId: string, sourceTags: string[] = [], excludedItemIds: string[] = [], chanceMultiplier = 1) {
   const excluded = new Set(excludedItemIds);
   const table = (percentDropTables[sourceId] ?? []).filter((entry) => !excluded.has(entry.itemId));
   const gained: string[] = [];
@@ -14,7 +14,7 @@ export function processPercentDrops(state: GameState, sourceId: string, sourceTa
       ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : []) * 100
       : entry.chancePercent;
     revealDropFromAttempts(state, sourceId, entry);
-    if (Math.random() * 100 > chance) return;
+    if (Math.random() * 100 > chance * Math.max(0, chanceMultiplier)) return;
     const quantity = randomQuantity(entry);
     if (isResource(entry.itemId)) state.resources[entry.itemId] += quantity;
     else addItem(state, entry.itemId, quantity);

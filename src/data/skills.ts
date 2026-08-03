@@ -27,7 +27,7 @@ export const skillOrder: SkillId[] = ["scavenging", "hacking", "cyberware", "veh
 const drop = (id: string, name: string, chance: number, quantity = 1): EnemyDrop => ({ id, name, chance, quantity });
 
 function action(input: SkillAction): SkillAction {
-  const masteryXpReward = baseMasteryXpReward();
+  const masteryXpReward = input.masteryXpReward ?? baseMasteryXpReward();
   return {
     localStandingChange: 1,
     simCacheEligible: true,
@@ -2990,7 +2990,7 @@ function applyDropChanceOverrides(skillAction: SkillAction, drops: EnemyDrop[]) 
 
 const bestDropBySkill = new Map<SkillId, Map<string, { level: number; chance: number }>>();
 
-export const skillActions: SkillAction[] = baseSkillActions.map((skillAction) => {
+const progressionBalancedSkillActions: SkillAction[] = baseSkillActions.map((skillAction) => {
   const vehicleDrops = vehicleTuningDropTables[skillAction.id];
   const authoredDrops = progressionAdjustedDrops(skillAction, vehicleDrops ?? skillAction.rareDrops ?? []);
   const mergedDrops = applyDropChanceOverrides(
@@ -3014,5 +3014,81 @@ export const skillActions: SkillAction[] = baseSkillActions.map((skillAction) =>
     return adjusted;
   });
   bestDropBySkill.set(skillAction.skillId, priorDrops);
-  return rareDrops.length > 0 ? { ...skillAction, rareDrops } : skillAction;
+  const xpReward = normalizedSkillXpReward(skillAction);
+  const masteryXpReward = normalizedMasteryXpReward(skillAction);
+  return {
+    ...skillAction,
+    ...(rareDrops.length > 0 ? { rareDrops } : {}),
+    xpReward,
+    masteryXpReward,
+    masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),
+  };
 });
+
+/**
+ * Keep progression actions from becoming worse XP loops than prior districts.
+ * Authored bonuses remain intact, but every action gets a floor based on its
+ * unlock level and duration so utility-focused actions do not fall far behind.
+ */
+function normalizedSkillXpReward(skillAction: SkillAction) {
+  const durationSeconds = skillAction.durationMs / 1000;
+  const xpPerSecondFloor = 6 + 2.7 * Math.sqrt(Math.max(1, skillAction.levelReq));
+  return Math.max(skillAction.xpReward, Math.round(durationSeconds * xpPerSecondFloor));
+}
+
+/**
+ * Action mastery represents time spent practicing a specific loop. Scaling by
+ * duration keeps short and long actions advancing at a comparable real-time
+ * pace, while later districts receive a controlled progression increase.
+ */
+function normalizedMasteryXpReward(skillAction: SkillAction) {
+  const durationSeconds = skillAction.durationMs / 1000;
+  const masteryXpPerSecond = 3 + Math.max(1, skillAction.levelReq) * 0.04;
+  return Math.max(10, Math.round(durationSeconds * masteryXpPerSecond));
+}
+
+/**
+ * Every skill has three actions in each district. Their drop tables should
+ * communicate that progression even when the actions contain different items:
+ * the opening action is the weakest farm, the middle is a clear improvement,
+ * and the final action is the district's best farm for that skill.
+ */
+function applyDistrictSkillDropCurve(actions: SkillAction[]) {
+  const groups = new Map<string, Array<{ action: SkillAction; sourceIndex: number }>>();
+  actions.forEach((skillAction, sourceIndex) => {
+    if (!skillAction.districtReq) return;
+    const key = `${skillAction.districtReq}:${skillAction.skillId}`;
+    const group = groups.get(key) ?? [];
+    group.push({ action: skillAction, sourceIndex });
+    groups.set(key, group);
+  });
+
+  const adjustedDrops = new Map<string, EnemyDrop[]>();
+  const stageMultipliers = [0.72, 1, 1.35];
+  groups.forEach((group) => {
+    const ordered = [...group].sort((left, right) => left.action.levelReq - right.action.levelReq || left.sourceIndex - right.sourceIndex);
+    let priorAverageChance = 0;
+    ordered.forEach(({ action: skillAction }, stageIndex) => {
+      const drops = skillAction.rareDrops ?? [];
+      if (!drops.length) return;
+      const stageMultiplier = stageMultipliers[Math.min(stageIndex, stageMultipliers.length - 1)];
+      const initiallyScaled = drops.map((entry) => Math.min(0.5, entry.chance * stageMultiplier));
+      const initialAverage = initiallyScaled.reduce((sum, chance) => sum + chance, 0) / initiallyScaled.length;
+      const requiredAverage = priorAverageChance > 0 ? priorAverageChance * 1.3 : 0;
+      const progressionBoost = initialAverage > 0 ? Math.max(1, requiredAverage / initialAverage) : 1;
+      const curvedDrops = drops.map((entry, index) => ({
+        ...entry,
+        chance: Number(Math.min(0.5, initiallyScaled[index] * progressionBoost).toFixed(4)),
+      }));
+      priorAverageChance = curvedDrops.reduce((sum, entry) => sum + entry.chance, 0) / curvedDrops.length;
+      adjustedDrops.set(skillAction.id, curvedDrops);
+    });
+  });
+
+  return actions.map((skillAction) => {
+    const rareDrops = adjustedDrops.get(skillAction.id);
+    return rareDrops ? { ...skillAction, rareDrops } : skillAction;
+  });
+}
+
+export const skillActions: SkillAction[] = applyDistrictSkillDropCurve(progressionBalancedSkillActions);

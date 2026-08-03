@@ -11,6 +11,8 @@ import { getSimulationEfficiency } from "./simulationEfficiency";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import { actionHeatSuppressed } from "../data/heatCountermeasures";
+import { completeSimulatedCombatKill, getEnemy } from "./combatProcessing";
+import { combatEffectivenessForEnemy } from "./combatMatchups";
 import type { GameState, ResourceId, RewardBundle, SimulationRecap } from "../types";
 
 export function simCacheEligibility(state: GameState) {
@@ -33,7 +35,14 @@ export function simCacheEligibility(state: GameState) {
     if (!canCraft(state, recipe)) return { eligible: false, reason: "Missing materials." };
     return { eligible: true, reason: `Eligible: repeat ${recipe.name}.` };
   }
-  if (state.currentCombat) return { eligible: false, reason: "Basic Sim Cache does not simulate combat yet." };
+  if (state.currentCombat) {
+    const enemy = getEnemy(state.currentCombat.enemyId);
+    if (!enemy) return { eligible: false, reason: "Current combat target is missing." };
+    if (!state.manualDiscovery.enemies[enemy.id]) return { eligible: false, reason: "Defeat this enemy manually once first." };
+    if (state.health.lifeState === "downed" || state.health.currentHp <= 0) return { eligible: false, reason: "Recover before simulating combat." };
+    if (state.resources.heat >= 90) return { eligible: false, reason: "Heat safety stop: reduce Heat below 90." };
+    return { eligible: true, reason: `Eligible: repeat combat against ${enemy.name}.` };
+  }
   if (state.activeJob) return { eligible: false, reason: "Basic Sim Cache does not simulate fixer jobs yet." };
   return { eligible: false, reason: "Start a discovered skill action or craft first." };
 }
@@ -46,6 +55,11 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   const next = cloneState(state);
   const simulatedMs = count * basic.minutesPerItem * 60_000;
   const efficiency = getSimulationEfficiency(next);
+  const simulatedSkillId = next.activeAction
+    ? getSkillAction(next.activeAction.actionId)?.skillId ?? "scavenging"
+    : next.currentCombat
+      ? "combat"
+      : "cyberware";
   const recap: SimulationRecap = {
     cacheType: "basic",
     simulatedMs,
@@ -65,6 +79,7 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
 
   if (next.activeAction) simulateAction(next, simulatedMs, recap);
   else if (next.activeCraft) simulateCraft(next, simulatedMs, recap);
+  else if (next.currentCombat) simulateCombat(next, simulatedMs, recap);
 
   if (recap.completions <= 0) {
     recap.warnings.push(recap.stoppedReason);
@@ -88,7 +103,7 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   emitRewardPopupGroup(next, {
     title: "Sim Cache Complete",
     category: "story",
-    xp: recap.xpGained ? { [next.activeAction ? getSkillAction(next.activeAction.actionId)?.skillId ?? "scavenging" : "cyberware"]: recap.xpGained } : undefined,
+    xp: recap.xpGained ? { [simulatedSkillId]: recap.xpGained } : undefined,
     masteryXp: recap.masteryXpGained,
     poolXp: recap.poolXpGained,
     resources: recap.resourcesGained,
@@ -172,6 +187,39 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
   }
 }
 
+function simulateCombat(state: GameState, simulatedMs: number, recap: SimulationRecap) {
+  const enemy = getEnemy(state.currentCombat!.enemyId)!;
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const loopDuration = matchup.expectedKillMs + 1000;
+  const loops = Math.min(balanceConfig.simCache.maxLoops, Math.floor(simulatedMs / loopDuration));
+  recap.activityName = enemy.name;
+  if (loops <= 0) {
+    recap.stoppedReason = "Cache duration is shorter than one estimated combat clear.";
+    return;
+  }
+
+  for (let i = 0; i < loops; i += 1) {
+    if (state.resources.heat >= 90) {
+      recap.stoppedReason = "Stopped early: Heat safety threshold.";
+      break;
+    }
+    const resourcesBefore = { ...state.resources };
+    const inventoryBefore = { ...state.inventory };
+    const result = completeSimulatedCombatKill(state, enemy, matchup.expectedKillMs, {
+      rewardEfficiency: recap.efficiency.resources,
+      creditEfficiency: recap.efficiency.credits,
+      xpEfficiency: recap.efficiency.skillXp,
+      dropEfficiency: recap.efficiency.rareDrops,
+      heatEfficiency: recap.efficiency.heat,
+    });
+    addPositiveResourceDeltas(recap.resourcesGained, resourcesBefore, state.resources, "heat");
+    addPositiveInventoryDeltas(recap.dropsGained, inventoryBefore, state.inventory);
+    recap.xpGained += result.xpReward;
+    recap.heatChange += result.heatChange;
+    recap.completions += 1;
+  }
+}
+
 function hasRequiredActionItems(state: GameState, action: NonNullable<ReturnType<typeof getSkillAction>>) {
   return Object.entries(action.requiredItems ?? {}).every(([id, amount]) => {
     if (id in state.resources) return state.resources[id as ResourceId] >= amount;
@@ -193,5 +241,21 @@ function addRewardDelta(target: RewardBundle, rewards: RewardBundle) {
   Object.entries(rewards).forEach(([resource, amount]) => {
     const id = resource as ResourceId;
     target[id] = (target[id] ?? 0) + Math.round(amount ?? 0);
+  });
+}
+
+function addPositiveResourceDeltas(target: RewardBundle, before: GameState["resources"], after: GameState["resources"], excludedId?: ResourceId) {
+  Object.keys(after).forEach((resourceId) => {
+    const id = resourceId as ResourceId;
+    if (id === excludedId) return;
+    const gained = after[id] - before[id];
+    if (gained > 0) target[id] = (target[id] ?? 0) + gained;
+  });
+}
+
+function addPositiveInventoryDeltas(target: Record<string, number>, before: GameState["inventory"], after: GameState["inventory"]) {
+  Object.entries(after).forEach(([itemId, amount]) => {
+    const gained = amount - (before[itemId] ?? 0);
+    if (gained > 0) target[itemId] = (target[itemId] ?? 0) + gained;
   });
 }

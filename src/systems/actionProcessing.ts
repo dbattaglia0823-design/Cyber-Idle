@@ -251,11 +251,12 @@ export function addSkillXp(state: GameState, skillId: SkillId, xp: number) {
 
 export function actionXpRewardWithMastery(state: GameState, action: SkillAction) {
   const masteryLevel = state.actionMastery[action.id]?.level ?? 1;
-  return Math.max(1, Math.round(applyXpModifier(state, action.skillId, action.xpReward) * (1 + masteryLevel * 0.02)));
+  const masteryXpBonus = Math.min(0.3, Math.max(0, masteryLevel - 1) * 0.002);
+  return Math.max(1, Math.round(applyXpModifier(state, action.skillId, action.xpReward) * (1 + masteryXpBonus)));
 }
 
-export function actionMasteryXpReward(state: GameState, action: SkillAction) {
-  return Math.max(10, state.skills[action.skillId].level * 10);
+export function actionMasteryXpReward(_state: GameState, action: SkillAction) {
+  return Math.max(10, action.masteryXpReward);
 }
 
 export function addMasteryXp(state: GameState, actionId: string, xp: number) {

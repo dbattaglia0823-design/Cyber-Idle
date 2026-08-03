@@ -20,6 +20,16 @@ import type { CurrentCombat, Enemy, GameState, ResourceId } from "../types";
 
 const COMBAT_RESPAWN_DELAY_MS = 1000;
 
+interface CombatCompletionOptions {
+  rewardEfficiency?: number;
+  creditEfficiency?: number;
+  xpEfficiency?: number;
+  dropEfficiency?: number;
+  heatEfficiency?: number;
+  showNotifications?: boolean;
+  markManual?: boolean;
+}
+
 export function allEnemies() {
   return combatZones.flatMap((zone) => zone.enemies);
 }
@@ -172,14 +182,31 @@ function enemyAttackDamage(state: GameState, enemy: Enemy, critical = false) {
   return Math.max(1, Math.round(enemy.damage * threatScale * difficultyMultiplier * criticalMultiplier));
 }
 
-function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
+export function completeSimulatedCombatKill(state: GameState, enemy: Enemy, durationMs: number, options: CombatCompletionOptions) {
+  return completeKill(state, enemy, durationMs, {
+    ...options,
+    showNotifications: false,
+    markManual: false,
+  });
+}
+
+function completeKill(state: GameState, enemy: Enemy, durationMs: number, options: CombatCompletionOptions = {}) {
   const matchup = combatEffectivenessForEnemy(state, enemy);
   const districtId = enemyDistrict(enemy.id);
-  const rewards = calculateCombatRewards(state, { credits: enemy.creditsReward, reputation: Math.max(0, enemy.reputationReward) }, matchup.tags, matchup.rewardMultiplier + districtMasteryRewardBonus(state, districtId));
-  const xpReward = applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier));
+  const rewardEfficiency = options.rewardEfficiency ?? 1;
+  const creditEfficiency = options.creditEfficiency ?? rewardEfficiency;
+  const xpEfficiency = options.xpEfficiency ?? 1;
+  const dropEfficiency = options.dropEfficiency ?? 1;
+  const heatEfficiency = options.heatEfficiency ?? 1;
+  const showNotifications = options.showNotifications ?? true;
+  const markManualCompletion = options.markManual ?? true;
+  const calculatedRewards = calculateCombatRewards(state, { credits: enemy.creditsReward, reputation: Math.max(0, enemy.reputationReward) }, matchup.tags, matchup.rewardMultiplier + districtMasteryRewardBonus(state, districtId));
+  const rewards = Object.fromEntries(Object.entries(calculatedRewards).map(([id, amount]) => [id, Math.round((amount ?? 0) * (id === "credits" ? creditEfficiency : rewardEfficiency))])) as typeof calculatedRewards;
+  const xpReward = Math.round(applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier)) * xpEfficiency);
+  const heatChange = Math.round(matchup.heatChange * heatEfficiency);
   state.resources.credits += rewards.credits ?? 0;
   state.resources.reputation += rewards.reputation ?? 0;
-  state.resources.heat = clampRiskStat(state.resources.heat + matchup.heatChange);
+  state.resources.heat = clampRiskStat(state.resources.heat + heatChange);
   addSkillXp(state, "combat", xpReward);
 
   const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
@@ -190,13 +217,13 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
   const weaponClass = equippedWeaponClass(state);
   const enemyTags = combatTagsForEnemy(enemy);
   if (weaponClass) {
-    addWeaponClassXp(state, weaponClass, Math.max(5, Math.round(enemy.xpReward * 0.35)), true);
+    addWeaponClassXp(state, weaponClass, Math.max(1, Math.round(enemy.xpReward * 0.35 * xpEfficiency)), true);
     state.weaponStatistics.killsByClass[weaponClass] = (state.weaponStatistics.killsByClass[weaponClass] ?? 0) + 1;
     state.weaponStatistics.damageByClass[weaponClass] = (state.weaponStatistics.damageByClass[weaponClass] ?? 0) + enemy.hp;
     if ((state.weaponStatistics.killsByClass[weaponClass] ?? 0) >= 1000) state.achievements[`weapon-${weaponClass}-1000-kills`] = true;
   }
   enemy.drops.forEach((drop) => {
-    const chance = enemyDropChance(state, enemy, drop.chance);
+    const chance = enemyDropChance(state, enemy, drop.chance) * dropEfficiency;
     if (Math.random() > chance) return;
     if (isResource(drop.id)) {
       state.resources[drop.id] += drop.quantity;
@@ -206,33 +233,36 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     log.discoveredDrops[drop.id] = (log.discoveredDrops[drop.id] ?? 0) + drop.quantity;
     discoverItem(state, drop.id);
     dropMessages.push(`${drop.quantity} ${drop.name}`);
-    pushCategorizedLog(state, "Loot", `Loot found: ${drop.name}.`);
+    if (showNotifications) pushCategorizedLog(state, "Loot", `Loot found: ${drop.name}.`);
   });
-  processPercentDrops(state, enemy.id, enemyTags, enemy.drops.map((drop) => drop.id)).forEach((message) => dropMessages.push(message));
+  processPercentDrops(state, enemy.id, enemyTags, enemy.drops.map((drop) => drop.id), dropEfficiency).forEach((message) => dropMessages.push(message));
 
   state.enemyLog[enemy.id] = log;
-  markEnemyManual(state, enemy.id);
+  if (markManualCompletion) markEnemyManual(state, enemy.id);
   if (districtId) {
     discoverDistrictContent(state, districtId, `enemy:${enemy.id}`);
-    changeLocalStanding(state, districtId, 1, `${enemy.name} defeated`);
-    addDistrictMasteryXp(state, districtId, "combat", Math.max(5, Math.round(enemy.xpReward * 0.65)));
+    if (rewardEfficiency >= 1 || Math.random() < rewardEfficiency) changeLocalStanding(state, districtId, 1, `${enemy.name} defeated`);
+    addDistrictMasteryXp(state, districtId, "combat", Math.max(1, Math.round(enemy.xpReward * 0.65 * rewardEfficiency)));
   }
-  pushCategorizedLog(
-    state,
-    "Combat",
-    `${enemy.name} defeated: +${rewards.credits ?? 0} ${resourceNames.credits}, +${xpReward} Street Combat XP${
-      dropMessages.length ? `, loot ${dropMessages.join(", ")}` : ""
-    }. ${matchup.rating}${matchup.heatChange ? ` (${matchup.heatChange >= 0 ? "+" : ""}${matchup.heatChange} Heat)` : ""}.`,
-  );
-  emitRewardPopupGroup(state, {
-    title: `${enemy.name} Defeated`,
-    xp: { combat: xpReward },
-    resources: rewards,
-    rareDrops: dropMessages,
-    heat: matchup.heatChange,
-    neuralInstability: 0,
-  });
+  if (showNotifications) {
+    pushCategorizedLog(
+      state,
+      "Combat",
+      `${enemy.name} defeated: +${rewards.credits ?? 0} ${resourceNames.credits}, +${xpReward} Street Combat XP${
+        dropMessages.length ? `, loot ${dropMessages.join(", ")}` : ""
+      }. ${matchup.rating}${heatChange ? ` (${heatChange >= 0 ? "+" : ""}${heatChange} Heat)` : ""}.`,
+    );
+    emitRewardPopupGroup(state, {
+      title: `${enemy.name} Defeated`,
+      xp: { combat: xpReward },
+      resources: rewards,
+      rareDrops: dropMessages,
+      heat: heatChange,
+      neuralInstability: 0,
+    });
+  }
   updateWorldUnlocks(state);
+  return { xpReward, heatChange };
 }
 
 export function enemyDropChance(state: GameState, enemy: Enemy, baseChance: number) {
@@ -250,7 +280,9 @@ function enemyDistrict(enemyId: string) {
   if (zone?.id === "rust-yards") return "rustYards";
   if (zone?.id === "underpass-market") return "underpassMarket";
   if (zone?.id === "blacknet-quarter") return "blacknetQuarter";
+  if (zone?.id === "helix-ward") return "helixWard";
   if (zone?.id === "glassline-district") return "glasslineDistrict";
   if (zone?.id === "redline-blocks") return "redlineBlocks";
+  if (zone?.id === "skyline-core") return "skylineCore";
   return null;
 }

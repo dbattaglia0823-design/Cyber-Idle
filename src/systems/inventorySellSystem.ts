@@ -20,6 +20,14 @@ export function canQuickSellInventoryItem(state: GameState, itemId: string) {
   return spareInventoryCopies(state, itemId) > copiesToKeep;
 }
 
+export function inventoryQuickSellAllButOneValue(state: GameState, itemId: string) {
+  return inventoryQuickSellValue(state, itemId) * quickSellAllButOneCount(state, itemId);
+}
+
+export function canQuickSellAllButOneInventoryItem(state: GameState, itemId: string) {
+  return inventoryQuickSellValue(state, itemId) > 0 && quickSellAllButOneCount(state, itemId) > 0;
+}
+
 export function quickSellInventoryItem(state: GameState, itemId: string) {
   if (!canQuickSellInventoryItem(state, itemId)) return state;
   const item = getItem(itemId)!;
@@ -33,6 +41,29 @@ export function quickSellInventoryItem(state: GameState, itemId: string) {
     resources: { credits: value },
   });
   return next;
+}
+
+export function quickSellAllButOneInventoryItem(state: GameState, itemId: string) {
+  if (!canQuickSellAllButOneInventoryItem(state, itemId)) return state;
+  const item = getItem(itemId)!;
+  const quantity = quickSellAllButOneCount(state, itemId);
+  const unitValue = inventoryQuickSellValue(state, itemId);
+  const value = unitValue * quantity;
+  const next = cloneState(state);
+  if (!removeItem(next, itemId, quantity)) return state;
+  next.resources.credits += value;
+  pushCategorizedLog(next, "Loot", `Quick sold ${quantity} ${item.name} for ${value} Credits, keeping one copy.`);
+  emitRewardPopupGroup(next, {
+    title: `Sold ${quantity} ${item.name}`,
+    resources: { credits: value },
+  });
+  return next;
+}
+
+function quickSellAllButOneCount(state: GameState, itemId: string) {
+  const owned = state.inventory[itemId] ?? 0;
+  const copiesToKeep = Math.max(1, equippedCopies(state, itemId));
+  return Math.max(0, owned - copiesToKeep);
 }
 
 function spareInventoryCopies(state: GameState, itemId: string) {

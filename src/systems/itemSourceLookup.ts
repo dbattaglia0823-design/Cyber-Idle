@@ -9,7 +9,6 @@ import { jobs } from "../data/jobs";
 import { percentDropTables } from "../data/percentDrops";
 import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
-import { resourceSourceHint } from "../data/resourceTiers";
 import { actionAccessRequirementText, meetsActionAccessRequirement } from "./actionAccess";
 import type { DistrictActivityCategory } from "./districtActivityMap";
 import type { DistrictId, GameState, SkillId } from "../types";
@@ -31,8 +30,7 @@ export type ItemSourceType =
   | "Crafting recipe"
   | "Vendor"
   | "Ripperdoc"
-  | "Black Market"
-  | "Item note";
+  | "Black Market";
 
 export interface ItemSourceEntry {
   type: ItemSourceType;
@@ -211,9 +209,6 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
     }
   });
 
-  const item = getItem(itemId);
-  const hint = resourceSourceHint(itemId) ?? item?.sourceHint;
-  if (hint) sources.push({ type: "Item note", name: resourceName(itemId), detail: hint, unlocked: true });
   if (!sources.length) {
     const districtId = state.districts.underpassMarket?.unlocked ? "underpassMarket" : "blacknetQuarter";
     const unlocked = Boolean(state.districts[districtId]?.unlocked);
