@@ -6,7 +6,7 @@ export const factions: Faction[] = [
     name: "Chrome Jackals",
     description: "Vehicle gangs running racing circuits, smuggling lanes, and salvaged engines.",
     districtInfluence: ["rustYards"],
-    uniqueBonuses: ["Vehicle job speed", "Garage slots", "Vehicle part access"],
+    uniqueBonuses: ["Vehicle job speed", "Vehicle tuning rewards", "Vehicle part access"],
     uniqueShop: "Jackal chop-shop inventory placeholder",
     jobModifiers: ["Smuggling jobs can reduce Heat with trust"],
     rivals: ["helixOrder"],

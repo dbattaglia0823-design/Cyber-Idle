@@ -3,7 +3,7 @@ import { skillActions, skillNames } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
 import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
 import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
-import { calculateDropChance, calculateHeatGain, calculateSkillActionRewards, masteryDropBonusForLevel } from "./balanceFormulas";
+import { calculateDropChance, calculateHeatGain, calculateSkillActionRewards, calculateSkillHeatChance, masteryDropBonusForLevel } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { adjustedActionDurationMs, applyXpModifier, getActiveModifiers } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
@@ -84,7 +84,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     }
     const xpReward = actionXpRewardWithMastery(next, action);
     applyRewards(next, rewards);
-    const heatDelta = action.heatChange && !actionHeatSuppressed(next, action) ? calculateHeatGain(next, action.heatChange, action.tags) : 0;
+    const heatDelta = rollSkillActionHeat(next, action);
     if (heatDelta) next.resources.heat = clampRiskStat(next.resources.heat + heatDelta);
     const neuralDelta = 0;
     const levelUps = addSkillXp(next, action.skillId, xpReward);
@@ -156,6 +156,14 @@ export function rollSkillActionDrops(state: GameState, action: SkillAction, chan
   return rolled;
 }
 
+export function rollSkillActionHeat(state: GameState, action: SkillAction, chanceMultiplier = 1) {
+  const heatRating = action.heatChange ?? 0;
+  if (!heatRating || actionHeatSuppressed(state, action)) return 0;
+  if (heatRating < 0) return Math.round(calculateHeatGain(state, heatRating, action.tags) * chanceMultiplier);
+  const chance = Math.min(1, calculateSkillHeatChance(state, heatRating, action.tags) * chanceMultiplier);
+  return Math.random() < chance ? 1 : 0;
+}
+
 export function skillActionDropChance(state: GameState, action: SkillAction, drop: EnemyDrop) {
   const mastery = state.actionMastery[action.id]?.level ?? 1;
   const masteryBonus = masteryDropBonusForLevel(mastery);
@@ -174,10 +182,11 @@ function grantDrop(state: GameState, drop: EnemyDrop) {
 function processHackingTrace(state: GameState, action: SkillAction) {
   if (!action.traceChance) return "";
   if (actionHeatSuppressed(state, action)) return "";
-  const chance = Math.max(balanceConfig.risk.traceMinChance, action.traceChance - traceReduction(state, action));
+  const baseChance = Math.max(balanceConfig.risk.traceMinChance, action.traceChance - traceReduction(state, action));
+  const chance = calculateSkillHeatChance(state, baseChance * 100, ["hacking", ...(action.tags ?? [])]);
   if (Math.random() > chance) return "";
   const severity = action.traceSeverity ?? 1;
-  const heat = calculateHeatGain(state, severity * 3, ["hacking", ...(action.tags ?? [])]);
+  const heat = 1;
   state.resources.heat = clampRiskStat(state.resources.heat + heat);
   state.resources.encryptedData = Math.max(0, state.resources.encryptedData - severity);
   if (severity >= 3) state.unlocks["blacknet-trace-events"] = true;

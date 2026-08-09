@@ -1,4 +1,3 @@
-import { bosses } from "../data/bosses";
 import { combatZones } from "../data/combat";
 import { companions } from "../data/companions";
 import { cityDistrictOrder } from "../data/cityMap";
@@ -10,7 +9,6 @@ import { housingOptions } from "../data/housing";
 import { getItem, items } from "../data/items";
 import { jobs } from "../data/jobs";
 import { districtLevelBands, MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
-import { operations } from "../data/operations";
 import { percentDropTables } from "../data/percentDrops";
 import { recipes } from "../data/recipes";
 import { ripperdocClinics } from "../data/ripperdocClinics";
@@ -55,7 +53,6 @@ export interface DistrictContentCounts {
   blacknetActions: number;
   contracts: number;
   combatEnemies: number;
-  operations: number;
   ripperdocServices: number;
   marketItems: number;
   housing: number;
@@ -98,14 +95,12 @@ export function getContentValidationReport(): ContentValidationReport {
   const balanceWarnings: string[] = [];
   const enemies = combatZones.flatMap((zone) => zone.enemies);
   const enemyIds = new Set(enemies.map((enemy) => enemy.id));
-  const bossIds = new Set(bosses.map((boss) => boss.id));
   const itemIds = new Set(items.map((item) => item.id));
   const fixerIds = new Set(fixers.map((fixer) => fixer.id));
   const factionIds = new Set(factions.map((faction) => faction.id));
   const districtIds = new Set(cityDistrictOrder);
   const actionIds = new Set(skillActions.map((action) => action.id));
   const jobIds = new Set(jobs.map((job) => job.id));
-  const operationIds = new Set(operations.map((operation) => operation.id));
   const companionIds = new Set(companions.map((companion) => companion.id));
   const recipeIds = new Set(recipes.map((recipe) => recipe.id));
 
@@ -114,7 +109,6 @@ export function getContentValidationReport(): ContentValidationReport {
     const blacknetActions = actions.filter((action) => action.skillId === "hacking");
     const contracts = jobs.filter((job) => job.districtId === districtId);
     const enemies = combatZones.filter((zone) => zoneForDistrict(districtId).includes(zone.id)).flatMap((zone) => zone.enemies);
-    const districtOperations = operations.filter((operation) => operation.districtId === districtId);
     const services = ripperdocServices.filter((service) => service.districtId === districtId);
     const districtVendors = vendors.filter((vendor) => vendor.districtId === districtId);
     const marketItems = districtVendors.reduce((sum, vendor) => sum + vendor.inventory.length, 0);
@@ -126,7 +120,6 @@ export function getContentValidationReport(): ContentValidationReport {
     warnIfThin(warnings, districtId, "actions", actions.length);
     warnIfThin(warnings, districtId, "contracts", contracts.length);
     warnIfThin(warnings, districtId, "combat enemies", enemies.length);
-    warnIfThin(warnings, districtId, "operations", districtOperations.length);
     if (ripperdocClinics.some((clinic) => clinic.districtId === districtId)) warnIfThin(warnings, districtId, "ripperdoc services", services.length);
     if (vendors.some((vendor) => vendor.districtId === districtId)) {
       warnIfThin(warnings, districtId, "market items", marketItems);
@@ -140,7 +133,6 @@ export function getContentValidationReport(): ContentValidationReport {
       blacknetActions: blacknetActions.length,
       contracts: contracts.length,
       combatEnemies: enemies.length,
-      operations: districtOperations.length,
       ripperdocServices: services.length,
       marketItems,
       housing: housing.length,
@@ -153,10 +145,8 @@ export function getContentValidationReport(): ContentValidationReport {
   duplicateWarnings(duplicateIds, "item", items.map((item) => item.id));
   duplicateWarnings(duplicateIds, "recipe", recipes.map((recipe) => recipe.id));
   duplicateWarnings(duplicateIds, "skill action", skillActions.map((action) => action.id));
-  duplicateWarnings(duplicateIds, "operation", operations.map((operation) => operation.id));
   duplicateWarnings(duplicateIds, "job", jobs.map((job) => job.id));
   duplicateWarnings(duplicateIds, "enemy", enemies.map((enemy) => enemy.id));
-  duplicateWarnings(duplicateIds, "boss", bosses.map((boss) => boss.id));
   duplicateWarnings(duplicateIds, "housing", housingOptions.map((housing) => housing.id));
   duplicateWarnings(duplicateIds, "vendor", vendors.map((vendor) => vendor.id));
   duplicateWarnings(duplicateIds, "ripperdoc service", ripperdocServices.map((service) => service.id));
@@ -193,38 +183,12 @@ export function getContentValidationReport(): ContentValidationReport {
     });
   });
 
-  operations.forEach((operation) => {
-    if (!bossIds.has(operation.bossId)) missingReferences.push(`${operation.id} references missing boss ${operation.bossId}`);
-    validateRewardBundle(missingReferences, `${operation.id} completion rewards`, operation.completionRewards);
-    validateRewardBundle(missingReferences, `${operation.id} first clear rewards`, operation.firstClearRewards);
-    validateRewardBundle(missingReferences, `${operation.id} repeat rewards`, operation.repeatClearRewards);
-    Object.keys(operation.requiredItems ?? {}).forEach((itemId) => validateItemRef(missingReferences, `${operation.id} required item`, itemId));
-    Object.keys(operation.factionReputation).forEach((factionId) => validateKnown(missingReferences, factionIds, `${operation.id} faction`, factionId));
-    Object.keys(operation.fixerTrust ?? {}).forEach((fixerId) => validateKnown(missingReferences, fixerIds, `${operation.id} fixer trust`, fixerId));
-    operation.stages.flatMap((stage) => stage.enemyIds).forEach((enemyId) => {
-      if (!enemyIds.has(enemyId)) missingReferences.push(`${operation.id} references missing enemy ${enemyId}`);
-    });
-    operation.rareDrops.forEach((drop) => {
-      validateItemRef(missingReferences, `${operation.id} rare drop`, drop.id);
-      validateChance(balanceWarnings, `${operation.id} rare drop ${drop.id}`, drop.chance);
-    });
-  });
-
   enemies.forEach((enemy) => {
     validateKnown(missingReferences, districtIds, `${enemy.id} preferred district`, enemy.preferredDistrict);
     validateKnown(missingReferences, factionIds, `${enemy.id} faction`, enemy.factionAlignment);
     enemy.drops.forEach((drop) => {
       validateItemRef(missingReferences, `${enemy.id} drop`, drop.id);
       validateChance(balanceWarnings, `${enemy.id} drop ${drop.id}`, drop.chance);
-    });
-  });
-
-  bosses.forEach((boss) => {
-    validateRewardBundle(missingReferences, `${boss.id} first clear rewards`, boss.firstClearRewards);
-    validateRewardBundle(missingReferences, `${boss.id} repeat rewards`, boss.repeatRewards);
-    boss.drops.forEach((drop) => {
-      validateItemRef(missingReferences, `${boss.id} drop`, drop.id);
-      validateChance(balanceWarnings, `${boss.id} drop ${drop.id}`, drop.chance);
     });
   });
 
@@ -311,7 +275,7 @@ export function getContentValidationReport(): ContentValidationReport {
     const stepIds = new Set(arc.steps.map((step) => step.id));
     duplicateWarnings(duplicateIds, `${arc.id} story step`, arc.steps.map((step) => step.id));
     arc.steps.forEach((step) => {
-      validateStoryTarget(missingReferences, arc.id, step.objective.type, step.objective.target, { actionIds, jobIds, enemyIds, fixerIds, operationIds, districtIds, companionIds });
+      validateStoryTarget(missingReferences, arc.id, step.objective.type, step.objective.target, { actionIds, jobIds, enemyIds, fixerIds, districtIds, companionIds });
       step.nextStepIds?.forEach((id) => validateKnown(missingReferences, stepIds, `${arc.id}/${step.id} next step`, id));
       validateRewardBundle(missingReferences, `${arc.id}/${step.id} rewards`, step.rewards ?? {});
       step.choices?.forEach((choice) => {
@@ -327,7 +291,7 @@ export function getContentValidationReport(): ContentValidationReport {
   validateItemDefinitions(balanceWarnings, items);
 
   Object.entries(percentDropTables).forEach(([sourceId, drops]) => {
-    if (!enemyIds.has(sourceId) && !bossIds.has(sourceId)) warnings.push(`Percent drop table ${sourceId} is not attached to a known enemy or boss`);
+    if (!enemyIds.has(sourceId)) warnings.push(`Percent drop table ${sourceId} is not attached to a known enemy`);
     drops.forEach((drop) => {
       validateItemRef(missingReferences, `${sourceId} percent drop`, drop.itemId);
       validatePercentChance(balanceWarnings, `${sourceId} percent drop ${drop.itemId}`, drop.chancePercent);
@@ -400,7 +364,6 @@ function validateStoryTarget(
     jobIds: Set<string>;
     enemyIds: Set<string>;
     fixerIds: Set<string>;
-    operationIds: Set<string>;
     districtIds: Set<string>;
     companionIds: Set<string>;
   },
@@ -408,7 +371,6 @@ function validateStoryTarget(
   const label = `${arcId} story objective`;
   if (type === "completeSkillAction") validateKnown(warnings, refs.actionIds, label, target);
   if (type === "killEnemy") validateKnown(warnings, refs.enemyIds, label, target);
-  if (type === "completeOperation") validateKnown(warnings, refs.operationIds, label, target);
   if (type === "completeCompanionInteraction") validateKnown(warnings, refs.companionIds, label, target);
   if (type === "reduceDistrictThreat") validateKnown(warnings, refs.districtIds, label, target);
   if (type === "completeFixerContract" && !refs.jobIds.has(target) && !refs.fixerIds.has(target)) warnings.push(`${label} references unknown contract/fixer ${target}`);

@@ -34,7 +34,7 @@ export const signatureBuilds: SignatureBuild[] = [
   {
     id: "redline-enforcer",
     name: "Redline Enforcer",
-    description: "Solo plus Fixer: bounty boards, operation pressure, and crew influence.",
+    description: "Solo plus Fixer: bounty boards, combat pressure, and crew influence.",
     requiredArchetypes: ["solo", "fixer"],
   },
 ];

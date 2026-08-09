@@ -210,7 +210,7 @@ export const vendors: VendorDefinition[] = [
       item("hive-oracle", 6400, "unlock", "Optics-linked smart weapon prototype.", 1),
       item("district-permit", 1200, "unlock", "Permanent executive district credential.", 1),
       item("prototypeDriveUnit", 2200, "unlock", "Private vehicle commission.", 1),
-      item("boss-data-key", 1600, "unlock", "Operation broker key.", 1),
+      item("boss-data-key", 1600, "unlock", "combat broker key.", 1),
       item("basic-sim-cache", 500, "limited", "Premium cache pack.", 4),
     ],
   },

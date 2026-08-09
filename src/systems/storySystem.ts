@@ -57,8 +57,6 @@ export function storyObjectiveProgress(state: GameState, objective: StoryObjecti
       return state.skills[objective.target as keyof GameState["skills"]]?.level ?? 0;
     case "killEnemy":
       return state.enemyLog[objective.target]?.kills ?? 0;
-    case "clearOperation":
-      return state.operationLogs[objective.target]?.clears ?? 0;
     case "completeFixerContract":
       if (objective.target.startsWith("job-")) return state.manualDiscovery.jobs[objective.target] ? 1 : 0;
       return state.marketStatistics.contractsCompletedByFixer[objective.target] ?? 0;
@@ -152,7 +150,6 @@ function completeStep(state: GameState, arc: StoryArcDefinition, step: StoryStep
   (step.worldFlags ?? []).forEach((flag) => {
     state.storyFlags[flag] = true;
     state.worldUnlocks[flag] = true;
-    if (flag.startsWith("lead-")) state.operationLeads[flag.replace("lead-", "op-")] = true;
   });
   (step.unlocks ?? []).forEach((unlock) => applyStoryUnlock(state, unlock));
   if (arc.districtId) discoverDistrictContent(state, arc.districtId, `story:${arc.id}:${step.id}`);
@@ -187,10 +184,6 @@ function applyChoice(state: GameState, arc: StoryArcDefinition, step: StoryStepD
     state.storyFlags[flag] = true;
     state.worldUnlocks[flag] = true;
   });
-  (choice.operationLeads ?? []).forEach((lead) => {
-    state.operationLeads[lead] = true;
-    state.achievements["first-operation-lead"] = true;
-  });
   pushCategorizedLog(state, "World", `Choice made: ${choice.label}.`);
   emitRewardPopupGroup(state, {
     title: `Choice: ${choice.label}`,
@@ -222,10 +215,6 @@ function updateConflictLeaning(state: GameState, factionId: FactionId, amount: n
 function applyStoryUnlock(state: GameState, unlock: string) {
   state.unlocks[unlock] = true;
   state.worldUnlocks[unlock] = true;
-  if (unlock.startsWith("operation:")) {
-    state.operationLeads[unlock.replace("operation:", "")] = true;
-    state.achievements["first-operation-lead"] = true;
-  }
 }
 
 function arcUnlocked(state: GameState, arc: StoryArcDefinition) {

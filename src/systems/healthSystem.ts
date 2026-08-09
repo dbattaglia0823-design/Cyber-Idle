@@ -119,7 +119,6 @@ export function maybeAutoHeal(state: GameState, source: string) {
   if (state.health.currentHp <= thresholdHp && !nextAutoHealItem(state)) {
     if (state.autoHeal.stopIfNoHealing) {
       state.currentCombat = null;
-      state.activeOperation = null;
     }
     emitRewardPopupGroup(state, { title: "Auto Heal Failed", category: "warning", warnings: [`No healing item available after ${source}`] });
   }
@@ -134,7 +133,7 @@ function nextAutoHealItem(state: GameState) {
 
 export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
   clampPlayerHP(state);
-  if (state.currentCombat || state.activeOperation || state.health.lifeState === "downed") return state;
+  if (state.currentCombat || state.health.lifeState === "downed") return state;
   const maxHp = calculateMaxHP(state);
   if (state.health.currentHp >= maxHp) return state;
   const residence = housingOptions.find((housing) => housing.id === state.activeResidence);
@@ -219,7 +218,6 @@ function markDowned(state: GameState, source: string) {
   state.health.downedAt = Date.now();
   state.health.recoveryAvailableAt = Date.now();
   state.currentCombat = null;
-  state.activeOperation = null;
   const penalty = Math.min(state.resources.credits, Math.max(5, Math.round(state.resources.credits * 0.04)));
   state.resources.credits -= penalty;
   state.resources.heat = clampRiskStat(state.resources.heat + 2);

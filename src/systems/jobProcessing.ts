@@ -17,7 +17,9 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { addDistrictMasteryXp, districtMasteryRewardBonus } from "./districtMasteryProcessor";
 import { fixerFactionReputation } from "./factionContacts";
-import type { DistrictId, FactionId, GameState, JobContract, SkillId } from "../types";
+import { addItem } from "./collectionSystem";
+import { getItem } from "../data/items";
+import type { DistrictId, FactionId, GameState, JobContract, PercentDropEntry, SkillId } from "../types";
 
 export function getJob(jobId: string) {
   return jobs.find((job) => job.id === jobId);
@@ -185,6 +187,7 @@ function completeJob(state: GameState, job: JobContract) {
     applySkillXp(state, job, 1);
     const factionReputationReward = applyFactionReputation(state, job);
     applyContractFactionProgress(state, job, factionReputationReward);
+    const expeditionDrops = maybeExpeditionDrops(state, job);
     const rareReward = maybeRareReward(state, job);
     markJobManual(state, job.id);
     state.marketStatistics.contractsCompletedByFixer[job.fixerId] = (state.marketStatistics.contractsCompletedByFixer[job.fixerId] ?? 0) + 1;
@@ -206,7 +209,7 @@ function completeJob(state: GameState, job: JobContract) {
       reputation: { [factionName(job.factionId)]: factionReputationReward },
       heat,
       neuralInstability: neural,
-      rareDrops: rareReward ? [rareReward] : [],
+      rareDrops: [...expeditionDrops, ...(rareReward ? [rareReward] : [])],
     });
   } else {
     const partial = calculateJobRewards(state, { ...job, rewards: { credits: Math.floor((job.rewards.credits ?? 0) * balanceConfig.jobs.partialFailurePayout) } });
@@ -277,11 +280,33 @@ function applyContractFactionProgress(state: GameState, job: JobContract, gain: 
 }
 
 function maybeRareReward(state: GameState, job: JobContract) {
-  const chance = calculateDropChance(balanceConfig.rewards.defaultRareJobChance, state, job.tags);
+  const chance = calculateDropChance(job.rareRewardChance ?? balanceConfig.rewards.defaultRareJobChance, state, job.tags);
   if (!job.rareReward || Math.random() > chance) return "";
   state.inventory[job.rareReward] = (state.inventory[job.rareReward] ?? 0) + 1;
   pushCategorizedLog(state, "Loot", `Rare job reward: ${job.rareReward}.`);
   return job.rareReward;
+}
+
+function maybeExpeditionDrops(state: GameState, job: JobContract) {
+  const gained: string[] = [];
+  (job.rareRewardTable ?? []).forEach((drop) => {
+    const chance = calculateDropChance(drop.chancePercent / 100, state, drop.affectedByScenarioModifiers ? job.tags : []);
+    if (Math.random() > chance) return;
+    const quantity = randomDropQuantity(drop);
+    if (drop.itemId in state.resources) {
+      const resources = state.resources as unknown as Record<string, number>;
+      resources[drop.itemId] = (resources[drop.itemId] ?? 0) + quantity;
+    } else {
+      addItem(state, drop.itemId, quantity);
+    }
+    gained.push(drop.itemId);
+    pushCategorizedLog(state, "Loot", `Contract expedition recovered ${quantity} ${getItem(drop.itemId)?.name ?? drop.itemId}.`);
+  });
+  return gained;
+}
+
+function randomDropQuantity(drop: PercentDropEntry) {
+  return drop.minQuantity + Math.floor(Math.random() * (drop.maxQuantity - drop.minQuantity + 1));
 }
 
 function factionName(id: FactionId) {

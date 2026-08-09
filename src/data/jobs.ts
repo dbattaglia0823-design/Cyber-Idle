@@ -1,6 +1,6 @@
-import type { DistrictId, FactionId, JobContract, SkillId } from "../types";
+import type { DistrictId, FactionId, ItemRarity, JobContract, PercentDropEntry, SkillId } from "../types";
 
-export const jobs: JobContract[] = [
+const baseJobs: JobContract[] = [
   // ===== NEON ROW =====
   {
     id: "job-back-alley-pickup",
@@ -233,6 +233,125 @@ export const jobs: JobContract[] = [
   },
   ...makeExpandedJobs(),
 ];
+
+const districtExpeditionLoot: Record<DistrictId, {
+  material: string;
+  resource: string;
+  equipment: Array<{ id: string; rarity: ItemRarity }>;
+}> = {
+  neonRow: {
+    material: "street-coil",
+    resource: "scrap",
+    equipment: [{ id: "vendor-nine", rarity: "Common" }, { id: "street-operator-chest", rarity: "Common" }, { id: "street-solo-arms", rarity: "Common" }],
+  },
+  rustYards: {
+    material: "salvaged-servo",
+    resource: "vehicleParts",
+    equipment: [{ id: "hauler-carbine", rarity: "Uncommon" }, { id: "jackal-plate-chest", rarity: "Uncommon" }, { id: "jackal-gearlink-arms", rarity: "Uncommon" }],
+  },
+  underpassMarket: {
+    material: "contraband-chip",
+    resource: "encryptedData",
+    equipment: [{ id: "underpass-viper", rarity: "Uncommon" }, { id: "ghostweave-chest", rarity: "Uncommon" }, { id: "ghost-market-utility", rarity: "Uncommon" }],
+  },
+  blacknetQuarter: {
+    material: "rogue-packet-core",
+    resource: "encryptedData",
+    equipment: [{ id: "null-choir-rifle", rarity: "Rare" }, { id: "null-shroud-chest", rarity: "Rare" }, { id: "null-choir-neural", rarity: "Rare" }],
+  },
+  helixWard: {
+    material: "medical-gel-matrix",
+    resource: "cyberwareParts",
+    equipment: [{ id: "helix-mender", rarity: "Rare" }, { id: "helix-aegis-chest", rarity: "Rare" }, { id: "helix-synapse-utility", rarity: "Rare" }],
+  },
+  glasslineDistrict: {
+    material: "glassline-alloy",
+    resource: "encryptedData",
+    equipment: [{ id: "corporate-verdict", rarity: "Epic" }, { id: "glassline-tactical-chest", rarity: "Epic" }, { id: "glassline-executive-optics", rarity: "Epic" }],
+  },
+  redlineBlocks: {
+    material: "ballistic-core",
+    resource: "cyberwareParts",
+    equipment: [{ id: "redline-dominion", rarity: "Epic" }, { id: "redline-juggernaut-chest", rarity: "Epic" }, { id: "redline-warform-arms", rarity: "Epic" }],
+  },
+  skylineCore: {
+    material: "luxury-processor",
+    resource: "encryptedData",
+    equipment: [{ id: "skyline-zero", rarity: "Legendary" }, { id: "skyline-apex-armor-chest", rarity: "Legendary" }, { id: "skyline-apex-operatingSystem", rarity: "Legendary" }],
+  },
+};
+
+function asExpeditionContract(job: JobContract): JobContract {
+  const level = contractLevel(job);
+  const districtIndex = districtOrder.indexOf(job.districtId);
+  const expeditionStep = districtContractSequence(job);
+  const loot = districtExpeditionLoot[job.districtId];
+  const equipmentChance = Math.max(1.5, 3.5 - districtIndex * 0.25) + expeditionStep * 0.35;
+  const cashFloor = Math.round(300 + 22 * level ** 1.55);
+  return {
+    ...job,
+    durationMs: 120_000 + expeditionStep * 45_000,
+    expeditionStep: expeditionStep + 1,
+    baseSuccessChance: 0.3,
+    successSkill: inferContractSkill(job),
+    description: `${job.description} Expect a short expedition with cash and recoverable field loot.`,
+    rewards: { ...job.rewards, credits: Math.max(job.rewards.credits ?? 0, cashFloor) },
+    rareRewardChance: job.rareReward ? 0.08 + expeditionStep * 0.01 : undefined,
+    rareRewardTable: [
+      ...(job.rareRewardTable ?? []),
+      expeditionDrop(loot.resource, 42 + expeditionStep * 1.5, 2 + districtIndex, 5 + districtIndex, "Common"),
+      expeditionDrop(loot.material, 16 + expeditionStep * 1.25, 1, districtIndex >= 5 ? 2 : 1, districtIndex >= 5 ? "Epic" : "Rare"),
+      ...loot.equipment.map((entry) => expeditionDrop(entry.id, equipmentChance, 1, 1, entry.rarity)),
+    ],
+  };
+}
+
+function expeditionDrop(itemId: string, chancePercent: number, minQuantity: number, maxQuantity: number, rarity: ItemRarity): PercentDropEntry {
+  return { itemId, chancePercent, minQuantity, maxQuantity, rarity, affectedByDropModifiers: true, affectedByScenarioModifiers: true };
+}
+
+const districtOrder: DistrictId[] = ["neonRow", "rustYards", "underpassMarket", "blacknetQuarter", "helixWard", "glasslineDistrict", "redlineBlocks", "skylineCore"];
+
+function contractLevel(job: JobContract) {
+  const listedLevels = job.requirements.flatMap((requirement) => [...requirement.matchAll(/level\s+(\d+)/gi)].map((match) => Number(match[1])));
+  const districtFloor = districtOrder.indexOf(job.districtId) * 20 + 1;
+  return Math.max(districtFloor, ...listedLevels, 1);
+}
+
+function districtContractSequence(job: JobContract) {
+  return baseJobs
+    .filter((entry) => entry.districtId === job.districtId)
+    .map((entry, sourceIndex) => ({ entry, sourceIndex }))
+    .sort((left, right) => contractLevel(left.entry) - contractLevel(right.entry) || left.sourceIndex - right.sourceIndex)
+    .findIndex(({ entry }) => entry.id === job.id);
+}
+
+function inferContractSkill(job: JobContract): SkillId {
+  if (job.successSkill) return job.successSkill;
+  const rewardedSkill = Object.keys(job.skillXp ?? {})[0] as SkillId | undefined;
+  if (rewardedSkill) return rewardedSkill;
+  const requirements = job.requirements.join(" ").toLowerCase();
+  if (requirements.includes("vehicle tuning")) return "vehicleTuning";
+  if (requirements.includes("black market")) return "blackMarket";
+  if (requirements.includes("street combat")) return "combat";
+  if (requirements.includes("cyberware")) return "cyberware";
+  if (requirements.includes("medical")) return "medical";
+  if (requirements.includes("scavenging")) return "scavenging";
+  if (requirements.includes("hacking")) return "hacking";
+  if (job.tags.some((tag) => tag === "vehicle" || tag === "smuggling" || tag === "courier")) return "vehicleTuning";
+  if (job.tags.some((tag) => tag === "hacking" || tag === "blacknet" || tag === "dataTheft")) return "hacking";
+  if (job.tags.includes("cyberware")) return "cyberware";
+  if (job.tags.includes("medical")) return "medical";
+  if (job.tags.some((tag) => tag === "scavenging" || tag === "salvage")) return "scavenging";
+  if (job.tags.some((tag) => tag === "combat" || tag === "bounty" || tag === "protection")) return "combat";
+  if (job.tags.includes("street")) return "streetcraft";
+  if (job.tags.some((tag) => tag === "blackmarket" || tag === "market")) return "blackMarket";
+  return "streetcraft";
+}
+
+// Contracts occupy the space between quick skill actions and long-form combat encounters:
+// a few minutes away from the street, reliable cash, and several independent loot rolls.
+export const jobs: JobContract[] = baseJobs.map(asExpeditionContract);
 
 function makeExpandedJobs(): JobContract[] {
   return [

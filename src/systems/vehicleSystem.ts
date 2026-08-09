@@ -1,53 +1,36 @@
-import { housingOptions } from "../data/housing";
 import { vehicles } from "../data/vehicles";
 import { applyRewards } from "./actionProcessing";
 import { calculateVehicleUpgradeCost } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
-import { updateOperationAchievements } from "./achievements";
+import { updateVehicleAchievements } from "./achievements";
 import { emitRewardPopupGroup } from "./rewardPopups";
-import { factionRank } from "./modifiers";
-import type { FactionId, GameState, RewardBundle, SkillId, VehicleDefinition } from "../types";
+import type { GameState, RewardBundle, VehicleUpgradePartId } from "../types";
 
-export function garageSlots(state: GameState) {
-  const housing = housingOptions.find((option) => option.id === state.activeResidence);
-  return 1 + (housing?.garageSlots ?? 0);
-}
+export const vehicleUpgradeParts: Array<{
+  id: VehicleUpgradePartId;
+  name: string;
+  description: string;
+  bonusPerLevel: string;
+}> = [
+  { id: "body", name: "Body & Armor", description: "Reinforce the chassis and cabin around the runner.", bonusPerLevel: "+2% player Armor" },
+  { id: "engine", name: "Engine", description: "Tune power delivery and reduce travel time between actions.", bonusPerLevel: "+1% action speed" },
+  { id: "cargo", name: "Cargo System", description: "Expand secure storage and improve profitable hauling.", bonusPerLevel: "+1.5% job rewards" },
+  { id: "electronics", name: "Electronics", description: "Improve route masking, sensors, and contract navigation.", bonusPerLevel: "-1% Heat gain, +1% job success" },
+];
+
+const MAX_PART_LEVEL = 5;
 
 export function canBuyVehicle(state: GameState, vehicleId: string) {
   const vehicle = vehicles.find((entry) => entry.id === vehicleId);
   if (!vehicle || state.ownedVehicles[vehicleId]) return false;
-  if (Object.values(state.ownedVehicles).filter(Boolean).length >= garageSlots(state)) return false;
-  if (!vehicle.unlockRequirements.every((requirement) => vehicleRequirementMet(state, vehicle, requirement))) return false;
+  if (!vehicle.unlockRequirements.every((requirement) => vehicleRequirementMet(state, requirement))) return false;
   return canPay(state, vehicle.cost);
 }
 
-export function vehicleRequirementMet(state: GameState, vehicle: VehicleDefinition, requirement: string) {
+export function vehicleRequirementMet(state: GameState, requirement: string) {
   const lower = requirement.toLowerCase();
-  if (lower.includes("available early") || lower.includes("major credit sink")) return true;
-  const faction = factionRequirement(lower);
-  const rank = Number(lower.match(/rank\s+(\d+)/)?.[1] ?? 0);
-  if (faction && rank) return factionRank(state.factions[faction].reputation) >= rank;
-  const factionReputation = Number(lower.match(/reputation\s+(\d+)/)?.[1] ?? 0);
-  if (faction && factionReputation) return state.factions[faction].reputation >= factionReputation;
-  const globalReputation = Number(lower.match(/^reputation\s+(\d+)/)?.[1] ?? 0);
-  if (globalReputation) return state.resources.reputation >= globalReputation;
-  const skillMatch = lower.match(/(vehicle tuning|combat|hacking|cyberware|scavenging)\s+level\s+(\d+)/);
-  if (skillMatch) {
-    const skills: Record<string, SkillId> = { "vehicle tuning": "vehicleTuning", combat: "combat", hacking: "hacking", cyberware: "cyberware", scavenging: "scavenging" };
-    return state.skills[skills[skillMatch[1]]].level >= Number(skillMatch[2]);
-  }
-  if (lower.includes("unlocked")) return Boolean(state.districts[vehicle.districtId]?.unlocked);
-  if (lower.includes("corporate extraction")) return Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear);
-  return true;
-}
-
-function factionRequirement(requirement: string): FactionId | null {
-  if (requirement.includes("chrome jackals")) return "chromeJackals";
-  if (requirement.includes("null choir")) return "nullChoir";
-  if (requirement.includes("redline saints")) return "redlineSaints";
-  if (requirement.includes("ghost market")) return "ghostMarket";
-  if (requirement.includes("helix order")) return "helixOrder";
-  return null;
+  const level = Number(lower.match(/vehicle tuning\s+level\s+(\d+)/)?.[1] ?? 0);
+  return level > 0 && state.skills.vehicleTuning.level >= level;
 }
 
 export function buyVehicle(state: GameState, vehicleId: string) {
@@ -56,14 +39,13 @@ export function buyVehicle(state: GameState, vehicleId: string) {
   const next = cloneState(state);
   pay(next, vehicle.cost);
   next.ownedVehicles[vehicleId] = true;
-  next.activeVehicle = next.activeVehicle ?? vehicleId;
   pushCategorizedLog(next, "World", `Vehicle acquired: ${vehicle.name}.`);
   emitRewardPopupGroup(next, {
     title: `Vehicle Acquired`,
     category: "item",
     story: [vehicle.name],
   });
-  updateOperationAchievements(next);
+  updateVehicleAchievements(next);
   return next;
 }
 
@@ -75,24 +57,58 @@ export function setActiveVehicle(state: GameState, vehicleId: string) {
   return next;
 }
 
-export function upgradeVehicle(state: GameState, vehicleId: string) {
+export function vehiclePartUpgradeLevel(state: GameState, vehicleId: string, partId: VehicleUpgradePartId) {
+  const explicitKey = vehiclePartKey(vehicleId, partId);
+  if (state.vehicleUpgradeLevels[explicitKey] !== undefined) return state.vehicleUpgradeLevels[explicitKey];
+  const legacyTotal = state.vehicleUpgradeLevels[vehicleId] ?? 0;
+  const partIndex = vehicleUpgradeParts.findIndex((part) => part.id === partId);
+  return Math.min(MAX_PART_LEVEL, Math.floor(legacyTotal / vehicleUpgradeParts.length) + (partIndex < legacyTotal % vehicleUpgradeParts.length ? 1 : 0));
+}
+
+export function vehicleTotalUpgradeLevel(state: GameState, vehicleId: string) {
+  return vehicleUpgradeParts.reduce((sum, part) => sum + vehiclePartUpgradeLevel(state, vehicleId, part.id), 0);
+}
+
+export function vehiclePartUpgradeCost(state: GameState, vehicleId: string, partId: VehicleUpgradePartId): RewardBundle {
+  const level = vehiclePartUpgradeLevel(state, vehicleId, partId);
+  const tier = level + 1;
+  const shared = { credits: calculateVehicleUpgradeCost(state, vehicleTotalUpgradeLevel(state, vehicleId)), vehicleParts: 4 + tier * 3 };
+  if (partId === "body") return { ...shared, armorPlating: tier };
+  if (partId === "engine") return { ...shared, fuelCell: Math.ceil(tier / 2), engineCore: tier >= 3 ? 1 : 0, prototypeDriveUnit: tier >= 5 ? 1 : 0 };
+  if (partId === "cargo") return { ...shared, navigationChip: Math.ceil(tier / 2), smugglerCompartment: tier >= 3 ? 1 : 0 };
+  return { ...shared, navigationChip: tier, fuelCell: tier >= 3 ? 1 : 0 };
+}
+
+export function canUpgradeVehiclePart(state: GameState, vehicleId: string, partId: VehicleUpgradePartId) {
   const vehicle = vehicles.find((entry) => entry.id === vehicleId);
-  if (!vehicle || !state.ownedVehicles[vehicleId]) return state;
-  const level = state.vehicleUpgradeLevels[vehicleId] ?? 0;
-  if (level >= vehicle.maxUpgradeLevel) return state;
-  const cost = { vehicleParts: 5 * (level + 1), credits: calculateVehicleUpgradeCost(state, level), engineCore: level >= 4 ? 1 : 0 };
-  if (!canPay(state, cost)) return state;
+  if (!vehicle || !state.ownedVehicles[vehicleId]) return false;
+  if (vehiclePartUpgradeLevel(state, vehicleId, partId) >= MAX_PART_LEVEL) return false;
+  return canPay(state, vehiclePartUpgradeCost(state, vehicleId, partId));
+}
+
+export function upgradeVehicle(state: GameState, vehicleId: string, partId: VehicleUpgradePartId = "engine") {
+  const vehicle = vehicles.find((entry) => entry.id === vehicleId);
+  if (!vehicle || !state.ownedVehicles[vehicleId] || !canUpgradeVehiclePart(state, vehicleId, partId)) return state;
+  const cost = vehiclePartUpgradeCost(state, vehicleId, partId);
+  const levels = Object.fromEntries(vehicleUpgradeParts.map((part) => [part.id, vehiclePartUpgradeLevel(state, vehicleId, part.id)])) as Record<VehicleUpgradePartId, number>;
   const next = cloneState(state);
   pay(next, cost);
-  next.vehicleUpgradeLevels[vehicleId] = level + 1;
-  pushCategorizedLog(next, "World", `${vehicle.name} upgraded to +${level + 1}.`);
+  levels[partId] += 1;
+  vehicleUpgradeParts.forEach((part) => { next.vehicleUpgradeLevels[vehiclePartKey(vehicleId, part.id)] = levels[part.id]; });
+  next.vehicleUpgradeLevels[vehicleId] = Object.values(levels).reduce((sum, level) => sum + level, 0);
+  const part = vehicleUpgradeParts.find((entry) => entry.id === partId)!;
+  pushCategorizedLog(next, "World", `${vehicle.name} ${part.name} upgraded to level ${levels[partId]}.`);
   emitRewardPopupGroup(next, {
     title: `Vehicle Upgraded`,
     category: "item",
-    story: [`${vehicle.name} +${level + 1}`],
+    story: [`${vehicle.name}: ${part.name} ${levels[partId]}/${MAX_PART_LEVEL}`, part.bonusPerLevel],
   });
-  updateOperationAchievements(next);
+  updateVehicleAchievements(next);
   return next;
+}
+
+function vehiclePartKey(vehicleId: string, partId: VehicleUpgradePartId) {
+  return `${vehicleId}:${partId}`;
 }
 
 function canPay(state: GameState, cost: RewardBundle) {

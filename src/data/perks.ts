@@ -2,7 +2,7 @@ import type { PerkDefinition, PerkTreeId, SpecializationMilestone } from "../typ
 
 export const perkTrees: Array<{ id: PerkTreeId; name: string; color: string; identity: string }> = [
   { id: "core", name: "Core", color: "cyan", identity: "General long-term account strength." },
-  { id: "solo", name: "Solo", color: "red", identity: "Combat, armor, bounties, and operation pressure." },
+  { id: "solo", name: "Solo", color: "red", identity: "Combat, armor, bounties, and contract pressure." },
   { id: "netrunner", name: "Netrunner", color: "blue", identity: "Hacking, encrypted data, Blacknet work, and trace control." },
   { id: "techie", name: "Techie", color: "green", identity: "Cyberware engineering, crafting, upgrades, and clinics." },
   { id: "outrider", name: "Outrider", color: "amber", identity: "Vehicles, scavenging, smuggling, and Rust Yard routes." },
@@ -18,7 +18,7 @@ export const perks: PerkDefinition[] = [
 
   perk("solo-hardwired-reflexes", "Hardwired Reflexes", "Weapon damage and combat defense improve.", "solo", 1, 1, 5, { combatDamage: 0.03, combatDefense: 0.02 }, ["Available"]),
   perk("solo-blood-money", "Blood Money", "Combat work produces more credits and stronger job payouts.", "solo", 2, 1, 5, { creditsGained: 0.03, jobRewards: 0.02 }, ["Spend 3 Solo points"]),
-  perk("solo-operation-breacher", "Operation Breacher", "Operation pressure improves combat damage, XP, and extraction odds.", "solo", 3, 2, 4, { combatDamage: 0.03, combatXp: 0.03, dropChance: 0.01 }, ["Clear an operation"]),
+  perk("solo-contract-breacher", "Contract Breacher", "Contract pressure improves combat damage, XP, and extraction odds.", "solo", 3, 2, 4, { combatDamage: 0.03, combatXp: 0.03, dropChance: 0.01 }, ["Complete a contract"]),
   perk("solo-chrome-tolerance", "Chrome Tolerance", "Heavy combat chrome creates less instability and improves defense.", "solo", 4, 3, 3, { neuralInstabilityGain: -0.03, combatDefense: 0.02 }, ["Spend 9 Solo points"]),
 
   perk("netrunner-data-siphon", "Data Siphon", "Hacks grant more XP and resources while generating less Heat.", "netrunner", 1, 1, 5, { skillRewards: 0.03, skillXp: { hacking: 0.03 }, heatGain: -0.01 }, ["Available"]),
@@ -34,7 +34,7 @@ export const perks: PerkDefinition[] = [
   perk("outrider-road-memory", "Road Memory", "Routes run faster and grant more scavenging XP.", "outrider", 1, 1, 5, { actionSpeed: 0.02, skillXp: { scavenging: 0.02 } }, ["Available"]),
   perk("outrider-hidden-compartments", "Hidden Compartments", "Smuggling generates less Heat and produces more resources.", "outrider", 2, 1, 5, { heatGain: -0.03, skillRewards: 0.03 }, ["Own a vehicle"]),
   perk("outrider-engine-whisperer", "Engine Whisperer", "Vehicle upgrades cost less and dangerous jobs are safer.", "outrider", 3, 2, 4, { vehicleUpgradeCostReduction: 0.03, jobSuccessChance: 0.02 }, ["Own a vehicle"]),
-  perk("outrider-long-haul", "Long Haul", "Mobile operations extend offline progress and build local standing.", "outrider", 4, 3, 3, { offlineProgressCapHours: 1, localStandingGain: 0.03 }, ["Spend 9 Outrider points"]),
+  perk("outrider-long-haul", "Long Haul", "Mobile work extends offline progress and builds local standing.", "outrider", 4, 3, 3, { offlineProgressCapHours: 1, localStandingGain: 0.03 }, ["Spend 9 Outrider points"]),
 
   perk("fixer-better-terms", "Better Terms", "Contracts pay more and contact reputation rises faster.", "fixer", 1, 1, 5, { jobRewards: 0.03, fixerTrustGain: 0.02 }, ["Available"]),
   perk("fixer-negotiated-prices", "Negotiated Prices", "Vendor prices fall while local standing improves.", "fixer", 2, 1, 5, { shopPrices: -0.02, localStandingGain: 0.02 }, ["Discover a vendor"]),

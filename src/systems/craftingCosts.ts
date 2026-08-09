@@ -35,7 +35,7 @@ export function recipeSourceHints(recipe: CraftingRecipe) {
   const output = getItem(recipe.outputItemId);
   if (output?.tags.includes("player-upgrade") || output?.type === "Weapon" || output?.type === "Armor") return [];
   return Object.keys(rarityExtras(recipe, output?.rarity ?? "Common", output?.tier ?? 1, output?.type))
-    .map((id) => `${getItem(id)?.name ?? id}: ${resourceSourceHint(id) ?? getItem(id)?.sourceHint ?? "Activity, vendor, or operation source."}`);
+    .map((id) => `${getItem(id)?.name ?? id}: ${resourceSourceHint(id) ?? getItem(id)?.sourceHint ?? "Activity, vendor, or combat source."}`);
 }
 
 function rarityExtras(recipe: CraftingRecipe, rarity: ItemRarity, tier: number, type?: string) {

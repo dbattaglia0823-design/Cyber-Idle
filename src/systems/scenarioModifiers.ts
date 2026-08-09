@@ -27,7 +27,7 @@ export function scenarioBonusForTags(state: GameState, tags: string[] = []): Sce
       bonus.heatChange -= 0.03;
       bonus.sources.push(`${item.name} stealth`);
     }
-    if (item?.tags.includes("boss") && (tags.includes("boss") || tags.includes("operation"))) {
+    if (item?.tags.includes("boss") && (tags.includes("boss") || tags.includes("combat"))) {
       bonus.damageBonus += 0.04;
       bonus.sources.push(`${item.name} bossing`);
     }

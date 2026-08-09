@@ -17,7 +17,7 @@ export const weaponClassOrder: WeaponClassId[] = [
 
 export const weaponClasses: WeaponClassDefinition[] = [
   cls("pistols", "Pistols", "Fast sidearms with crit, stealth, and low-Heat options.", ["Available"], ["solo", "ghost"], ["stealth", "ranged", "lowHeat"]),
-  cls("smgs", "SMGs", "Fast automatic weapons for messy street fights and multi-target operations.", ["Street Combat level 3"], ["solo"], ["loud", "gang", "ranged"]),
+  cls("smgs", "SMGs", "Fast automatic weapons for messy street fights and multi-target combat encounters.", ["Street Combat level 3"], ["solo"], ["loud", "gang", "ranged"]),
   cls("shotguns", "Shotguns", "Burst damage and armor stagger at close range.", ["Street Combat level 5"], ["solo"], ["loud", "ranged", "armorPiercing"]),
   cls("assaultRifles", "Assault Rifles", "Balanced damage, accuracy, and corporate raid consistency.", ["Street Combat level 8"], ["solo", "fixer"], ["corporate", "ranged"]),
   cls("sniperRifles", "Sniper Rifles", "Assassination, boss opening damage, and rare extraction.", ["Street Combat level 12"], ["ghost", "solo"], ["assassination", "ranged", "stealth"]),
@@ -25,7 +25,7 @@ export const weaponClasses: WeaponClassDefinition[] = [
   cls("bluntWeapons", "Blunt Weapons", "Unarmed damage, armor break, nonlethal control, and drone/mech disruption.", ["Street Combat level 4", "Unarmed counts as Blunt"], ["solo"], ["melee", "unarmed", "nonlethal", "mech"]),
   cls("techWeapons", "Tech Weapons", "Armor penetration and corporate material extraction.", ["Cyberware Engineering level 6"], ["techie", "solo"], ["tech", "armorPiercing", "corporate"]),
   cls("smartWeapons", "Smart Weapons", "Accuracy, drone targeting, and hacking synergy.", ["Hacking level 6"], ["netrunner", "techie"], ["smart", "drone", "ranged"]),
-  cls("heavyWeapons", "Heavy Weapons", "Boss and operation damage at the cost of Heat.", ["Street Combat level 15"], ["solo"], ["loud", "highHeat", "boss"]),
+  cls("heavyWeapons", "Heavy Weapons", "Boss and combat damage at the cost of Heat.", ["Street Combat level 15"], ["solo"], ["loud", "highHeat", "boss"]),
   cls("cyberdeckWeapons", "Cyberdeck Weapons", "Blacknet combat tools that manipulate trace and Heat.", ["Hacking level 12"], ["netrunner"], ["blacknet", "illegal"]),
   cls("exoticWeapons", "Exotic Weapons", "Rare unstable weapons with Neural Instability scaling.", ["Rare drops"], ["techie", "ghost"], ["prototype", "exotic"]),
 ];

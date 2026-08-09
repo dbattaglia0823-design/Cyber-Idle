@@ -272,20 +272,18 @@ function applyEquipment(state: GameState, modifiers: ActiveModifiers) {
 }
 
 function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
-  const fleetSpeed = vehicles
-    .filter((vehicle) => state.ownedVehicles[vehicle.id])
-    .reduce((sum, vehicle) => sum + vehicleFleetSpeedBonus(vehicle), 0);
-  if (fleetSpeed > 0) {
-    modifiers.actionSpeed += fleetSpeed;
-    modifiers.activeSources.push(`Vehicle fleet +${Math.round(fleetSpeed * 1000) / 10}% speed`);
-  }
   const vehicle = vehicles.find((entry) => entry.id === state.activeVehicle);
-  if (!vehicle) return;
-  const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-  modifiers.actionSpeed += 0.01 + vehicle.stats.jobEfficiency / 100 + level * 0.003;
-  modifiers.heatGain -= vehicle.stats.heatReduction / 100 + level * 0.002;
-  modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + level * 0.002;
-  modifiers.offlineProgressCapHours += Math.floor(vehicle.stats.storage / 20);
+  if (!vehicle || !state.ownedVehicles[vehicle.id]) return;
+  const bodyLevel = activeVehiclePartLevel(state, vehicle.id, "body");
+  const engineLevel = activeVehiclePartLevel(state, vehicle.id, "engine");
+  const cargoLevel = activeVehiclePartLevel(state, vehicle.id, "cargo");
+  const electronicsLevel = activeVehiclePartLevel(state, vehicle.id, "electronics");
+  modifiers.actionSpeed += 0.01 + engineLevel * 0.01;
+  modifiers.combatDefense += bodyLevel * 0.02;
+  modifiers.heatGain -= vehicle.stats.heatReduction / 100 + electronicsLevel * 0.01;
+  modifiers.jobSuccessChance += vehicle.stats.jobEfficiency / 100 + electronicsLevel * 0.01;
+  modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + cargoLevel * 0.015;
+  modifiers.offlineProgressCapHours += Math.floor((vehicle.stats.storage + cargoLevel * 4) / 20);
   mergeModifiers(modifiers, vehicle.passiveModifiers);
   modifiers.activeSources.push(vehicle.name);
 }
@@ -350,16 +348,11 @@ function vehicleSpeedBonus(state: GameState) {
   return state.startingPath === "outrider" ? 0.1 : 0;
 }
 
-function vehicleFleetSpeedBonus(vehicle: (typeof vehicles)[number]) {
-  const rarityBonus = {
-    Common: 0.001,
-    Uncommon: 0.0015,
-    Rare: 0.0025,
-    Epic: 0.0035,
-    Legendary: 0.005,
-    Prototype: 0.006,
-    Relic: 0.008,
-  }[vehicle.rarity] ?? 0.001;
-  const priceBonus = (vehicle.cost.credits ?? 0) / 2_000_000;
-  return rarityBonus + priceBonus;
+function activeVehiclePartLevel(state: GameState, vehicleId: string, partId: "body" | "engine" | "cargo" | "electronics") {
+  const explicit = state.vehicleUpgradeLevels[`${vehicleId}:${partId}`];
+  if (explicit !== undefined) return explicit;
+  const parts = ["body", "engine", "cargo", "electronics"] as const;
+  const legacyTotal = state.vehicleUpgradeLevels[vehicleId] ?? 0;
+  const index = parts.indexOf(partId);
+  return Math.min(5, Math.floor(legacyTotal / parts.length) + (index < legacyTotal % parts.length ? 1 : 0));
 }

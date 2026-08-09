@@ -98,10 +98,6 @@ export function calculateJobRewards(state: GameState, job: JobContract, multipli
   return scaleRewards(applyRewardFormula(state, job.rewards, job.tags), multiplier * requirementRewardMultiplier(job.requirements, balanceConfig.rewards.jobRequirementRewardGrowth));
 }
 
-export function calculateOperationRewards(state: GameState, rewards: RewardBundle, multiplier = 1) {
-  return scaleRewards(applyRewardFormula(state, rewards, ["operation"]), multiplier);
-}
-
 export function calculateCraftingOutput(rewards: RewardBundle, efficiency = 1) {
   return scaleRewards(rewards, efficiency);
 }
@@ -113,30 +109,34 @@ export function calculateJobSuccessChance(job: JobContract, state: GameState) {
   const classBonus = weaponClass ? weaponClassBonus(state, weaponClass).jobSuccess : 0;
   const factionBonus = Math.min(0.08, Math.max(0, state.factions[job.factionId]?.reputation ?? 0) / 1000);
   const standingBonus = Math.min(0.05, Math.max(0, state.districtStanding[job.districtId]?.standing ?? 0) / 1000);
+  const skillBonus = contractSkillSuccessBonus(job, state);
   const threatPenalty = districtThreatPenalty(state, job.districtId);
-  let chance = job.baseSuccessChance + modifiers.jobSuccessChance + scenario.successChance + classBonus + factionBonus + standingBonus - threatPenalty;
+  let chance = job.baseSuccessChance + skillBonus + modifiers.jobSuccessChance + scenario.successChance + classBonus + factionBonus + standingBonus - threatPenalty;
   if (state.startingPath === "streetborn" && job.tags.includes("corporate")) chance -= 0.05;
   const instability = effectiveNeuralInstability(state);
   if (instability >= 25 && job.tags.includes("hacking")) chance -= instability >= 75 ? 0.1 : instability >= 50 ? 0.05 : 0.02;
   if (instability >= 75 && job.tags.includes("corporate")) chance -= balanceConfig.jobs.corporateInstabilityPenalty;
-  const requirementPenalty = requirementScore(job.requirements) * balanceConfig.jobs.requirementSuccessPenalty;
-  chance -= requirementPenalty;
   const final = clampPercent(chance, balanceConfig.jobs.minSuccess, balanceConfig.jobs.maxSuccess);
   return {
     chance: final,
     guaranteed: final >= balanceConfig.jobs.guaranteedAt,
     breakdown: [
       { label: "Base", value: job.baseSuccessChance },
+      { label: job.successSkill ? `${job.successSkill} skill` : "Assigned skill", value: skillBonus },
       { label: "Modifiers", value: modifiers.jobSuccessChance },
       { label: "Scenario", value: scenario.successChance },
       { label: "Weapon class", value: classBonus },
       { label: "Faction", value: factionBonus },
       { label: "Standing", value: standingBonus },
       { label: "Threat penalty", value: -threatPenalty },
-      { label: "Requirement", value: -requirementPenalty },
       { label: "Final", value: final },
     ] satisfies FormulaBreakdown[],
   };
+}
+
+export function contractSkillSuccessBonus(job: JobContract, state: GameState) {
+  if (!job.successSkill) return 0;
+  return Math.min(0.3, Math.max(0, state.skills[job.successSkill]?.level ?? 0) * 0.002);
 }
 
 export function calculateHeatGain(state: GameState, heat: number, tags: string[] = []) {
@@ -144,6 +144,19 @@ export function calculateHeatGain(state: GameState, heat: number, tags: string[]
   const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
   const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
   return Math.round(heat * multiplier);
+}
+
+/**
+ * Positive Heat values on skill actions are authored as whole percentage
+ * ratings (1 = 1%, 5 = 5%). Heat modifiers adjust the chance instead of the
+ * amount so a successful roll always adds exactly one Heat.
+ */
+export function calculateSkillHeatChance(state: GameState, heatRating: number, tags: string[] = []) {
+  if (heatRating <= 0) return 0;
+  const modifiers = getActiveModifiers(state);
+  const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
+  const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
+  return clampPercent((heatRating / 100) * multiplier);
 }
 
 export function calculateHeatTier(value: number) {

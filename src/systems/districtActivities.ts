@@ -2,7 +2,6 @@ import { combatZones } from "../data/combat";
 import { fixers } from "../data/fixers";
 import { housingOptions } from "../data/housing";
 import { jobs } from "../data/jobs";
-import { operations } from "../data/operations";
 import { ripperdocServices } from "../data/ripperdocs";
 import { skillActions } from "../data/skills";
 import { jobProgressionLevel, jobRiskSortRank } from "./fixerContracts";
@@ -28,13 +27,7 @@ export function districtSkillActions(districtId: DistrictId) {
 export function districtJobs(districtId: DistrictId) {
   return jobs
     .filter((job) => job.districtId === districtId)
-    .sort((a, b) => jobRiskSortRank(a) - jobRiskSortRank(b) || jobProgressionLevel(a) - jobProgressionLevel(b) || a.durationMs - b.durationMs || a.name.localeCompare(b.name));
-}
-
-export function districtOperations(districtId: DistrictId) {
-  return operations
-    .filter((operation) => operation.districtId === districtId)
-    .sort((a, b) => contentRequirementScore(a.unlockRequirements) - contentRequirementScore(b.unlockRequirements) || a.stages.length - b.stages.length || a.name.localeCompare(b.name));
+    .sort((a, b) => a.durationMs - b.durationMs || jobProgressionLevel(a) - jobProgressionLevel(b) || jobRiskSortRank(a) - jobRiskSortRank(b) || a.name.localeCompare(b.name));
 }
 
 export function districtHousing(districtId: DistrictId) {

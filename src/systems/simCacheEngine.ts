@@ -1,7 +1,7 @@
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
-import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction, rollSkillActionDrops } from "./actionProcessing";
-import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
+import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction, rollSkillActionDrops, rollSkillActionHeat } from "./actionProcessing";
+import { calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -156,7 +156,7 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     recap.masteryXpGained += mastery;
     recap.poolXpGained += pool;
     if (action.heatChange && !actionHeatSuppressed(state, action)) {
-      const heat = Math.round(calculateHeatGain(state, action.heatChange, action.tags) * efficiency.heat);
+      const heat = rollSkillActionHeat(state, action, efficiency.heat);
       state.resources.heat += heat;
       recap.heatChange += heat;
     }

@@ -52,13 +52,10 @@ export const balanceConfig = {
   enemyScaling: {
     threatRewardRatio: 0.35,
     armorPenetrationFloor: 0.78,
-    operationStageMs: 4500,
-    operationMechanicMs: 1200,
   },
   rewards: {
     globalDropChanceMultiplier: 0.62,
     jobRequirementRewardGrowth: 0.04,
-    operationRequirementRewardGrowth: 0.06,
     masteryDropLevel25: 0.01,
     masteryDropLevel50: 0.05,
     masteryDropLevel75: 0.065,

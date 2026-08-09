@@ -2,7 +2,6 @@ import { districts } from "./districts";
 import { combatZones } from "./combat";
 import { housingOptions } from "./housing";
 import { jobs } from "./jobs";
-import { operations } from "./operations";
 import { ripperdocServices } from "./ripperdocs";
 import { skillActions } from "./skills";
 import { storyArcs } from "./storyArcs";
@@ -29,7 +28,6 @@ export function calculateDistrictCompletion(state: GameState, districtId: Distri
   const combatEnemies = districtCombatEnemyIds(districtId);
   const districtActions = skillActions.filter((action) => action.districtReq === districtId);
   const districtJobs = jobs.filter((job) => job.districtId === districtId);
-  const districtOperations = operations.filter((operation) => operation.districtId === districtId);
   const districtHousing = housingOptions.filter((housing) => housing.districtId === districtId);
   const districtServices = ripperdocServices.filter((service) => service.districtId === districtId);
   const districtVendors = vendors.filter((vendor) => vendor.districtId === districtId);
@@ -43,7 +41,6 @@ export function calculateDistrictCompletion(state: GameState, districtId: Distri
     housing: ratio(districtHousing.filter((housing) => districtUnlocked && state.ownedHousing[housing.id]).length, districtHousing.length),
     factions: ratio((getDistrict(districtId)?.associatedFactions ?? []).filter((id) => districtUnlocked && (state.factions[id]?.reputation ?? 0) > 0).length, getDistrict(districtId)?.associatedFactions.length ?? 0),
     services: ratio(districtServices.filter((service) => districtUnlocked && state.ripperdocUnlocks[service.id]).length, districtServices.length),
-    operations: ratio(districtOperations.filter((operation) => districtUnlocked && state.operationLogs[operation.id]?.firstClear).length, districtOperations.length),
     vendors: ratio(districtVendors.filter((vendor) => districtUnlocked && Object.values(state.vendors[vendor.id]?.purchases ?? {}).some((count) => count > 0)).length, districtVendors.length),
   };
   const storyProgress = ratio(districtUnlocked ? districtStory.reduce((sum, arc) => sum + Object.keys(state.storyArcs[arc.id]?.completedSteps ?? {}).length, 0) : 0, districtStory.reduce((sum, arc) => sum + arc.steps.length, 0));
@@ -55,7 +52,6 @@ export function calculateDistrictCompletion(state: GameState, districtId: Distri
     weighted(categories.housing, districtHousing.length),
     weighted(categories.factions, getDistrict(districtId)?.associatedFactions.length ?? 0),
     weighted(categories.services, districtServices.length),
-    weighted(categories.operations, districtOperations.length),
     weighted(categories.vendors, districtVendors.length),
     weighted(storyProgress, districtStory.length),
   ].filter((entry): entry is number => entry !== null);

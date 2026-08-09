@@ -31,7 +31,6 @@ export function createInitialState(now = Date.now()): GameState {
     activeAction: null,
     activeJob: null,
     activeCraft: null,
-    activeOperation: null,
     currentCombat: null,
     health: {
       currentHp: 104,
@@ -52,7 +51,6 @@ export function createInitialState(now = Date.now()): GameState {
       healingItemsUsed: 0,
       deaths: 0,
       deathsByEnemy: {},
-      deathsByOperation: {},
       autoHealsTriggered: 0,
       ripperdocRecoveries: 0,
       lowestHpSurvived: null,
@@ -71,7 +69,6 @@ export function createInitialState(now = Date.now()): GameState {
     ) as GameState["districtMastery"],
     streetLegend: { rank: 1, xp: 0, totalXp: 0, claimedMilestones: {} },
     challengeProgress: {},
-    highThreatOperationClears: {},
     collectionRewardsClaimed: {},
     prestigeProtocol: { unlocked: false, skillPrestiges: {}, districtPrestiges: {}, weaponClassPrestiges: {} },
     endgameStatistics: {
@@ -111,9 +108,7 @@ export function createInitialState(now = Date.now()): GameState {
     claimedTierRewards: {},
     simulationEfficiency: {},
     simulationRecap: null,
-    operationLogs: {},
     bossLogs: {},
-    operationRecap: null,
     ownedVehicles: {},
     activeVehicle: null,
     vehicleUpgradeLevels: {},
@@ -135,7 +130,6 @@ export function createInitialState(now = Date.now()): GameState {
       killsByClass: {},
       damageByClass: {},
       jobsByClass: {},
-      operationsByClass: {},
       rareDropsFound: 0,
       attachmentDropsFound: 0,
       modsInstalled: 0,
@@ -187,7 +181,6 @@ export function createInitialState(now = Date.now()): GameState {
     ) as GameState["storyArcs"],
     storyFlags: {},
     storyChoices: [],
-    operationLeads: {},
     factionConflicts: Object.fromEntries(Object.entries(factionConflictDefaults).map(([id, conflict]) => [id, { ...conflict, decisions: { ...conflict.decisions } }])) as GameState["factionConflicts"],
     districtStanding: Object.fromEntries(districtData.map((district) => [district.id, { standing: district.id === "neonRow" ? 5 : 0 }])) as GameState["districtStanding"],
     districtEvents: Object.fromEntries(districtEvents.map((event) => [event.id, event.id === "event-neon-row-open"])) as GameState["districtEvents"],
@@ -220,14 +213,12 @@ export function cloneState(state: GameState): GameState {
     activeAction: state.activeAction ? { ...state.activeAction } : null,
     activeJob: state.activeJob ? { ...state.activeJob } : null,
     activeCraft: state.activeCraft ? { ...state.activeCraft } : null,
-    activeOperation: state.activeOperation ? { ...state.activeOperation } : null,
     currentCombat: state.currentCombat ? { ...state.currentCombat } : null,
     health: { ...state.health },
     autoHeal: { ...state.autoHeal },
     healthStatistics: {
       ...state.healthStatistics,
       deathsByEnemy: { ...state.healthStatistics.deathsByEnemy },
-      deathsByOperation: { ...state.healthStatistics.deathsByOperation },
     },
     enemyLog: Object.fromEntries(
       Object.entries(state.enemyLog).map(([id, log]) => [
@@ -244,7 +235,6 @@ export function cloneState(state: GameState): GameState {
     challengeProgress: Object.fromEntries(
       Object.entries(state.challengeProgress).map(([id, progress]) => [id, { completedTiers: { ...progress.completedTiers } }]),
     ),
-    highThreatOperationClears: { ...state.highThreatOperationClears },
     collectionRewardsClaimed: { ...state.collectionRewardsClaimed },
     prestigeProtocol: {
       ...state.prestigeProtocol,
@@ -274,13 +264,9 @@ export function cloneState(state: GameState): GameState {
     claimedTierRewards: { ...state.claimedTierRewards },
     simulationEfficiency: { ...state.simulationEfficiency },
     simulationRecap: state.simulationRecap ? { ...state.simulationRecap, resourcesGained: { ...state.simulationRecap.resourcesGained }, dropsGained: { ...state.simulationRecap.dropsGained } } : null,
-    operationLogs: Object.fromEntries(
-      Object.entries(state.operationLogs).map(([id, log]) => [id, { ...log, drops: { ...log.drops } }]),
-    ),
     bossLogs: Object.fromEntries(
       Object.entries(state.bossLogs).map(([id, log]) => [id, { ...log, discoveredDrops: { ...log.discoveredDrops } }]),
     ),
-    operationRecap: state.operationRecap ? { ...state.operationRecap, rewards: { ...state.operationRecap.rewards }, itemsGained: { ...state.operationRecap.itemsGained } } : null,
     ownedVehicles: { ...state.ownedVehicles },
     activeVehicle: state.activeVehicle,
     vehicleUpgradeLevels: { ...state.vehicleUpgradeLevels },
@@ -304,7 +290,6 @@ export function cloneState(state: GameState): GameState {
       killsByClass: { ...state.weaponStatistics.killsByClass },
       damageByClass: { ...state.weaponStatistics.damageByClass },
       jobsByClass: { ...state.weaponStatistics.jobsByClass },
-      operationsByClass: { ...state.weaponStatistics.operationsByClass },
       rareDropsFound: state.weaponStatistics.rareDropsFound,
       attachmentDropsFound: state.weaponStatistics.attachmentDropsFound,
       modsInstalled: state.weaponStatistics.modsInstalled,
@@ -343,7 +328,6 @@ export function cloneState(state: GameState): GameState {
     ),
     storyFlags: { ...state.storyFlags },
     storyChoices: state.storyChoices.map((choice) => ({ ...choice })),
-    operationLeads: { ...state.operationLeads },
     factionConflicts: Object.fromEntries(
       Object.entries(state.factionConflicts).map(([id, conflict]) => [id, { ...conflict, decisions: { ...conflict.decisions } }]),
     ),

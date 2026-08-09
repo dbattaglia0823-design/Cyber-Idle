@@ -1,6 +1,4 @@
-import { bosses } from "../data/bosses";
 import { combatZones } from "../data/combat";
-import { operations } from "../data/operations";
 import { recipes } from "../data/recipes";
 import { ripperdocClinics } from "../data/ripperdocClinics";
 import { skillActions, skillNames } from "../data/skills";
@@ -24,8 +22,6 @@ export type ItemSourceType =
   | "Rare skill drop"
   | "Enemy drop"
   | "Percent drop"
-  | "Boss drop"
-  | "Operation reward"
   | "Contract reward"
   | "Crafting recipe"
   | "Vendor"
@@ -105,51 +101,6 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
     });
   });
 
-  bosses.forEach((boss) => {
-    boss.drops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      const operation = operations.find((entry) => entry.bossId === boss.id);
-      const districtId = operation?.districtId ?? boss.preferredDistrict;
-      sources.push({
-        type: "Boss drop",
-        name: boss.name,
-        detail: `${formatChance(drop.chance)} from boss drops.`,
-        districtId,
-        chance: drop.chance,
-        unlocked: sourceDistrictUnlocked(state, districtId),
-        goLabel: `Go to ${boss.name}`,
-        destination: districtId ? { districtId, category: operation ? "operations" : "combat", targetId: operation?.id ?? boss.id } : undefined,
-      });
-    });
-  });
-
-  operations.forEach((operation) => {
-    if ((operation.completionRewards as Record<string, number>)[itemId] || (operation.firstClearRewards as Record<string, number>)[itemId] || (operation.repeatClearRewards as Record<string, number>)[itemId]) {
-      sources.push({
-        type: "Operation reward",
-        name: operation.name,
-        detail: "Operation completion reward.",
-        districtId: operation.districtId,
-        unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
-        requirement: operation.unlockRequirements.join(", "),
-        goLabel: `Go to ${operation.name}`,
-        destination: { districtId: operation.districtId, category: "operations", targetId: operation.id },
-      });
-    }
-    operation.rareDrops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      sources.push({
-        type: "Operation reward",
-        name: operation.name,
-        detail: `Rare operation drop, ${formatChance(drop.chance)}.`,
-        districtId: operation.districtId,
-        chance: drop.chance,
-        unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
-        requirement: operation.unlockRequirements.join(", "),
-        goLabel: `Go to ${operation.name}`,
-        destination: { districtId: operation.districtId, category: "operations", targetId: operation.id },
-      });
-    });
-  });
-
   jobs.forEach((job) => {
     if ((job.rewards as Record<string, number>)[itemId] || job.rareReward === itemId) {
       sources.push({
@@ -163,6 +114,19 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         destination: { districtId: job.districtId, category: "contracts", targetId: job.id },
       });
     }
+    job.rareRewardTable?.filter((drop) => drop.itemId === itemId).forEach((drop) => {
+      sources.push({
+        type: "Contract reward",
+        name: job.name,
+        detail: `Expedition loot, ${formatChance(drop.chancePercent / 100)} per successful contract.`,
+        districtId: job.districtId,
+        chance: drop.chancePercent / 100,
+        unlocked: Boolean(state.districts[job.districtId]?.unlocked),
+        requirement: job.requirements.join(", "),
+        goLabel: `Go to ${job.name}`,
+        destination: { districtId: job.districtId, category: "contracts", targetId: job.id },
+      });
+    });
   });
 
   recipes.filter((recipe) => recipe.outputItemId === itemId).forEach((recipe) => {

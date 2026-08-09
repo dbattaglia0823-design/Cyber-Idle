@@ -8,12 +8,10 @@ export function earnedPerkPoints(state: GameState) {
   const totalLevel = Object.values(state.skills).reduce((sum, skill) => sum + skill.level, 0);
   const totalMilestones = Math.floor(totalLevel / 10);
   const skillMilestones = Object.values(state.skills).reduce((sum, skill) => sum + Math.floor(skill.level / 25), 0);
-  const operationClears = Object.values(state.operationLogs).filter((log) => log.firstClear).length * 2;
-  const bossKills = Object.values(state.bossLogs).filter((log) => log.kills > 0).length * 2;
   const factionRanks = Object.values(state.factions).reduce((sum, faction) => sum + Math.floor(Math.max(0, faction.reputation) / 20), 0);
   const achievements = Math.floor(Object.values(state.achievements).filter(Boolean).length / 3);
   const masteryPools = (Object.keys(state.skills) as SkillId[]).filter((skill) => masteryPoolPercent(state, skill) >= 100).length * 3;
-  return totalMilestones + skillMilestones + operationClears + bossKills + factionRanks + achievements + masteryPools;
+  return totalMilestones + skillMilestones + factionRanks + achievements + masteryPools;
 }
 
 export function spentPerkPoints(state: GameState) {
@@ -105,8 +103,8 @@ function updatePerkAchievements(state: GameState) {
 
 function meetsNamedUnlock(state: GameState, perk: PerkDefinition) {
   if (perk.id === "core-simulation-tuning" || perk.id === "ghost-clean-simulation") return Boolean(state.worldUnlocks.usedSimCache);
-  if (perk.id === "solo-operation-breacher") return Object.values(state.operationLogs).some((log) => log.firstClear);
-  if (perk.id === "solo-critical-routine") return Object.values(state.bossLogs).some((log) => log.kills > 0);
+  if (perk.id === "solo-contract-breacher") return Object.keys(state.manualDiscovery.jobs).length > 0;
+  if (perk.id === "solo-critical-routine") return Object.values(state.enemyLog).some((log) => log.kills >= 25);
   if (perk.id === "netrunner-trace-ghost") return state.skills.hacking.level >= 10;
   if (perk.id === "netrunner-blacknet-familiarity") return state.districts.blacknetQuarter?.unlocked;
   if (perk.id === "techie-upgrade-planning") return state.skills.cyberware.level >= 8;

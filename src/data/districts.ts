@@ -109,7 +109,7 @@ export const districts: District[] = [
   {
     id: "skylineCore",
     name: "Skyline Core",
-    description: "Late-game luxury towers, executive transit, and high-risk citywide operations.",
+    description: "Late-game luxury towers, executive transit, and high-risk citywide combat encounters.",
     unlockRequirements: ["Any main skill level 140"],
     associatedFixers: ["Vale Syn"],
     associatedFactions: ["ghostMarket"],

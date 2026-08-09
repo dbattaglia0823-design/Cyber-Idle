@@ -145,7 +145,7 @@ export const ripperdocServices: RipperdocService[] = [
     effects: ["Temporary damage reduction", "Corporate defensive tuning"],
     temporaryEffect: { id: "glassline-armor-weave-effect", name: "Armor Weave Calibration", description: "+5% damage reduction for 30 minutes.", modifiers: { damageReduction: 0.05 }, durationMs: 30 * 60 * 1000 },
   }),
-  service("helix-combat-readiness", "Combat Readiness Injection", "A clinical booster for runners entering high-risk operations.", "helixWard", { credits: 460, cyberwareParts: 2 }, ["Medical Knowledge level 10"], "treatment", {
+  service("helix-combat-readiness", "Combat Readiness Injection", "A clinical booster for runners entering high-risk combat encounters.", "helixWard", { credits: 460, cyberwareParts: 2 }, ["Medical Knowledge level 10"], "treatment", {
     healthRestorePercent: 0.65,
     factionDiscount: "helixOrder",
     neuralInstabilityChange: 4,
@@ -158,7 +158,7 @@ export const ripperdocServices: RipperdocService[] = [
   }),
 
   // ===== GLASSLINE DISTRICT =====
-  service("glassline-trauma-restoration", "Trauma Restoration", "Clean-room trauma care restores a runner before corporate operations.", "glasslineDistrict", { credits: 720, cyberwareParts: 2 }, ["Glassline District unlocked"], "treatment", {
+  service("glassline-trauma-restoration", "Trauma Restoration", "Clean-room trauma care restores a runner before corporate combat encounters.", "glasslineDistrict", { credits: 720, cyberwareParts: 2 }, ["Glassline District unlocked"], "treatment", {
     factionDiscount: "helixOrder",
     healthRestorePercent: 0.9,
     effects: ["Restores 90% max HP", "Premium corporate trauma care"],

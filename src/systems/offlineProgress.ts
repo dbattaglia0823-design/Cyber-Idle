@@ -1,8 +1,8 @@
 import { skillActions } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
 import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
-import { actionMasteryXpReward, actionXpRewardWithMastery, canAffordRewards, getSkillAction } from "./actionProcessing";
-import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
+import { actionMasteryXpReward, actionXpRewardWithMastery, canAffordRewards, getSkillAction, rollSkillActionHeat } from "./actionProcessing";
+import { calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -159,7 +159,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, masteryReward);
     addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + masteryReward * 0.35) * 0.5)));
     if (action.heatChange && !actionHeatSuppressed(next, action)) {
-      const heat = calculateHeatGain(next, action.heatChange, action.tags);
+      const heat = rollSkillActionHeat(next, action);
       next.resources.heat = clampRiskStat(next.resources.heat + heat);
       recap.heatGained += heat;
     }

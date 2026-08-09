@@ -87,7 +87,7 @@ export function fixerTrustRewards(fixer: Fixer) {
   return fixer.trustRewards ?? [
     { rank: 2, description: "Auto-repeat safe contracts begins appearing." },
     { rank: 5, description: "Rare blueprint leads and district introductions improve." },
-    { rank: 8, description: "Operation leads and market interventions unlock." },
+    { rank: 8, description: "Elite contracts and market interventions unlock." },
     { rank: 10, description: "Elite contracts, private buyers, and signature favors." },
   ];
 }
@@ -96,7 +96,6 @@ export function fixerUnlockSummary(fixer: Fixer) {
   return [
     ...(fixer.uniqueUnlocks ?? []),
     ...fixer.jobChains,
-    ...(fixer.operationLeads ?? []),
     ...(fixer.marketConnections ?? []),
     ...(fixer.ripperdocConnections ?? []),
   ];

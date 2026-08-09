@@ -71,7 +71,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3000,
     xpReward: 22,
     masteryXpReward: 12,
-    rewards: { encryptedData: 2, credits: 16 },
+    rewards: { encryptedData: 2, credits: 3 },
     rareDrops: [drop("hacking-script", "Hacking Script", 0.06)],
     traceChance: 0.12,
     traceSeverity: 1,
@@ -105,7 +105,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3120,
     xpReward: 23,
     masteryXpReward: 10,
-    rewards: { vehicleParts: 1, scrap: -3, credits: 24 },
+    rewards: { vehicleParts: 1, scrap: -3, credits: 3 },
     rareDrops: [drop("navigationChip", "Navigation Chip", 0.014), drop("fuelCell", "Fuel Cell", 0.025)],
     heatChange: 0,
     tags: ["vehicleTuning", "patch-courier-rig", "neon-row"],
@@ -121,7 +121,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3120,
     xpReward: 23,
     masteryXpReward: 10,
-    rewards: { credits: 72, reputation: 1 },
+    rewards: { credits: 12, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.012)],
     heatChange: 1,
     tags: ["blackMarket", "check-buyer-board", "neon-row"],
@@ -137,7 +137,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3000,
     xpReward: 40,
     masteryXpReward: 15,
-    rewards: { cyberwareParts: -1, credits: 8 },
+    rewards: { cyberwareParts: -1, credits: 5 },
     rareDrops: [drop("neural-stabilizer", "Neural Stabilizer", 0.1), drop("neural-stabilizer-compound", "Neural Stabilizer Compound", 0.035)],
     neuralInstabilityChange: -1,
     tags: ["medical", "stabilizer", "safe"],
@@ -186,7 +186,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 4000,
     xpReward: 45,
     masteryXpReward: 21,
-    rewards: { encryptedData: 4, credits: 26 },
+    rewards: { encryptedData: 4, credits: 15 },
     rareDrops: [drop("trace-scrambler-link", "Trace Scrambler Link", 0.0188), drop("data-job-pass", "Data Job Pass", 0.0313)],
     traceChance: 0.18,
     traceSeverity: 1,
@@ -222,7 +222,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5200,
     xpReward: 74,
     masteryXpReward: 10,
-    rewards: { vehicleParts: 2, scrap: -6, credits: 48 },
+    rewards: { vehicleParts: 2, scrap: -6, credits: 12 },
     rareDrops: [drop("navigationChip", "Navigation Chip", 0.0167), drop("fuelCell", "Fuel Cell", 0.032)],
     heatChange: 0,
     tags: ["vehicleTuning", "tune-route-hardware", "neon-row"],
@@ -238,7 +238,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5200,
     xpReward: 74,
     masteryXpReward: 10,
-    rewards: { credits: 144, reputation: 1 },
+    rewards: { credits: 25, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0146)],
     heatChange: 1,
     tags: ["blackMarket", "broker-quiet-sale", "neon-row"],
@@ -254,7 +254,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5500,
     xpReward: 113,
     masteryXpReward: 36,
-    rewards: { credits: 24, reputation: 1, cyberwareParts: -1 },
+    rewards: { credits: 9, reputation: 1, cyberwareParts: -1 },
     rareDrops: [drop("medical-gel", "Medical Gel", 0.094), drop("neural-stabilizer", "Neural Stabilizer", 0.102), drop("medical-access-pass", "Medical Access Pass", 0.0188)],
     neuralInstabilityChange: -1,
     tags: ["medical", "street", "stabilizer"],
@@ -270,7 +270,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 6500,
     xpReward: 28,
     masteryXpReward: 21,
-    rewards: { reputation: 1, credits: 14 },
+    rewards: { reputation: 1, credits: 10 },
     rareDrops: [drop("informant-contact", "Informant Contact", 0.047), drop("fixer-favor", "Fixer Favor", 0.0313), drop("district-permit", "District Permit", 0.0146)],
     heatChange: -1,
     localStandingChange: 2,
@@ -304,7 +304,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 6000,
     xpReward: 90,
     masteryXpReward: 30,
-    rewards: { encryptedData: 5, credits: 45 },
+    rewards: { encryptedData: 5, credits: 24 },
     rareDrops: [drop("starter-breach-program", "Starter Breach Program", 0.0268), drop("camera-spoof-program", "Camera Spoof Program", 0.0214)],
     traceChance: 0.2,
     traceSeverity: 2,
@@ -324,7 +324,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7000,
     xpReward: 220,
     masteryXpReward: 54,
-    rewards: { cyberwareParts: 2, scrap: -8, credits: 20 },
+    rewards: { cyberwareParts: 2, scrap: -8, credits: 15 },
     rareDrops: [drop("basic-optic-scanner", "Basic Optic Scanner", 0.2354), drop("cyberware-upgrade-core", "Cyberware Upgrade Core", 0.0375)],
     tags: ["cyberware", "repair", "optics"],
   }),
@@ -339,7 +339,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7400,
     xpReward: 141,
     masteryXpReward: 10,
-    rewards: { vehicleParts: 3, scrap: -9, credits: 72 },
+    rewards: { vehicleParts: 3, scrap: -9, credits: 20 },
     rareDrops: [drop("navigationChip", "Navigation Chip", 0.0193), drop("fuelCell", "Fuel Cell", 0.04)],
     heatChange: 0,
     tags: ["vehicleTuning", "build-district-drive-kit", "neon-row"],
@@ -355,7 +355,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7400,
     xpReward: 141,
     masteryXpReward: 10,
-    rewards: { credits: 216, reputation: 1 },
+    rewards: { credits: 25, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0171)],
     heatChange: 1,
     tags: ["blackMarket", "secure-premium-contact", "neon-row"],
@@ -371,7 +371,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7400,
     xpReward: 141,
     masteryXpReward: 10,
-    rewards: { credits: 72, reputation: 1, cyberwareParts: -1 },
+    rewards: { credits: 25, reputation: 1, cyberwareParts: -1 },
     rareDrops: [drop("medical-gel", "Medical Gel", 0.0278)],
     heatChange: -1,
     tags: ["medical", "research-rejection-pattern", "neon-row"],
@@ -387,7 +387,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7400,
     xpReward: 141,
     masteryXpReward: 10,
-    rewards: { reputation: 1, credits: 72 },
+    rewards: { reputation: 1, credits: 25 },
     rareDrops: [drop("fixer-favor", "Fixer Favor", 0.0333)],
     heatChange: -1,
     tags: ["streetcraft", "broker-quiet-passage", "neon-row"],
@@ -421,7 +421,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5400,
     xpReward: 114,
     masteryXpReward: 10,
-    rewards: { cyberwareParts: 4, scrap: -6, credits: 48 },
+    rewards: { cyberwareParts: 4, scrap: -6, credits: 12 },
     rareDrops: [drop("cyberware-upgrade-core", "Cyberware Upgrade Core", 0.0395)],
     heatChange: 0,
     tags: ["cyberware", "sort-implant-stock", "rust-yards"],
@@ -467,7 +467,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5400,
     xpReward: 114,
     masteryXpReward: 10,
-    rewards: { credits: 144, reputation: 1 },
+    rewards: { credits: 40, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0191)],
     heatChange: 1,
     tags: ["blackMarket", "check-buyer-board", "rust-yards"],
@@ -483,7 +483,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5400,
     xpReward: 114,
     masteryXpReward: 10,
-    rewards: { credits: 48, reputation: 1, cyberwareParts: -1 },
+    rewards: { credits: 25, reputation: 1, cyberwareParts: -1 },
     rareDrops: [drop("medical-gel", "Medical Gel", 0.098)],
     heatChange: -1,
     tags: ["medical", "mix-field-treatment", "rust-yards"],
@@ -499,7 +499,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5400,
     xpReward: 114,
     masteryXpReward: 10,
-    rewards: { reputation: 1, credits: 48 },
+    rewards: { reputation: 1, credits: 25 },
     rareDrops: [drop("fixer-favor", "Fixer Favor", 0.0353)],
     heatChange: -1,
     tags: ["streetcraft", "read-local-pressure", "rust-yards"],
@@ -515,7 +515,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7000,
     xpReward: 166,
     masteryXpReward: 75,
-    rewards: { encryptedData: 8, credits: 60, cyberwareParts: 1 },
+    rewards: { encryptedData: 8, credits: 40, cyberwareParts: 1 },
     rareDrops: [drop("data-siphon-program", "Data Siphon Program", 0.0285), drop("medical-access-pass", "Medical Access Pass", 0.0274), drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0219)],
     traceChance: 0.24,
     traceSeverity: 2,
@@ -534,7 +534,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { encryptedData: 9, credits: 144 },
+    rewards: { encryptedData: 9, credits: 40 },
     rareDrops: [drop("boss-data-key", "Boss Data Key", 0.0097)],
     heatChange: 1,
     traceChance: 0.175,
@@ -552,7 +552,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { cyberwareParts: 6, scrap: -9, credits: 72 },
+    rewards: { cyberwareParts: 6, scrap: -9, credits: 25 },
     rareDrops: [drop("cyberware-upgrade-core", "Cyberware Upgrade Core", 0.0415)],
     heatChange: 0,
     tags: ["cyberware", "tune-chrome-bench", "rust-yards"],
@@ -568,7 +568,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { credits: 216, reputation: 1 },
+    rewards: { credits: 80, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0211)],
     heatChange: 1,
     tags: ["blackMarket", "broker-quiet-sale", "rust-yards"],
@@ -584,7 +584,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { credits: 72, reputation: 1, cyberwareParts: -1 },
+    rewards: { credits: 25, reputation: 1, cyberwareParts: -1 },
     rareDrops: [drop("medical-gel", "Medical Gel", 0.1)],
     heatChange: -1,
     tags: ["medical", "stabilize-clinic-case", "rust-yards"],
@@ -600,7 +600,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { reputation: 1, credits: 72 },
+    rewards: { reputation: 1, credits: 25 },
     rareDrops: [drop("fixer-favor", "Fixer Favor", 0.0373)],
     heatChange: -1,
     tags: ["streetcraft", "arrange-block-favor", "rust-yards"],
@@ -632,7 +632,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { scrap: 20, circuitBoards: 2, credits: 96 },
+    rewards: { scrap: 20, circuitBoards: 2, credits: 32 },
     rareDrops: [drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0239)],
     heatChange: 0,
     tags: ["scavenging", "recover-rare-wreckage", "rust-yards"],
@@ -648,7 +648,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { encryptedData: 12, credits: 192 },
+    rewards: { encryptedData: 12, credits: 48 },
     rareDrops: [drop("boss-data-key", "Boss Data Key", 0.0117)],
     heatChange: 1,
     traceChance: 0.200,
@@ -666,7 +666,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { cyberwareParts: 8, scrap: -12, credits: 96 },
+    rewards: { cyberwareParts: 8, scrap: -12, credits: 20 },
     rareDrops: [drop("cyberware-upgrade-core", "Cyberware Upgrade Core", 0.0435)],
     heatChange: 0,
     tags: ["cyberware", "assemble-upgrade-core", "rust-yards"],
@@ -682,7 +682,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { vehicleParts: 4, scrap: -12, credits: 96 },
+    rewards: { vehicleParts: 4, scrap: -12, credits: 20 },
     rareDrops: [drop("navigationChip", "Navigation Chip", 0.0363)],
     heatChange: 0,
     tags: ["vehicleTuning", "build-district-drive-kit", "rust-yards"],
@@ -698,7 +698,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { credits: 288, reputation: 1 },
+    rewards: { credits: 100, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0231)],
     heatChange: 1,
     tags: ["blackMarket", "secure-premium-contact", "rust-yards"],
@@ -714,7 +714,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { credits: 96, reputation: 1, cyberwareParts: -1 },
+    rewards: { credits: 28, reputation: 1, cyberwareParts: -1 },
     rareDrops: [drop("medical-gel", "Medical Gel", 0.102)],
     heatChange: -1,
     tags: ["medical", "research-rejection-pattern", "rust-yards"],
@@ -730,7 +730,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { reputation: 2, credits: 96 },
+    rewards: { reputation: 2, credits: 28 },
     rareDrops: [drop("fixer-favor", "Fixer Favor", 0.0393)],
     heatChange: -1,
     tags: ["streetcraft", "broker-quiet-passage", "rust-yards"],
@@ -748,7 +748,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 6000,
     xpReward: 130,
     masteryXpReward: 44,
-    rewards: { encryptedData: 6, credits: 54, reputation: 1 },
+    rewards: { encryptedData: 6, credits: 52, reputation: 1 },
     rareDrops: [drop("market-pass", "Market Pass", 0.0418), drop("ghost-market-token", "Ghost Market Token", 0.0239)],
     traceChance: 0.22,
     traceSeverity: 2,
@@ -3018,12 +3018,24 @@ const progressionBalancedSkillActions: SkillAction[] = baseSkillActions.map((ski
   const masteryXpReward = normalizedMasteryXpReward(skillAction);
   return {
     ...skillAction,
+    rewards: normalizedScavengingRewards(skillAction),
     ...(rareDrops.length > 0 ? { rareDrops } : {}),
     xpReward,
     masteryXpReward,
     masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),
   };
 });
+
+/**
+ * Scavenging is primarily a material and rare-loot activity. Keeping its direct
+ * cash below 100 per short completion prevents Sim Caches from turning it into
+ * a stronger credit farm than contracts while still allowing modest scaling.
+ */
+function normalizedScavengingRewards(skillAction: SkillAction) {
+  if (skillAction.skillId !== "scavenging" || !skillAction.rewards.credits || skillAction.rewards.credits <= 0) return skillAction.rewards;
+  const creditCap = Math.round(20 + Math.max(1, skillAction.levelReq) * 0.45);
+  return { ...skillAction.rewards, credits: Math.min(skillAction.rewards.credits, creditCap) };
+}
 
 /**
  * Keep progression actions from becoming worse XP loops than prior districts.
@@ -3091,4 +3103,37 @@ function applyDistrictSkillDropCurve(actions: SkillAction[]) {
   });
 }
 
-export const skillActions: SkillAction[] = applyDistrictSkillDropCurve(progressionBalancedSkillActions);
+/**
+ * Authored long or difficult actions can legitimately pay above the baseline,
+ * but that bonus must not make the next unlock look like a downgrade. Each new
+ * unlock level therefore clears the best reward from the preceding level tier.
+ */
+function applyMonotonicXpProgression(actions: SkillAction[]) {
+  const adjusted = new Map<string, SkillAction>();
+  skillOrder.forEach((skillId) => {
+    const skillActions = actions.filter((entry) => entry.skillId === skillId);
+    const levels = [...new Set(skillActions.map((entry) => entry.levelReq))].sort((left, right) => left - right);
+    let priorSkillXp = 0;
+    let priorMasteryXp = 0;
+    levels.forEach((level) => {
+      const tier = skillActions.filter((entry) => entry.levelReq === level);
+      const skillXpFloor = priorSkillXp > 0 ? Math.ceil(priorSkillXp * 1.04) : 0;
+      const masteryXpFloor = priorMasteryXp > 0 ? Math.ceil(priorMasteryXp * 1.03) : 0;
+      tier.forEach((entry) => {
+        const xpReward = Math.max(entry.xpReward, skillXpFloor);
+        const masteryXpReward = Math.max(entry.masteryXpReward, masteryXpFloor);
+        adjusted.set(entry.id, {
+          ...entry,
+          xpReward,
+          masteryXpReward,
+          masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),
+        });
+      });
+      priorSkillXp = Math.max(...tier.map((entry) => adjusted.get(entry.id)?.xpReward ?? entry.xpReward));
+      priorMasteryXp = Math.max(...tier.map((entry) => adjusted.get(entry.id)?.masteryXpReward ?? entry.masteryXpReward));
+    });
+  });
+  return actions.map((entry) => adjusted.get(entry.id) ?? entry);
+}
+
+export const skillActions: SkillAction[] = applyMonotonicXpProgression(applyDistrictSkillDropCurve(progressionBalancedSkillActions));

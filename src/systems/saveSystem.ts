@@ -112,7 +112,6 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     activeAction: saved.activeAction ?? null,
     activeJob: saved.activeJob ?? null,
     activeCraft: saved.activeCraft ?? null,
-    activeOperation: saved.activeOperation ?? null,
     currentCombat: saved.currentCombat ?? null,
     health: { ...initial.health, ...saved.health },
     autoHeal: { ...initial.autoHeal, ...saved.autoHeal },
@@ -120,7 +119,6 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
       ...initial.healthStatistics,
       ...saved.healthStatistics,
       deathsByEnemy: { ...initial.healthStatistics.deathsByEnemy, ...saved.healthStatistics?.deathsByEnemy },
-      deathsByOperation: { ...initial.healthStatistics.deathsByOperation, ...saved.healthStatistics?.deathsByOperation },
     },
     enemyLog: { ...initial.enemyLog, ...saved.enemyLog },
     unlocks: { ...initial.unlocks, ...saved.unlocks },
@@ -142,7 +140,6 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
         { completedTiers: { ...(progress as GameState["challengeProgress"][string])?.completedTiers } },
       ]),
     ),
-    highThreatOperationClears: { ...initial.highThreatOperationClears, ...saved.highThreatOperationClears },
     collectionRewardsClaimed: { ...initial.collectionRewardsClaimed, ...saved.collectionRewardsClaimed },
     prestigeProtocol: {
       ...initial.prestigeProtocol,
@@ -178,16 +175,14 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     claimedTierRewards: { ...initial.claimedTierRewards, ...saved.claimedTierRewards },
     simulationEfficiency: { ...initial.simulationEfficiency, ...saved.simulationEfficiency },
     simulationRecap: saved.simulationRecap ?? null,
-    operationLogs: { ...initial.operationLogs, ...saved.operationLogs },
     bossLogs: { ...initial.bossLogs, ...saved.bossLogs },
-    operationRecap: saved.operationRecap ?? null,
     ownedVehicles: { ...initial.ownedVehicles, ...saved.ownedVehicles },
     activeVehicle: saved.activeVehicle ?? null,
     vehicleUpgradeLevels: { ...initial.vehicleUpgradeLevels, ...saved.vehicleUpgradeLevels },
     districtThreat: { ...initial.districtThreat, ...saved.districtThreat },
     achievements: { ...initial.achievements, ...saved.achievements },
     perkPointsEarned: saved.perkPointsEarned ?? initial.perkPointsEarned,
-    perkRanks: { ...initial.perkRanks, ...saved.perkRanks },
+    perkRanks: migrateRemovedContentPerks(saved.perkRanks),
     specializationMilestones: { ...initial.specializationMilestones, ...saved.specializationMilestones },
     respecCount: saved.respecCount ?? initial.respecCount,
     signatureBuildCache: saved.signatureBuildCache ?? null,
@@ -251,7 +246,6 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     ) as GameState["storyArcs"],
     storyFlags: { ...initial.storyFlags, ...saved.storyFlags },
     storyChoices: saved.storyChoices ?? initial.storyChoices,
-    operationLeads: { ...initial.operationLeads, ...saved.operationLeads },
     factionConflicts: Object.fromEntries(
       Object.entries(initial.factionConflicts).map(([id, conflict]) => {
         const savedConflict = saved.factionConflicts?.[id];
@@ -310,4 +304,13 @@ function collapseLegacyDropAmplifierInventory(state: GameState) {
     tiers.forEach((tier) => delete state.inventory[tier.itemId]);
     state.inventory[highestOwned.itemId] = 1;
   });
+}
+
+function migrateRemovedContentPerks(savedRanks?: Record<string, number>) {
+  const ranks = { ...(savedRanks ?? {}) };
+  if (ranks["solo-operation-breacher"] && !ranks["solo-contract-breacher"]) {
+    ranks["solo-contract-breacher"] = ranks["solo-operation-breacher"];
+  }
+  delete ranks["solo-operation-breacher"];
+  return ranks;
 }

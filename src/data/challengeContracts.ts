@@ -3,9 +3,7 @@ import type { DistrictId } from "../types";
 export type ChallengeTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "Iconic" | "Apex";
 
 export type ChallengeObjective =
-  | { type: "operationClears"; operationId: string; count: number }
   | { type: "enemyKills"; enemyId: string; count: number }
-  | { type: "bossKills"; bossId: string; count: number }
   | { type: "districtMastery"; districtId: DistrictId; level: number }
   | { type: "actionMastery"; actionId: string; level: number }
   | { type: "skillLevel"; skillId: string; level: number }
@@ -29,17 +27,17 @@ export interface ChallengeContractDefinition {
 
 export const challengeContracts: ChallengeContractDefinition[] = [
   {
-    id: "challenge-backstreet-sweep",
-    name: "Backstreet Sweep Trials",
+    id: "challenge-neon-row-patrol",
+    name: "Neon Row Patrol Trials",
     districtId: "neonRow",
-    description: "Turn the starter operation into a long-term route mastery test.",
+    description: "Turn the starter combat route into a long-term district mastery test.",
     tiers: [
-      tier("Bronze", { type: "operationClears", operationId: "op-backstreet-sweep", count: 1 }, 80, ["Basic Sim Cache"]),
-      tier("Silver", { type: "operationClears", operationId: "op-backstreet-sweep", count: 10 }, 180, ["Rare Blueprint Fragment"]),
+      tier("Bronze", { type: "enemyKills", enemyId: "street-punk", count: 25 }, 80, ["Basic Sim Cache"]),
+      tier("Silver", { type: "enemyKills", enemyId: "boosted-thug", count: 75 }, 180, ["Rare Blueprint Fragment"]),
       tier("Gold", { type: "districtMastery", districtId: "neonRow", level: 15 }, 320, ["High-threat variants"]),
-      tier("Platinum", { type: "operationClears", operationId: "op-backstreet-sweep", count: 50 }, 520, ["Street Coil bundle"]),
+      tier("Platinum", { type: "enemyKills", enemyId: "hardened-street-punk", count: 100 }, 520, ["Street Coil bundle"]),
       tier("Iconic", { type: "districtMastery", districtId: "neonRow", level: 50 }, 850, ["Legacy route placeholder"]),
-      tier("Apex", { type: "operationClears", operationId: "op-backstreet-sweep", count: 250 }, 1400, ["Apex title placeholder"]),
+      tier("Apex", { type: "enemyKills", enemyId: "neon-row-kill-team", count: 250 }, 1400, ["Apex title placeholder"]),
     ],
   },
   {
@@ -60,14 +58,14 @@ export const challengeContracts: ChallengeContractDefinition[] = [
     id: "challenge-junkyard-warden",
     name: "Warden's Warpath",
     districtId: "rustYards",
-    description: "Repeat Rust Yards clears and build toward high-threat operation farming.",
+    description: "Repeat Rust Yards fights and build toward high-threat combat farming.",
     tiers: [
-      tier("Bronze", { type: "operationClears", operationId: "op-junkyard-lockdown", count: 1 }, 120, ["Vehicle Parts"]),
-      tier("Silver", { type: "operationClears", operationId: "op-junkyard-lockdown", count: 10 }, 260, ["Engine Core tracking"]),
+      tier("Bronze", { type: "enemyKills", enemyId: "yard-raider", count: 50 }, 120, ["Vehicle Parts"]),
+      tier("Silver", { type: "enemyKills", enemyId: "scrap-hound", count: 125 }, 260, ["Engine Core tracking"]),
       tier("Gold", { type: "districtMastery", districtId: "rustYards", level: 25 }, 480, ["Return contract focus"]),
-      tier("Platinum", { type: "bossKills", bossId: "boss-junkyard-warden", count: 50 }, 760, ["Boss milestone placeholder"]),
+      tier("Platinum", { type: "enemyKills", enemyId: "mag-clamp-loader", count: 100 }, 760, ["Elite milestone placeholder"]),
       tier("Iconic", { type: "districtMastery", districtId: "rustYards", level: 75 }, 1200, ["Automation hook"]),
-      tier("Apex", { type: "bossKills", bossId: "boss-junkyard-warden", count: 500 }, 2200, ["Apex vehicle title"]),
+      tier("Apex", { type: "enemyKills", enemyId: "jackal-roadboss", count: 500 }, 2200, ["Apex vehicle title"]),
     ],
   },
   {
@@ -77,10 +75,10 @@ export const challengeContracts: ChallengeContractDefinition[] = [
     description: "Push Blacknet clears while keeping trace pressure under control.",
     tiers: [
       tier("Bronze", { type: "skillLevel", skillId: "hacking", level: 25 }, 150, ["Encrypted Data"]),
-      tier("Silver", { type: "operationClears", operationId: "op-ghost-signal-dive", count: 5 }, 320, ["Blacknet Cipher"]),
+      tier("Silver", { type: "enemyKills", enemyId: "packet-wraith", count: 75 }, 320, ["Blacknet Cipher"]),
       tier("Gold", { type: "heatBelow", value: 25 }, 420, ["Trace cleanup goal"]),
       tier("Platinum", { type: "districtMastery", districtId: "blacknetQuarter", level: 50 }, 900, ["High-threat dive"]),
-      tier("Iconic", { type: "bossKills", bossId: "boss-firewall-warden", count: 100 }, 1400, ["Cyberdeck fragment"]),
+      tier("Iconic", { type: "enemyKills", enemyId: "daemon-butcher", count: 100 }, 1400, ["Cyberdeck fragment"]),
       tier("Apex", { type: "districtMastery", districtId: "blacknetQuarter", level: 99 }, 2400, ["Null legend placeholder"]),
     ],
   },
