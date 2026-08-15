@@ -10,9 +10,7 @@ export function processPercentDrops(state: GameState, sourceId: string, sourceTa
   const table = (percentDropTables[sourceId] ?? []).filter((entry) => !excluded.has(entry.itemId));
   const gained: string[] = [];
   table.forEach((entry) => {
-    const chance = entry.affectedByDropModifiers || entry.affectedByScenarioModifiers
-      ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : []) * 100
-      : entry.chancePercent;
+    const chance = effectivePercentDropChance(state, entry, sourceTags) * 100;
     revealDropFromAttempts(state, sourceId, entry);
     if (Math.random() * 100 > chance * Math.max(0, chanceMultiplier)) return;
     const quantity = randomQuantity(entry);
@@ -24,6 +22,12 @@ export function processPercentDrops(state: GameState, sourceId: string, sourceTa
     if (getItem(entry.itemId)?.type === "WeaponAttachment") state.weaponStatistics.attachmentDropsFound += 1;
   });
   return gained;
+}
+
+export function effectivePercentDropChance(state: GameState, entry: PercentDropEntry, sourceTags: string[] = []) {
+  return entry.affectedByDropModifiers || entry.affectedByScenarioModifiers
+    ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : [])
+    : entry.chancePercent / 100;
 }
 
 export function dropRevealState(state: GameState, sourceId: string, entry: PercentDropEntry, kills: number) {

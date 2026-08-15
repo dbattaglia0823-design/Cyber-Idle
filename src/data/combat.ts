@@ -338,6 +338,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "threat-id-lens-helmet", name: "Threat-ID Lens Helmet", chance: 0.02, quantity: 1 },
           { id: "reflex-prediction-core", name: "Reflex Prediction Core", chance: 0.012, quantity: 1 },
           { id: "rare-blueprint-fragment", name: "Rare Blueprint Fragment", chance: 0.035, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -418,6 +419,7 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "armorPlating", name: "Armor Plating", chance: 0.12, quantity: 1 },
           { id: "engineCore", name: "Engine Core", chance: 0.035, quantity: 1 },
+          { id: "rust-plated-frame", name: "Rust-Plated Frame", chance: 0.1, quantity: 1 },
         ],
       },
       {
@@ -437,6 +439,8 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "engineCore", name: "Engine Core", chance: 0.06, quantity: 1 },
           { id: "rust-access-key", name: "Rust Access Key", chance: 0.08, quantity: 1 },
+          { id: "rust-plated-frame", name: "Rust-Plated Frame", chance: 0.16, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -536,6 +540,7 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "private-buyer-contact", name: "Private Buyer Contact", chance: 0.055, quantity: 1 },
           { id: "rare-listing-permit", name: "Rare Listing Permit", chance: 0.05, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -635,6 +640,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "boss-data-key", name: "Boss Data Key", chance: 0.04, quantity: 1 },
           { id: "bp-blacknet-tool", name: "Blacknet Tool Blueprint", chance: 0.035, quantity: 1 },
           { id: "swarmtag-carbine", name: "Swarmtag Carbine", chance: 0.02, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -752,6 +758,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "helix-pulse-rifle", name: "Helix Pulse Rifle", chance: 0.014, quantity: 1 },
           { id: "auto-injector-link", name: "Auto-Injector Link", chance: 0.018, quantity: 1 },
           { id: "overwatch-helix", name: "Overwatch Helix", chance: 0.006, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -850,6 +857,7 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "prototype-neural-core", name: "Prototype Neural Core", chance: 0.04, quantity: 1 },
           { id: "bp-corporate-cyberware", name: "Corporate Cyberware Blueprint", chance: 0.03, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -948,6 +956,7 @@ const rawCombatZones: CombatZone[] = [
         drops: [
           { id: "boss-data-key", name: "Boss Data Key", chance: 0.04, quantity: 1 },
           { id: "faction-authorization", name: "Faction Authorization", chance: 0.06, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.025, quantity: 1 },
         ],
       },
     ],
@@ -987,6 +996,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "luxury-processor", name: "Luxury Processor", chance: 0.035, quantity: 1 },
           { id: "apex-response-helmet", name: "Apex Response Helmet", chance: 0.012, quantity: 1 },
           { id: "apex-duelist-pistol", name: "Apex Duelist Pistol", chance: 0.006, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.12, quantity: 1 },
         ],
       },
       {
@@ -1019,6 +1029,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "executive-processor", name: "Executive Processor", chance: 0.03, quantity: 1 },
           { id: "predictive-vision-core", name: "Predictive Vision Core", chance: 0.009, quantity: 1 },
           { id: "hive-oracle", name: "Hive Oracle", chance: 0.006, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.12, quantity: 1 },
         ],
       },
       {
@@ -1051,6 +1062,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "legendary-chrome-matrix", name: "Legendary Chrome Matrix", chance: 0.018, quantity: 1 },
           { id: "precision-combat-gloves", name: "Precision Combat Gloves", chance: 0.011, quantity: 1 },
           { id: "phase-step-leg-system", name: "Phase-Step Leg System", chance: 0.006, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.12, quantity: 1 },
         ],
       },
       {
@@ -1083,6 +1095,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "relic-circuit", name: "Relic Circuit", chance: 0.012, quantity: 1 },
           { id: "adaptive-combat-plating", name: "Adaptive Combat Plating", chance: 0.006, quantity: 1 },
           { id: "blacksite-lmg", name: "Blacksite LMG", chance: 0.008, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.12, quantity: 1 },
         ],
       },
       {
@@ -1117,6 +1130,7 @@ const rawCombatZones: CombatZone[] = [
           { id: "red-horizon-tac", name: "Red Horizon TAC", chance: 0.006, quantity: 1 },
           { id: "apex-titanium-frame", name: "Apex Titanium Frame", chance: 0.008, quantity: 1 },
           { id: "relic-runner-sigil", name: "Relic Runner Sigil", chance: 0.003, quantity: 1 },
+          { id: "basic-sim-cache", name: "Basic Sim Cache", chance: 0.12, quantity: 1 },
         ],
       },
     ],

@@ -1,5 +1,5 @@
 import type { BlackMarketStrategy, ItemRarity, SkillId } from "../types";
-import { defaultAttackIntervalMs } from "./combatTiming";
+import { basePlayerAttackIntervalMs } from "./combatTiming";
 
 export const BALANCE_VERSION = 1;
 
@@ -31,11 +31,12 @@ export const balanceConfig = {
     checkpoints: [10, 25, 50, 75, 95, 100],
   },
   combat: {
+    enemyXpMultiplier: 1.08,
     baseMaxHp: 100,
     hpPerCombatLevel: 4,
     baseDamage: 8,
     damagePerCombatLevel: 1.5,
-    baseAttackSpeedMs: defaultAttackIntervalMs,
+    baseAttackSpeedMs: basePlayerAttackIntervalMs,
     minAttackSpeedMs: 600,
     baseArmor: 2,
     armorPerCombatLevels: 3,

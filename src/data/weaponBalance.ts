@@ -74,7 +74,7 @@ export function weaponAcquisitionLevel(id: string, fallback: number) {
   return weaponAcquisitionLevels[id] ?? fallback;
 }
 
-// attackSpeed is an adjustment to the 3,000 ms base attack interval. Negative
+// attackSpeed is an adjustment to the 3,000 ms player attack interval. Negative
 // values attack faster; positive values attack slower. These profiles give every
 // weapon a readable firing identity while still allowing individually-authored
 // weapons (revolvers, burst pistols, heavy blades, etc.) to override the default.
@@ -142,5 +142,8 @@ export function balancedWeaponStats(
   const tierFactor = 1 + Math.max(0, tier - 1) * 0.025;
   const damage = Math.max(1, Math.round((4 + requiredLevel * 0.52) * classFactor * tierFactor));
 
+  // Give weapon archetypes 25% more influence over the final attack interval.
+  // Scaling the displayed weapon stat keeps inventory comparisons aligned with combat.
+  attackSpeed = Math.round(attackSpeed * 1.25);
   return { ...stats, damage, attackSpeed };
 }

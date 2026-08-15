@@ -7,7 +7,15 @@ import { jobs } from "../data/jobs";
 import { percentDropTables } from "../data/percentDrops";
 import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
+import { balanceConfig } from "../data/balanceConfig";
 import { actionAccessRequirementText, meetsActionAccessRequirement } from "./actionAccess";
+import { calculateDropChance, calculateJobRewards, calculateSkillActionRewards } from "./balanceFormulas";
+import { skillActionDropChance } from "./actionProcessing";
+import { enemyDropChance } from "./combatProcessing";
+import { combatTagsForEnemy } from "./combatMatchups";
+import { effectivePercentDropChance } from "./percentDrops";
+import { canUseVendor, vendorItemUnlocked, vendorPrice } from "./vendorSystem";
+import { ripperdocBuyPrice } from "./ripperdocSystem";
 import type { DistrictActivityCategory } from "./districtActivityMap";
 import type { DistrictId, GameState, SkillId } from "../types";
 
@@ -44,11 +52,12 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   const sources: ItemSourceEntry[] = [];
 
   skillActions.forEach((action) => {
-    if ((action.rewards as Record<string, number>)[itemId]) {
+    const actionReward = (calculateSkillActionRewards(state, action) as Record<string, number>)[itemId] ?? 0;
+    if (actionReward > 0) {
       sources.push({
         type: "Skill action",
         name: action.name,
-        detail: `Rewards ${resourceName(itemId)} on completion.`,
+        detail: `Rewards ${actionReward.toLocaleString()} ${resourceName(itemId)} per completion.`,
         districtId: action.districtReq,
         unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
         requirement: actionAccessRequirementText(state, action),
@@ -57,12 +66,13 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
       });
     }
     action.rareDrops?.filter((drop) => drop.id === itemId).forEach((drop) => {
+      const chance = skillActionDropChance(state, action, drop);
       sources.push({
         type: "Rare skill drop",
         name: action.name,
-        detail: `${formatChance(drop.chance)} per completion.`,
+        detail: `${formatChance(chance)} per completion with current bonuses.`,
         districtId: action.districtReq,
-        chance: drop.chance,
+        chance,
         unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
         requirement: actionAccessRequirementText(state, action),
         goLabel: `Go to ${action.name}`,
@@ -74,24 +84,26 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   combatZones.forEach((zone) => {
     zone.enemies.forEach((enemy) => {
       enemy.drops.filter((drop) => drop.id === itemId).forEach((drop) => {
+        const chance = enemyDropChance(state, enemy, drop.chance);
         sources.push({
           type: "Enemy drop",
           name: enemy.name,
-          detail: `${formatChance(drop.chance)} in ${zone.name}.`,
+          detail: `${formatChance(chance)} in ${zone.name} with current bonuses.`,
           districtId: enemy.preferredDistrict,
-          chance: drop.chance,
+          chance,
           unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
           goLabel: `Go to ${enemy.name}`,
           destination: enemy.preferredDistrict ? { districtId: enemy.preferredDistrict, category: "combat", targetId: enemy.id } : undefined,
         });
       });
-      percentDropTables[enemy.id]?.filter((drop) => drop.itemId === itemId).forEach((drop) => {
+      percentDropTables[enemy.id]?.filter((drop) => drop.itemId === itemId && !enemy.drops.some((authoredDrop) => authoredDrop.id === itemId)).forEach((drop) => {
+        const chance = effectivePercentDropChance(state, drop, combatTagsForEnemy(enemy));
         sources.push({
           type: "Percent drop",
           name: enemy.name,
-          detail: `${formatChance(drop.chancePercent / 100)} in ${zone.name}.`,
+          detail: `${formatChance(chance)} in ${zone.name} with current bonuses.`,
           districtId: enemy.preferredDistrict,
-          chance: drop.chancePercent / 100,
+          chance,
           unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
           requirement: drop.requirements?.join(", "),
           goLabel: `Go to ${enemy.name}`,
@@ -102,12 +114,17 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   });
 
   jobs.forEach((job) => {
-    if ((job.rewards as Record<string, number>)[itemId] || job.rareReward === itemId) {
+    const jobReward = (calculateJobRewards(state, job) as Record<string, number>)[itemId] ?? 0;
+    const rareRewardChance = calculateDropChance(job.rareRewardChance ?? balanceConfig.rewards.defaultRareJobChance, state, job.tags);
+    if (jobReward > 0 || job.rareReward === itemId) {
       sources.push({
         type: "Contract reward",
         name: job.name,
-        detail: job.rareReward === itemId ? "Rare fixer contract reward." : "Fixer contract reward.",
+        detail: job.rareReward === itemId
+          ? `Rare fixer contract reward, ${formatChance(rareRewardChance)} per successful contract with current bonuses.`
+          : `Rewards ${jobReward.toLocaleString()} ${resourceName(itemId)} per successful contract.`,
         districtId: job.districtId,
+        chance: job.rareReward === itemId ? rareRewardChance : undefined,
         unlocked: Boolean(state.districts[job.districtId]?.unlocked),
         requirement: job.requirements.join(", "),
         goLabel: `Go to ${job.name}`,
@@ -115,12 +132,13 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
       });
     }
     job.rareRewardTable?.filter((drop) => drop.itemId === itemId).forEach((drop) => {
+      const chance = calculateDropChance(drop.chancePercent / 100, state, drop.affectedByScenarioModifiers ? job.tags : []);
       sources.push({
         type: "Contract reward",
         name: job.name,
-        detail: `Expedition loot, ${formatChance(drop.chancePercent / 100)} per successful contract.`,
+        detail: `Expedition loot, ${formatChance(chance)} per successful contract with current bonuses.`,
         districtId: job.districtId,
-        chance: drop.chancePercent / 100,
+        chance,
         unlocked: Boolean(state.districts[job.districtId]?.unlocked),
         requirement: job.requirements.join(", "),
         goLabel: `Go to ${job.name}`,
@@ -145,12 +163,13 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
 
   vendors.forEach((vendor) => {
     vendor.inventory.filter((entry) => entry.itemId === itemId).forEach((entry) => {
+      const price = vendorPrice(state, vendor, entry);
       sources.push({
         type: "Vendor",
         name: vendor.name,
-        detail: `${entry.price} Credits. ${entry.sourceHint}`,
+        detail: `${price.toLocaleString()} Credits at current modifiers. ${entry.sourceHint}`,
         districtId: vendor.districtId,
-        unlocked: Boolean(state.districts[vendor.districtId]?.unlocked),
+        unlocked: Boolean(state.districts[vendor.districtId]?.unlocked) && canUseVendor(state, vendor) && vendorItemUnlocked(state, entry),
         requirement: vendor.unlockRequirements.join(", "),
         goLabel: `Go to ${vendor.name}`,
         destination: { districtId: vendor.districtId, category: "market", targetId: itemId },
@@ -160,10 +179,11 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
 
   ripperdocClinics.forEach((clinic) => {
     if (clinic.cyberwareInventory.includes(itemId)) {
+      const price = ripperdocBuyPrice(state, clinic.id, itemId);
       sources.push({
         type: "Ripperdoc",
         name: clinic.name,
-        detail: "Cyberware clinic inventory.",
+        detail: `${price.toLocaleString()} Credits at current modifiers. Cyberware clinic inventory.`,
         districtId: clinic.districtId,
         unlocked: Boolean(state.districts[clinic.districtId]?.unlocked),
         requirement: clinic.unlockRequirements.join(", "),

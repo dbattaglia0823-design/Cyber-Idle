@@ -574,6 +574,9 @@ export interface SimulationRecap {
   dropsGained: Record<string, number>;
   heatChange: number;
   neuralInstabilityChange: number;
+  damageTaken: number;
+  healingReceived: number;
+  healingItemsUsed: number;
   stoppedReason: string;
   warnings: string[];
 }

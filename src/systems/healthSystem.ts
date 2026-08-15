@@ -36,7 +36,7 @@ export function clampPlayerHP(state: GameState) {
   return state;
 }
 
-export function applyDamage(state: GameState, rawAmount: number, source: string) {
+export function applyDamage(state: GameState, rawAmount: number, source: string, emitPopup = true) {
   const damage = calculateDamageTaken(state, rawAmount);
   state.health.currentHp = Math.max(0, state.health.currentHp - damage);
   state.health.lastDamageTaken = damage;
@@ -47,7 +47,7 @@ export function applyDamage(state: GameState, rawAmount: number, source: string)
     state.healthStatistics.lowestHpSurvived =
       state.healthStatistics.lowestHpSurvived === null ? state.health.currentHp : Math.min(state.healthStatistics.lowestHpSurvived, state.health.currentHp);
   }
-  if (state.health.currentHp <= 0) markDowned(state, source);
+  if (state.health.currentHp <= 0) markDowned(state, source, emitPopup);
   return damage;
 }
 
@@ -74,13 +74,14 @@ export function applyHealing(state: GameState, amount: number, source: string) {
   return state.health.lastHealingReceived;
 }
 
-export function useHealingItem(state: GameState, itemId: string, source = "Manual healing") {
+export function useHealingItem(state: GameState, itemId: string, source = "Manual healing", emitPopup = true) {
   clampPlayerHP(state);
   const item = getItem(itemId);
   const healing = healingItems[itemId];
   if (!item || !healing || (state.inventory[itemId] ?? 0) <= 0) return { used: false, healed: 0 };
   if (state.health.lifeState === "downed" && !healing.revive) return { used: false, healed: 0 };
   if (!removeItem(state, itemId, 1)) return { used: false, healed: 0 };
+  syncSelectedHealingItem(state);
   const maxHp = calculateMaxHP(state);
   const amount = (healing.flat ?? 0) + Math.round(maxHp * (healing.percent ?? 0));
   if (healing.revive && state.health.lifeState === "downed") state.health.lifeState = "alive";
@@ -89,16 +90,18 @@ export function useHealingItem(state: GameState, itemId: string, source = "Manua
   if (source === "Auto Heal") state.healthStatistics.autoHealsTriggered += 1;
   state.achievements["used-first-healing-item"] = true;
   if (source === "Auto Heal") state.achievements["auto-heal-triggered"] = true;
-  emitRewardPopupGroup(state, {
-    title: source,
-    category: "resource",
-    story: [`${item.name} restored ${healed} HP`],
-    neuralInstability: 0,
-  });
+  if (emitPopup) {
+    emitRewardPopupGroup(state, {
+      title: source,
+      category: "resource",
+      story: [`${item.name} restored ${healed} HP`],
+      neuralInstability: 0,
+    });
+  }
   return { used: true, healed };
 }
 
-export function maybeAutoHeal(state: GameState, source: string) {
+export function maybeAutoHeal(state: GameState, source: string, emitPopup = true) {
   unlockAutoHeal(state);
   if (!state.autoHeal.unlocked || !state.autoHeal.enabled || state.health.lifeState === "downed") return false;
   const maxHp = calculateMaxHP(state);
@@ -110,7 +113,7 @@ export function maybeAutoHeal(state: GameState, source: string) {
   while (state.health.currentHp <= thresholdHp && state.health.currentHp < maxHp && attempts < 1000) {
     const itemId = nextAutoHealItem(state);
     if (!itemId) break;
-    const result = useHealingItem(state, itemId, "Auto Heal");
+    const result = useHealingItem(state, itemId, "Auto Heal", emitPopup);
     if (!result.used || result.healed <= 0) break;
     usedAny = true;
     attempts += 1;
@@ -120,15 +123,25 @@ export function maybeAutoHeal(state: GameState, source: string) {
     if (state.autoHeal.stopIfNoHealing) {
       state.currentCombat = null;
     }
-    emitRewardPopupGroup(state, { title: "Auto Heal Failed", category: "warning", warnings: [`No healing item available after ${source}`] });
+    if (emitPopup) emitRewardPopupGroup(state, { title: "Auto Heal Failed", category: "warning", warnings: [`No healing item available after ${source}`] });
   }
   return usedAny;
 }
 
 function nextAutoHealItem(state: GameState) {
+  return syncSelectedHealingItem(state);
+}
+
+export function availableHealingItemId(state: GameState) {
   const preferred = state.autoHeal.itemId;
   if (healingItems[preferred]?.autoEligible && (state.inventory[preferred] ?? 0) > 0) return preferred;
   return Object.keys(healingItems).find((id) => healingItems[id].autoEligible && (state.inventory[id] ?? 0) > 0);
+}
+
+function syncSelectedHealingItem(state: GameState) {
+  const available = availableHealingItemId(state);
+  if (available && available !== state.autoHeal.itemId) state.autoHeal.itemId = available;
+  return available;
 }
 
 export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
@@ -213,7 +226,7 @@ export function unlockAutoHeal(state: GameState) {
   }
 }
 
-function markDowned(state: GameState, source: string) {
+function markDowned(state: GameState, source: string, emitPopup = true) {
   state.health.lifeState = "downed";
   state.health.downedAt = Date.now();
   state.health.recoveryAvailableAt = Date.now();
@@ -223,11 +236,13 @@ function markDowned(state: GameState, source: string) {
   state.resources.heat = clampRiskStat(state.resources.heat + 2);
   state.healthStatistics.deaths += 1;
   state.achievements["first-downed"] = true;
-  emitRewardPopupGroup(state, {
-    title: "Runner Downed",
-    category: "warning",
-    warnings: [`${source} dropped you to 0 HP`, penalty ? `Medical fallout cost ${penalty} Credits` : "No Credits lost"],
-    heat: 2,
-    durationMs: 6000,
-  });
+  if (emitPopup) {
+    emitRewardPopupGroup(state, {
+      title: "Runner Downed",
+      category: "warning",
+      warnings: [`${source} dropped you to 0 HP`, penalty ? `Medical fallout cost ${penalty} Credits` : "No Credits lost"],
+      heat: 2,
+      durationMs: 6000,
+    });
+  }
 }

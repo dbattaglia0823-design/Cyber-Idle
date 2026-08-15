@@ -1,4 +1,5 @@
 import { combatZones } from "../data/combat";
+import { balanceConfig } from "../data/balanceConfig";
 import { resourceNames } from "../data/resources";
 import { addSkillXp } from "./actionProcessing";
 import { calculateCombatRewards, calculateDropChance, calculateHitChance, calculatePlayerCombatStats, enemyAccuracy, enemyCritChance, enemyDodgeChance } from "./balanceFormulas";
@@ -190,6 +191,34 @@ export function completeSimulatedCombatKill(state: GameState, enemy: Enemy, dura
   });
 }
 
+export function simulateCombatSurvival(state: GameState, enemy: Enemy, durationMs: number) {
+  const damageBefore = state.healthStatistics.totalDamageTaken;
+  const healingBefore = state.healthStatistics.totalHealingReceived;
+  const medsBefore = state.healthStatistics.healingItemsUsed;
+  const attacks = Math.max(0, Math.floor(durationMs / Math.max(600, enemy.attackSpeedMs)));
+
+  for (let attack = 0; attack < attacks; attack += 1) {
+    const stats = calculatePlayerCombatStats(state);
+    const missed = Math.random() > calculateHitChance(enemyAccuracy(enemy), stats.dodge);
+    if (!missed) {
+      const critical = Math.random() <= enemyCritChance(enemy);
+      applyDamage(state, enemyAttackDamage(state, enemy, critical), enemy.name, false);
+    }
+    if (state.health.lifeState === "downed" || state.health.currentHp <= 0) break;
+    maybeAutoHeal(state, enemy.name, false);
+    if (!state.currentCombat && state.autoHeal.stopIfNoHealing) break;
+  }
+
+  if (state.health.lifeState !== "downed" && state.health.currentHp > 0) maybeAutoHeal(state, enemy.name, false);
+  return {
+    survived: state.health.lifeState !== "downed" && state.health.currentHp > 0,
+    stoppedForHealing: !state.currentCombat && state.autoHeal.stopIfNoHealing,
+    damageTaken: state.healthStatistics.totalDamageTaken - damageBefore,
+    healingReceived: state.healthStatistics.totalHealingReceived - healingBefore,
+    healingItemsUsed: state.healthStatistics.healingItemsUsed - medsBefore,
+  };
+}
+
 function completeKill(state: GameState, enemy: Enemy, durationMs: number, options: CombatCompletionOptions = {}) {
   const matchup = combatEffectivenessForEnemy(state, enemy);
   const districtId = enemyDistrict(enemy.id);
@@ -202,7 +231,7 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number, option
   const markManualCompletion = options.markManual ?? true;
   const calculatedRewards = calculateCombatRewards(state, { credits: enemy.creditsReward, reputation: Math.max(0, enemy.reputationReward) }, matchup.tags, matchup.rewardMultiplier + districtMasteryRewardBonus(state, districtId));
   const rewards = Object.fromEntries(Object.entries(calculatedRewards).map(([id, amount]) => [id, Math.round((amount ?? 0) * (id === "credits" ? creditEfficiency : rewardEfficiency))])) as typeof calculatedRewards;
-  const xpReward = Math.round(applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier)) * xpEfficiency);
+  const xpReward = Math.round(applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier * balanceConfig.combat.enemyXpMultiplier)) * xpEfficiency);
   const heatChange = Math.round(matchup.heatChange * heatEfficiency);
   state.resources.credits += rewards.credits ?? 0;
   state.resources.reputation += rewards.reputation ?? 0;
@@ -268,6 +297,21 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number, option
 export function enemyDropChance(state: GameState, enemy: Enemy, baseChance: number) {
   const matchup = combatEffectivenessForEnemy(state, enemy);
   return calculateDropChance(baseChance, state, matchup.tags, matchup.dropChance + districtMasteryDropBonus(state, enemyDistrict(enemy.id)));
+}
+
+export function combatRewardPreview(state: GameState, enemy: Enemy) {
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  const rewards = calculateCombatRewards(
+    state,
+    { credits: enemy.creditsReward, reputation: Math.max(0, enemy.reputationReward) },
+    matchup.tags,
+    matchup.rewardMultiplier + districtMasteryRewardBonus(state, enemyDistrict(enemy.id)),
+  );
+  return {
+    credits: rewards.credits ?? 0,
+    reputation: rewards.reputation ?? 0,
+    xp: Math.round(applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier * balanceConfig.combat.enemyXpMultiplier))),
+  };
 }
 
 function isResource(id: string): id is ResourceId {

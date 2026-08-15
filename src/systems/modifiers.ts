@@ -278,7 +278,7 @@ function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
   const engineLevel = activeVehiclePartLevel(state, vehicle.id, "engine");
   const cargoLevel = activeVehiclePartLevel(state, vehicle.id, "cargo");
   const electronicsLevel = activeVehiclePartLevel(state, vehicle.id, "electronics");
-  modifiers.actionSpeed += 0.01 + engineLevel * 0.01;
+  modifiers.actionSpeed += vehicle.stats.speed / 100 + engineLevel * 0.01;
   modifiers.combatDefense += bodyLevel * 0.02;
   modifiers.heatGain -= vehicle.stats.heatReduction / 100 + electronicsLevel * 0.01;
   modifiers.jobSuccessChance += vehicle.stats.jobEfficiency / 100 + electronicsLevel * 0.01;

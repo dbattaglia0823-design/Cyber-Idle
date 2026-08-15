@@ -11,7 +11,7 @@ import { getSimulationEfficiency } from "./simulationEfficiency";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import { actionHeatSuppressed } from "../data/heatCountermeasures";
-import { completeSimulatedCombatKill, getEnemy } from "./combatProcessing";
+import { completeSimulatedCombatKill, getEnemy, simulateCombatSurvival } from "./combatProcessing";
 import { combatEffectivenessForEnemy } from "./combatMatchups";
 import type { GameState, ResourceId, RewardBundle, SimulationRecap } from "../types";
 
@@ -73,6 +73,9 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
     dropsGained: {},
     heatChange: 0,
     neuralInstabilityChange: 0,
+    damageTaken: 0,
+    healingReceived: 0,
+    healingItemsUsed: 0,
     stoppedReason: "Simulated full cache.",
     warnings: [],
   };
@@ -201,6 +204,20 @@ function simulateCombat(state: GameState, simulatedMs: number, recap: Simulation
   for (let i = 0; i < loops; i += 1) {
     if (state.resources.heat >= 90) {
       recap.stoppedReason = "Stopped early: Heat safety threshold.";
+      break;
+    }
+    const survival = simulateCombatSurvival(state, enemy, matchup.expectedKillMs);
+    recap.damageTaken += survival.damageTaken;
+    recap.healingReceived += survival.healingReceived;
+    recap.healingItemsUsed += survival.healingItemsUsed;
+    if (!survival.survived) {
+      recap.stoppedReason = "Stopped early: runner was downed during simulated combat.";
+      recap.warnings.push(`${enemy.name} dealt lethal simulated damage.`);
+      break;
+    }
+    if (survival.stoppedForHealing) {
+      recap.stoppedReason = "Stopped early: Auto Heal ran out of healing items.";
+      recap.warnings.push("Combat stopped because no eligible healing item remained.");
       break;
     }
     const resourcesBefore = { ...state.resources };

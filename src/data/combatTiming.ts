@@ -1,4 +1,5 @@
 export const defaultAttackIntervalMs = 3000;
+export const basePlayerAttackIntervalMs = 3000;
 
 // Existing enemy timing values were authored around the former 1.6-second
 // baseline. Treat their distance from that baseline as their weapon/style

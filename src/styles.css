@@ -2013,6 +2013,178 @@ main {
   grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
 }
 
+/* Skills dashboard */
+.skills-screen {
+  gap: 16px;
+}
+
+.skills-overview-header {
+  overflow: hidden;
+  border-color: rgba(62, 231, 255, 0.28);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(62, 231, 255, 0.14), transparent 26%),
+    linear-gradient(135deg, rgba(62, 231, 255, 0.08), transparent 45%),
+    var(--panel);
+}
+
+.skill-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.skill-panel {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-color: rgba(62, 231, 255, 0.22);
+  background:
+    linear-gradient(145deg, rgba(62, 231, 255, 0.075), transparent 34%),
+    rgba(7, 12, 20, 0.96);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025), 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.skill-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan), transparent 72%);
+  opacity: 0.72;
+}
+
+.skill-panel-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.skill-panel-title {
+  min-width: 0;
+}
+
+.skill-panel-title h2 {
+  margin-top: 2px;
+  font-size: 1.15rem;
+}
+
+.skill-level-badge {
+  border: 1px solid rgba(62, 231, 255, 0.3);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: rgba(62, 231, 255, 0.08);
+  color: var(--cyan);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.skill-progress-block {
+  display: grid;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(2, 8, 14, 0.58);
+}
+
+.skill-progress-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.skill-progress-copy strong {
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
+.skill-panel-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.skill-panel-stats > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  border: 1px solid rgba(62, 231, 255, 0.14);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(62, 231, 255, 0.045);
+}
+
+.skill-panel-stats strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-panel-stats small {
+  color: var(--muted);
+  font-size: 0.61rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.skill-next-unlock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border-left: 2px solid rgba(255, 209, 102, 0.65);
+  padding: 4px 0 4px 9px;
+}
+
+.skill-next-unlock span {
+  color: var(--amber);
+  font-size: 0.64rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.skill-next-unlock strong {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.73rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-actions-dropdown {
+  margin-top: 2px;
+  border-color: rgba(62, 231, 255, 0.2);
+  background: rgba(3, 9, 16, 0.48);
+}
+
+.skill-actions-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.skill-actions-summary small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.skill-action-list {
+  padding-top: 10px;
+}
+
+.skill-action-list .action-mission-card {
+  box-shadow: inset 0 0 24px rgba(62, 231, 255, 0.04);
+}
+
 .panel {
   display: grid;
   gap: 12px;
@@ -2501,6 +2673,10 @@ main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+}
+
+.action-mission-card .reward-chip-grid:not(.drop-chip-grid) > .reward-chip:only-child {
+  grid-column: 1 / -1;
 }
 
 .reward-chip {
@@ -3644,6 +3820,12 @@ button:disabled {
   line-height: 1.12;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.cyberware-slot-panel em {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .cyberware-slot-panel b {
@@ -8455,6 +8637,26 @@ textarea {
   color: var(--green);
 }
 
+.vehicle-bonus-card small {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(62, 231, 255, 0.08);
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.vehicle-bonus-card.comparison-better small {
+  background: rgba(87, 242, 155, 0.1);
+  color: var(--green);
+}
+
+.vehicle-bonus-card.comparison-worse small {
+  background: rgba(255, 92, 122, 0.1);
+  color: #ff9aae;
+}
+
 .vehicle-trait-panel {
   display: grid;
   gap: 9px;
@@ -8884,4 +9086,36 @@ textarea {
   .map-stage-hint {
     display: none;
   }
+}
+.market-quantity-control {
+  display: grid;
+  grid-template-columns: auto minmax(5rem, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  margin-top: 0.8rem;
+}
+
+.market-quantity-control label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.market-quantity-control input {
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: rgba(3, 12, 20, 0.82);
+  color: var(--text);
+  font: inherit;
+}
+
+.market-quantity-control span {
+  grid-column: 1 / -1;
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-align: right;
 }

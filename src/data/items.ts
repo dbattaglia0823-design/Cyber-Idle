@@ -54,7 +54,7 @@ export const items: ItemDefinition[] = [
   districtMaterial("redline-wire", "Redline Wire", "Heat-resistant wire used in unstable street modifications.", "Neon Row and Redline Blocks combat routes.", 88),
   districtMaterial("neon-circuit-fragment", "Neon Circuit Fragment", "A bright fragment used in low-tier cyberdeck and cyberware chains.", "Neon Row mastery drops and old-district Sim Cache.", 66),
   districtMaterial("salvaged-servo", "Salvaged Servo", "A reusable actuator recovered from yard machinery.", "Rust Yards enemies and scavenging.", 105),
-  districtMaterial("rust-plated-frame", "Rust-Plated Frame", "A reinforced frame used in durable low-cost chrome.", "Rust Yards high-threat variants and combat encounters.", 130),
+  districtMaterial("rust-plated-frame", "Rust-Plated Frame", "A reinforced frame used in durable low-cost chrome.", "Dropped by the Mag-Clamp Loader and Jackal Roadboss in Rust Yards.", 130),
   districtMaterial("drone-motor", "Drone Motor", "A compact motor recovered from hostile drones.", "Rust Yards drone combat and wreck recovery.", 120),
   districtMaterial("chrome-jackal-gearset", "Chrome Jackal Gearset", "A faction-marked gearset for vehicles and heavy weapons.", "Rust Yards contracts and Chrome Jackals reputation content.", 170),
   districtMaterial("contraband-chip", "Contraband Chip", "A banned market chip used in illegal mods and black-market contracts.", "Underpass Market jobs and vendors.", 120),
@@ -98,7 +98,7 @@ export const items: ItemDefinition[] = [
   consumable("advanced-med-injector", "Advanced Med Injector", "A military-grade injector that restores 50% max HP.", 105, "heal"),
   consumable("emergency-reboot-kit", "Emergency Reboot Kit", "Rare kit that can reboot a downed runner and restore emergency HP.", 260, "heal"),
   consumable("neural-stabilizer", "Neural Stabilizer", "A clinic-grade stabilizer used in medical recipes and ripperdoc supply chains.", 45, undefined),
-  consumable("basic-sim-cache", "Basic Sim Cache", "Stores 5 minutes of simulated work for discovered skill actions, crafting, or cleared combat targets.", 80, undefined),
+  consumable("basic-sim-cache", "Basic Sim Cache", "Stores 5 minutes of simulated work for discovered skill actions, crafting, or cleared combat targets.", 80, undefined, "Epic", "Dropped by district apex enemies; common across Skyline Core combat."),
   consumable("combat-sim-cache", "Combat Sim Cache", "Future cache type for already-cleared combat farming.", 100, undefined),
   consumable("blacknet-sim-cache", "Blacknet Sim Cache", "Future cache type for discovered hacking loops.", 100, undefined),
   consumable("fixer-sim-cache", "Fixer Sim Cache", "Future cache type for repeatable safe fixer jobs.", 100, undefined),
@@ -262,8 +262,8 @@ function districtMaterial(id: string, name: string, description: string, sourceH
   return { id, name, description, type: "Material", rarity, tags: ["district", rarity.toLowerCase(), "crafting"], stackable: true, maxStack: 9999, sellValue, sourceHint };
 }
 
-function consumable(id: string, name: string, description: string, sellValue: number, useEffect: ItemDefinition["useEffect"]): ItemDefinition {
-  return { id, name, description, type: "Consumable", rarity: "Common", tags: ["consumable"], stackable: true, maxStack: 99, sellValue, sourceHint: "Crafted or bought.", useEffect };
+function consumable(id: string, name: string, description: string, sellValue: number, useEffect: ItemDefinition["useEffect"], rarity: ItemRarity = "Common", sourceHint = "Crafted or bought."): ItemDefinition {
+  return { id, name, description, type: "Consumable", rarity, tags: ["consumable"], stackable: true, maxStack: 99, sellValue, sourceHint, useEffect };
 }
 
 function blueprint(id: string, name: string, description: string, sourceHint: string): ItemDefinition {

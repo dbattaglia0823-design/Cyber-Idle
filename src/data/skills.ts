@@ -1,4 +1,5 @@
 import type { DistrictId, EnemyDrop, SkillAction, SkillId } from "../types";
+import { districtProgressionRank } from "./districtProgressionOrder";
 
 export const skillNames: Record<SkillId, string> = {
   scavenging: "Scavenging",
@@ -28,11 +29,16 @@ const drop = (id: string, name: string, chance: number, quantity = 1): EnemyDrop
 
 function action(input: SkillAction): SkillAction {
   const masteryXpReward = input.masteryXpReward ?? baseMasteryXpReward();
+  const rewards = { ...input.rewards };
+  if (["scavenging", "cyberware", "vehicleTuning", "medical"].includes(input.skillId) && (rewards.credits ?? 0) > 0) {
+    delete rewards.credits;
+  }
   return {
     localStandingChange: 1,
     simCacheEligible: true,
     sourceHint: "Skill action progression.",
     ...input,
+    rewards,
     masteryXpReward,
     masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),
   };
@@ -121,7 +127,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3120,
     xpReward: 23,
     masteryXpReward: 10,
-    rewards: { credits: 12, reputation: 1 },
+    rewards: { credits: 15, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.012)],
     heatChange: 1,
     tags: ["blackMarket", "check-buyer-board", "neon-row"],
@@ -238,7 +244,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5200,
     xpReward: 74,
     masteryXpReward: 10,
-    rewards: { credits: 25, reputation: 1 },
+    rewards: { credits: 40, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0146)],
     heatChange: 1,
     tags: ["blackMarket", "broker-quiet-sale", "neon-row"],
@@ -288,7 +294,7 @@ const baseSkillActions: SkillAction[] = [
     xpReward: 105,
     masteryXpReward: 30,
     rewards: { scrap: 7, circuitBoards: 2, cyberwareParts: 1 },
-    rareDrops: [drop("damaged-optic-implant", "Damaged Optic Implant", 0.0428), drop("medical-gel", "Medical Gel", 0.096)],
+    rareDrops: [drop("damaged-optic-implant", "Damaged Optic Implant", 0.0428), drop("medical-gel", "Medical Gel", 0.096), drop("redline-wire", "Redline Wire", 1 / 65)],
     neuralInstabilityChange: 1,
     recommendedTools: ["basic-scanner"],
     tags: ["scavenging", "medical", "cyberware"],
@@ -355,7 +361,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7400,
     xpReward: 141,
     masteryXpReward: 10,
-    rewards: { credits: 25, reputation: 1 },
+    rewards: { credits: 65, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0171)],
     heatChange: 1,
     tags: ["blackMarket", "secure-premium-contact", "neon-row"],
@@ -467,7 +473,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5400,
     xpReward: 114,
     masteryXpReward: 10,
-    rewards: { credits: 40, reputation: 1 },
+    rewards: { credits: 90, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0191)],
     heatChange: 1,
     tags: ["blackMarket", "check-buyer-board", "rust-yards"],
@@ -568,7 +574,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 7600,
     xpReward: 181,
     masteryXpReward: 10,
-    rewards: { credits: 80, reputation: 1 },
+    rewards: { credits: 115, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0211)],
     heatChange: 1,
     tags: ["blackMarket", "broker-quiet-sale", "rust-yards"],
@@ -698,7 +704,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 9800,
     xpReward: 260,
     masteryXpReward: 10,
-    rewards: { credits: 100, reputation: 1 },
+    rewards: { credits: 140, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0231)],
     heatChange: 1,
     tags: ["blackMarket", "secure-premium-contact", "rust-yards"],
@@ -800,7 +806,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 3500,
     xpReward: 32,
     masteryXpReward: 23,
-    rewards: { credits: 20, reputation: 1 },
+    rewards: { credits: 165, reputation: 1 },
     rareDrops: [drop("ghost-market-token", "Ghost Market Token", 0.0478)],
     heatChange: 1,
     tags: ["blackmarket", "trading", "lowHeat"],
@@ -816,7 +822,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 5000,
     xpReward: 150,
     masteryXpReward: 60,
-    rewards: { credits: 60, reputation: 1 },
+    rewards: { credits: 190, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0436), drop("rare-listing-permit", "Rare Listing Permit", 0.0311)],
     heatChange: 1,
     tags: ["blackmarket", "trading", "safe"],
@@ -1046,7 +1052,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 8500,
     xpReward: 220,
     masteryXpReward: 105,
-    rewards: { credits: 90, reputation: 2 },
+    rewards: { credits: 215, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0571), drop("ghost-market-token", "Ghost Market Token", 0.0498), drop("rare-listing-permit", "Rare Listing Permit", 0.033)],
     heatChange: 2,
     tags: ["blackmarket", "trading", "contraband"],
@@ -1363,7 +1369,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 11000,
     xpReward: 290,
     masteryXpReward: 165,
-    rewards: { credits: 180, reputation: 3, encryptedData: 6 },
+    rewards: { credits: 260, reputation: 3, encryptedData: 6 },
     rareDrops: [drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0414), drop("corporate-access-token", "Corporate Access Token", 0.0259), drop("blacknet-cipher", "Blacknet Cipher", 0.0311)],
     traceChance: 0.14,
     traceSeverity: 2,
@@ -1381,7 +1387,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 14600,
     xpReward: 498,
     masteryXpReward: 10,
-    rewards: { credits: 432, reputation: 2 },
+    rewards: { credits: 305, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0591)],
     heatChange: 2,
     tags: ["blackMarket", "secure-premium-contact", "blacknet-quarter"],
@@ -1398,7 +1404,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 12000,
     xpReward: 300,
     masteryXpReward: 180,
-    rewards: { credits: 900, reputation: 4 },
+    rewards: { credits: 350, reputation: 4 },
     rareDrops: [drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.0384), drop("ghost-route-program", "Ghost Route Program", 0.0305)],
     traceChance: 0.18,
     traceSeverity: 2,
@@ -1516,7 +1522,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 12600,
     xpReward: 402,
     masteryXpReward: 10,
-    rewards: { credits: 360, reputation: 1 },
+    rewards: { credits: 410, reputation: 1 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0611)],
     heatChange: 2,
     tags: ["blackMarket", "check-buyer-board", "helix-ward"],
@@ -1647,7 +1653,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 14800,
     xpReward: 504,
     masteryXpReward: 10,
-    rewards: { credits: 432, reputation: 2 },
+    rewards: { credits: 470, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0631)],
     heatChange: 2,
     tags: ["blackMarket", "broker-quiet-sale", "helix-ward"],
@@ -1745,7 +1751,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 17000,
     xpReward: 618,
     masteryXpReward: 10,
-    rewards: { credits: 504, reputation: 2 },
+    rewards: { credits: 530, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0651)],
     heatChange: 2,
     tags: ["blackMarket", "secure-premium-contact", "helix-ward"],
@@ -1867,7 +1873,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 15000,
     xpReward: 498,
     masteryXpReward: 10,
-    rewards: { credits: 432, reputation: 2 },
+    rewards: { credits: 620, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0671)],
     heatChange: 2,
     tags: ["blackMarket", "check-buyer-board", "glassline-district"],
@@ -1981,7 +1987,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 17200,
     xpReward: 612,
     masteryXpReward: 10,
-    rewards: { credits: 504, reputation: 2 },
+    rewards: { credits: 710, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0691)],
     heatChange: 2,
     tags: ["blackMarket", "broker-quiet-sale", "glassline-district"],
@@ -2095,7 +2101,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 19400,
     xpReward: 737,
     masteryXpReward: 10,
-    rewards: { credits: 576, reputation: 2 },
+    rewards: { credits: 800, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0711)],
     heatChange: 3,
     tags: ["blackMarket", "secure-premium-contact", "glassline-district"],
@@ -2214,7 +2220,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 17400,
     xpReward: 594,
     masteryXpReward: 10,
-    rewards: { credits: 504, reputation: 2 },
+    rewards: { credits: 925, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0731)],
     heatChange: 2,
     tags: ["blackMarket", "check-buyer-board", "redline-blocks"],
@@ -2330,7 +2336,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 19600,
     xpReward: 719,
     masteryXpReward: 10,
-    rewards: { credits: 576, reputation: 2 },
+    rewards: { credits: 1050, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0751)],
     heatChange: 3,
     tags: ["blackMarket", "broker-quiet-sale", "redline-blocks"],
@@ -2444,7 +2450,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 21800,
     xpReward: 856,
     masteryXpReward: 10,
-    rewards: { credits: 648, reputation: 3 },
+    rewards: { credits: 1175, reputation: 3 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0771)],
     heatChange: 3,
     tags: ["blackMarket", "secure-premium-contact", "redline-blocks"],
@@ -2547,7 +2553,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 19800,
     xpReward: 690,
     masteryXpReward: 10,
-    rewards: { credits: 576, reputation: 2 },
+    rewards: { credits: 1375, reputation: 2 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0791)],
     heatChange: 3,
     tags: ["blackMarket", "check-buyer-board", "skyline-core"],
@@ -2753,7 +2759,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 22000,
     xpReward: 827,
     masteryXpReward: 10,
-    rewards: { credits: 648, reputation: 3 },
+    rewards: { credits: 1575, reputation: 3 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0811)],
     heatChange: 3,
     tags: ["blackMarket", "broker-quiet-sale", "skyline-core"],
@@ -2769,7 +2775,7 @@ const baseSkillActions: SkillAction[] = [
     durationMs: 23000,
     xpReward: 915,
     masteryXpReward: 10,
-    rewards: { credits: 720, reputation: 3 },
+    rewards: { credits: 1775, reputation: 3 },
     rareDrops: [drop("private-buyer-contact", "Private Buyer Contact", 0.0516)],
     heatChange: 3,
     tags: ["blackMarket", "secure-premium-contact", "skyline-core"],
@@ -2957,6 +2963,20 @@ function highLevelProgressionDrops(skillAction: SkillAction) {
   return progressionAdjustedDrops(skillAction, [...profile.universal, ...(profile.bySkill[skillAction.skillId] ?? [])]);
 }
 
+const medicalHealingDropTiers = [
+  { id: "basic-med-injector", name: "Basic Med Injector" },
+  { id: "trauma-patch", name: "Trauma Patch" },
+  { id: "advanced-med-injector", name: "Advanced Med Injector" },
+  { id: "emergency-reboot-kit", name: "Emergency Reboot Kit" },
+] as const;
+
+function medicalHealingDrops(skillAction: SkillAction) {
+  if (skillAction.skillId !== "medical" || !skillAction.districtReq) return [];
+  const districtRank = districtProgressionRank[skillAction.districtReq];
+  const tier = medicalHealingDropTiers[Math.min(medicalHealingDropTiers.length - 1, Math.floor(districtRank / 2))];
+  return [drop(tier.id, tier.name, 0.08 + districtRank * 0.005)];
+}
+
 /**
  * Later skill actions should always be a better place to chase their drops.
  * This scales every action's authored table with its unlock level, while the
@@ -2993,9 +3013,10 @@ const bestDropBySkill = new Map<SkillId, Map<string, { level: number; chance: nu
 const progressionBalancedSkillActions: SkillAction[] = baseSkillActions.map((skillAction) => {
   const vehicleDrops = vehicleTuningDropTables[skillAction.id];
   const authoredDrops = progressionAdjustedDrops(skillAction, vehicleDrops ?? skillAction.rareDrops ?? []);
+  const healingDrops = progressionAdjustedDrops(skillAction, medicalHealingDrops(skillAction));
   const mergedDrops = applyDropChanceOverrides(
     skillAction,
-    mergeDrops(authoredDrops, highLevelProgressionDrops(skillAction)),
+    mergeDrops(authoredDrops, healingDrops, highLevelProgressionDrops(skillAction)),
   );
   const priorDrops = bestDropBySkill.get(skillAction.skillId) ?? new Map<string, { level: number; chance: number }>();
   const rareDrops = mergedDrops.map((entry) => {
@@ -3018,7 +3039,7 @@ const progressionBalancedSkillActions: SkillAction[] = baseSkillActions.map((ski
   const masteryXpReward = normalizedMasteryXpReward(skillAction);
   return {
     ...skillAction,
-    rewards: normalizedScavengingRewards(skillAction),
+    rewards: normalizedSkillRewards(skillAction),
     ...(rareDrops.length > 0 ? { rareDrops } : {}),
     xpReward,
     masteryXpReward,
@@ -3027,14 +3048,15 @@ const progressionBalancedSkillActions: SkillAction[] = baseSkillActions.map((ski
 });
 
 /**
- * Scavenging is primarily a material and rare-loot activity. Keeping its direct
- * cash below 100 per short completion prevents Sim Caches from turning it into
- * a stronger credit farm than contracts while still allowing modest scaling.
+ * Material and service skills should feed their associated resource loops, not
+ * generate cash directly. Negative credit values remain valid action costs.
  */
-function normalizedScavengingRewards(skillAction: SkillAction) {
-  if (skillAction.skillId !== "scavenging" || !skillAction.rewards.credits || skillAction.rewards.credits <= 0) return skillAction.rewards;
-  const creditCap = Math.round(20 + Math.max(1, skillAction.levelReq) * 0.45);
-  return { ...skillAction.rewards, credits: Math.min(skillAction.rewards.credits, creditCap) };
+function normalizedSkillRewards(skillAction: SkillAction) {
+  const nonCreditSkills: SkillId[] = ["scavenging", "cyberware", "vehicleTuning", "medical"];
+  if (!nonCreditSkills.includes(skillAction.skillId) || (skillAction.rewards.credits ?? 0) <= 0) return skillAction.rewards;
+  const rewards = { ...skillAction.rewards };
+  delete rewards.credits;
+  return rewards;
 }
 
 /**
