@@ -2251,6 +2251,7 @@ main {
     radial-gradient(circle at 100% 0%, rgba(255, 79, 184, 0.08), transparent 35%),
     rgba(5, 11, 19, 0.88);
   box-shadow: inset 0 0 32px rgba(62, 231, 255, 0.05), 0 18px 42px rgba(0, 0, 0, 0.34);
+  container-type: inline-size;
 }
 
 .mission-card-frame {
@@ -2259,8 +2260,8 @@ main {
   min-width: 0;
   box-sizing: border-box;
   justify-self: stretch;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
 }
 
 .mission-header {
@@ -2269,7 +2270,7 @@ main {
   gap: 10px;
   align-items: start;
   border-bottom: 1px solid rgba(62, 231, 255, 0.16);
-  padding-bottom: 10px;
+  padding-bottom: 6px;
 }
 
 .mission-title-block h3 {
@@ -2281,10 +2282,10 @@ main {
 
 .mission-header-tools {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: end;
   gap: 6px;
-  max-width: 188px;
+  max-width: none;
 }
 
 .mission-badge {
@@ -2333,8 +2334,8 @@ main {
 
 .mission-action-icon {
   display: inline-grid;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   border: 1px solid rgba(62, 231, 255, 0.48);
   border-radius: 10px;
@@ -2349,7 +2350,7 @@ main {
   margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .mission-lockout {
@@ -2376,7 +2377,7 @@ main {
 
 .mission-section-stack {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .fixer-contract-group {
@@ -2445,12 +2446,12 @@ main {
 
 .mission-section {
   display: grid;
-  grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(0, 86px) minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
   border: 1px solid rgba(62, 231, 255, 0.18);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: rgba(5, 15, 25, 0.64);
 }
 
@@ -2491,7 +2492,7 @@ main {
 .mission-section-content {
   min-width: 0;
   border-left: 1px solid rgba(62, 231, 255, 0.18);
-  padding-left: 8px;
+  padding-left: 6px;
   color: var(--text);
   font-size: 0.8rem;
 }
@@ -2504,17 +2505,18 @@ main {
 }
 
 .requirement-summary {
-  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 5px;
 }
 
 .requirement-summary-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 5px;
   align-items: center;
   border: 1px solid rgba(121, 242, 162, 0.28);
   border-radius: 7px;
-  padding: 7px 8px;
+  padding: 5px 6px;
   background: rgba(121, 242, 162, 0.07);
   color: var(--text);
   min-width: 0;
@@ -2569,6 +2571,7 @@ main {
 }
 
 .requirement-time-grid {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
@@ -2581,7 +2584,7 @@ main {
   gap: 4px;
   border: 1px solid rgba(62, 231, 255, 0.16);
   border-radius: 7px;
-  padding: 6px;
+  padding: 4px;
   background: rgba(62, 231, 255, 0.06);
   color: var(--muted);
   font-size: 0.72rem;
@@ -2606,7 +2609,7 @@ main {
 .mission-gain-grid span {
   color: var(--muted);
   min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .mastery-progress-block > div {
@@ -2630,22 +2633,157 @@ main {
 
 .mission-progress-summary-content {
   display: grid;
-  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 6px;
 }
 
 .mission-progress-row {
   display: grid;
-  grid-template-columns: minmax(80px, 0.35fr) minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
   align-items: center;
+  align-content: start;
+  gap: 4px;
   min-width: 0;
-  padding: 0 0 7px;
-  border-bottom: 1px solid rgba(62, 231, 255, 0.12);
+  padding: 0 6px 0 0;
+  border-right: 1px solid rgba(62, 231, 255, 0.12);
+  border-bottom: 0;
+}
+
+@container (max-width: 560px) {
+  .mission-header-tools {
+    gap: 4px;
+  }
+
+  .mission-badge {
+    min-height: 25px;
+    padding: 4px 6px;
+    font-size: 0.62rem;
+  }
+
+  .mission-action-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .mission-section {
+    grid-template-columns: minmax(0, 92px) minmax(0, 1fr);
+  }
+
+  .requirement-summary,
+  .mission-progress-summary-content {
+    grid-template-columns: 1fr;
+  }
+
+  .requirement-summary-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .requirement-main {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .requirement-main span,
+  .requirement-summary-row > strong,
+  .mission-progress-label,
+  .mission-progress-row > span,
+  .mastery-progress-block > div,
+  .mission-copy-block strong,
+  .mission-copy-block span {
+    white-space: nowrap;
+  }
+
+  .mission-progress-row {
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    border-right: 0;
+    border-bottom: 1px solid rgba(62, 231, 255, 0.12);
+    padding: 0 0 5px;
+  }
+
+  .mission-progress-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .mission-copy-block {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    overflow: hidden;
+  }
+
+  .mission-copy-block strong,
+  .mission-copy-block span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .mission-progress-row:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.mission-mastery-button {
+  width: 100%;
+  border-top: 0;
+  border-left: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.mission-mastery-button:hover {
+  color: var(--cyan);
+}
+
+.mastery-milestones-modal {
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(680px, calc(100vh - 24px));
+  overflow: auto;
+}
+
+.mastery-milestone-list {
+  display: grid;
+  gap: 7px;
+}
+
+.mastery-milestone-list > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(62, 231, 255, 0.18);
+  border-radius: 8px;
+  padding: 9px;
+  background: rgba(5, 15, 25, 0.64);
+}
+
+.mastery-milestone-list strong {
+  color: var(--cyan);
+}
+
+.mastery-milestone-list span {
+  color: var(--muted);
+}
+
+.mastery-milestone-list em {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mastery-milestone-list .unlocked {
+  border-color: rgba(121, 242, 162, 0.32);
+}
+
+.mastery-milestone-list .unlocked em {
+  color: #8dffb0;
 }
 
 .mission-progress-row-gold .mission-progress-label,
@@ -2672,7 +2810,7 @@ main {
 .reward-chip-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
 }
 
 .action-mission-card .reward-chip-grid:not(.drop-chip-grid) > .reward-chip:only-child {
@@ -2685,10 +2823,10 @@ main {
   grid-template-columns: 28px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
-  min-height: 44px;
+  min-height: 36px;
   border: 1px solid rgba(62, 231, 255, 0.18);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 4px 6px;
 }
 
 .reward-chip .equipment-icon-badge {
@@ -2773,13 +2911,13 @@ main {
 .mission-start-button,
 .mission-stop-button {
   display: inline-flex;
-  min-height: 50px;
+  min-height: 42px;
   align-items: center;
   justify-content: center;
   gap: 12px;
   border: 1px solid rgba(62, 231, 255, 0.72);
   border-radius: 8px;
-  padding: 10px;
+  padding: 7px;
   background: linear-gradient(180deg, rgba(70, 235, 248, 0.94), rgba(71, 226, 220, 0.84));
   color: #03121a;
   font-size: 1.02rem;
@@ -7022,6 +7160,11 @@ button:disabled {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
+  .requirement-summary,
+  .mission-progress-summary-content {
+    grid-template-columns: 1fr;
+  }
+
   .requirement-summary-row > strong {
     grid-column: 2;
     text-align: left;
@@ -7040,6 +7183,14 @@ button:disabled {
   .mission-progress-row {
     grid-template-columns: 1fr;
     gap: 4px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(62, 231, 255, 0.12);
+    padding: 0 0 6px;
+  }
+
+  .mission-progress-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
   }
 }
 
@@ -7403,14 +7554,13 @@ button:disabled {
 }
 
 .reward-popup {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 9px;
+  position: relative;
+  display: block;
   width: min(420px, 100%);
-  min-height: 54px;
+  min-height: 46px;
   border: 1px solid rgba(62, 231, 255, 0.28);
   border-radius: 8px;
-  padding: 9px 11px;
+  padding: 0;
   background:
     linear-gradient(180deg, rgba(13, 18, 28, 0.96), rgba(7, 10, 15, 0.96)),
     radial-gradient(circle at 0% 0%, rgba(62, 231, 255, 0.12), transparent 12rem);
@@ -7420,6 +7570,33 @@ button:disabled {
   text-align: left;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
   animation: rewardSlide 220ms ease-out both;
+}
+
+.reward-popup-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 5px 9px;
+  width: 100%;
+  border: 0;
+  padding: 7px 38px 7px 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.reward-popup-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
 }
 
 .reward-popup strong {
@@ -7446,15 +7623,47 @@ button:disabled {
 
 .reward-popup-lines {
   grid-column: 2;
-  display: grid;
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.reward-popup-lines:empty {
+  display: none;
+}
+
+.reward-popup-summary {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.1;
 }
 
 .reward-line {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.04);
   color: #dce8f5;
   font-size: 0.76rem;
   font-style: normal;
   line-height: 1.24;
+}
+
+.reward-popup.expanded .reward-popup-lines,
+.reward-popup.prominent .reward-popup-lines {
+  display: grid;
+}
+
+.reward-popup.expanded .reward-line,
+.reward-popup.prominent .reward-line {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.reward-line-more {
+  color: var(--muted);
 }
 
 .reward-line-xp,

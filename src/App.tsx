@@ -91,7 +91,7 @@ import { masteryPoolPercent, masteryPoolCheckpoints } from "./systems/masteryPoo
 import { progressionTiers, tierProgress } from "./data/progressionTiers";
 import { perkTrees, perks, specializationMilestones } from "./data/perks";
 import { districtSpecificMaterials, nextDistrictMasteryMilestone } from "./data/districtMastery";
-import { nextActionMasteryMilestone } from "./data/actionMasteryMilestones";
+import { actionMasteryMilestones, nextActionMasteryMilestone } from "./data/actionMasteryMilestones";
 import { buyVehicle, canBuyVehicle, canUpgradeVehiclePart, setActiveVehicle, upgradeVehicle, vehiclePartUpgradeCost, vehiclePartUpgradeLevel, vehicleTotalUpgradeLevel, vehicleUpgradeParts } from "./systems/vehicleSystem";
 import { threatTier } from "./systems/districtThreat";
 import { cityDistrictOrder, districtCompletionBreakdown, districtCompletionDebug, districtCompletionPercent, getDistrict } from "./data/cityMap";
@@ -230,6 +230,7 @@ function App() {
   const [state, setState] = useState<GameState>(() => loadInitialGameState(getActiveSaveSlot()));
   const [reviewedNoticeKeys, setReviewedNoticeKeys] = useState<Set<string>>(() => loadReviewedNoticeKeys(getActiveSaveSlot()));
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
+  const [actionPopupsEnabled, setActionPopupsEnabled] = useState(loadActionPopupsEnabled);
   const [tab, setTab] = useState<TabId>("city");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
@@ -313,6 +314,14 @@ function App() {
   const setTabNoticePreference = (enabled: boolean) => {
     setTabNoticesEnabled(enabled);
     saveTabNoticesEnabled(enabled);
+  };
+  const setActionPopupPreference = (enabled: boolean) => {
+    setActionPopupsEnabled(enabled);
+    saveActionPopupsEnabled(enabled);
+    if (!enabled) {
+      const actionTitles = new Set(skillActions.map((action) => `${action.name} Complete`));
+      setState((current) => ({ ...current, rewardPopups: (current.rewardPopups ?? []).filter((popup) => !actionTitles.has(popup.title)) }));
+    }
   };
   const markNoticeReviewed = (key: string) => {
     setReviewedNoticeKeys((current) => {
@@ -532,6 +541,8 @@ function App() {
             }}
             tabNoticesEnabled={tabNoticesEnabled}
             onTabNoticesEnabledChange={setTabNoticePreference}
+            actionPopupsEnabled={actionPopupsEnabled}
+            onActionPopupsEnabledChange={setActionPopupPreference}
           />
         )}
       </main>
@@ -553,7 +564,7 @@ function App() {
       />
 
       <RewardPopupContainer
-        popups={state.rewardPopups ?? []}
+        popups={(state.rewardPopups ?? []).filter((popup) => actionPopupsEnabled || !skillActions.some((action) => popup.title === `${action.name} Complete`))}
         now={now}
         onDismiss={(id) => setState((current) => ({ ...current, rewardPopups: (current.rewardPopups ?? []).filter((popup) => popup.id !== id) }))}
       />
@@ -653,6 +664,14 @@ function loadTabNoticesEnabled() {
 
 function saveTabNoticesEnabled(enabled: boolean) {
   localStorage.setItem("neon-idle-tab-notices-enabled", String(enabled));
+}
+
+function loadActionPopupsEnabled() {
+  return localStorage.getItem("neon-idle-action-popups-enabled") !== "false";
+}
+
+function saveActionPopupsEnabled(enabled: boolean) {
+  localStorage.setItem("neon-idle-action-popups-enabled", String(enabled));
 }
 
 function StartingPathScreen({
@@ -2099,14 +2118,12 @@ function DistrictSkillWorkPanel({
       <article className="panel skill-work-header">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">{getDistrict(districtId)?.name ?? "District"} Skill Work</p>
             <h2>{skillNames[skillId]} Lv {skill.level}</h2>
           </div>
           <BrainCircuit size={22} />
         </div>
         <p className="muted">{skillDescriptions[skillId]}</p>
         <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
-        <p className="fine">This tab only shows work that trains {skillNames[skillId]}.</p>
       </article>
 
       {actions.length > 0 && (
@@ -3199,6 +3216,7 @@ function ActionCard({
   onStart: () => void;
   onStop?: () => void;
 }) {
+  const [masteryDetailsOpen, setMasteryDetailsOpen] = useState(false);
   const mastery = state.actionMastery[action.id] ?? { level: 1, xp: 0 };
   const requiredItemsMet = Object.entries(action.requiredItems ?? {}).every(([id, amount]) => {
     if (id in resourceNames) return state.resources[id as ResourceId] >= amount;
@@ -3216,7 +3234,6 @@ function ActionCard({
   const active = state.activeAction?.actionId === action.id;
   const nextMasteryMilestone = nextActionMasteryMilestone(mastery.level);
   const progress = active && state.activeAction ? activityProgress(state.activeAction.startedAt, state.activeAction.durationMs) : null;
-  const badges = actionRecommendationBadges(state, action, displayedRewards);
   const duration = adjustedActionDurationMs(state, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   const displayedXpReward = actionXpRewardWithMastery(state, action);
   const displayedMasteryXpReward = Math.round(actionMasteryXpReward(state, action) * (1 + getActiveModifiers(state).masteryXpGain));
@@ -3237,10 +3254,8 @@ function ActionCard({
         </header>
 
         <p className="mission-description">{action.description}</p>
-        <RecommendationBadges badges={badges} />
-
         <div className="mission-section-stack">
-          <InfoSectionRow icon={<Target size={22} />} title="Requirements">
+          <InfoSectionRow icon={<Target size={22} />} title="Needs">
             <RequirementSummary
               state={state}
               action={action}
@@ -3266,6 +3281,7 @@ function ActionCard({
             mastery={mastery}
             nextMasteryMilestone={nextMasteryMilestone}
             districtMasteryXp={districtMasteryXp}
+            onOpenMastery={() => setMasteryDetailsOpen(true)}
           />
 
           <InfoSectionRow icon={<Gift size={22} />} title="Rewards">
@@ -3313,6 +3329,7 @@ function ActionCard({
         onStop={onStop}
       />
       </div>
+      {masteryDetailsOpen && <MasteryMilestonesModal currentLevel={mastery.level} onClose={() => setMasteryDetailsOpen(false)} />}
     </article>
   );
 }
@@ -3333,10 +3350,12 @@ function MissionProgressSummary({
   mastery,
   nextMasteryMilestone,
   districtMasteryXp,
+  onOpenMastery,
 }: {
   mastery: { level: number; xp: number };
   nextMasteryMilestone?: ReturnType<typeof nextActionMasteryMilestone>;
   districtMasteryXp: number;
+  onOpenMastery: () => void;
 }) {
   return (
     <section className="mission-section mission-progress-summary">
@@ -3345,16 +3364,15 @@ function MissionProgressSummary({
         <strong>Progress</strong>
       </div>
       <div className="mission-section-content mission-progress-summary-content">
-        <div className="mission-progress-row">
+        <button type="button" className="mission-progress-row mission-mastery-button" onClick={onOpenMastery}>
           <span className="mission-progress-label"><Star size={15} /> Mastery</span>
           <MasteryProgressBar mastery={mastery} />
-        </div>
+        </button>
         <div className="mission-progress-row mission-progress-row-gold">
           <span className="mission-progress-label"><Shield size={15} /> Next</span>
           {nextMasteryMilestone ? (
             <div className="mission-copy-block">
-              <strong>Mastery {nextMasteryMilestone.level}: {nextMasteryMilestone.name}</strong>
-              <span>{nextMasteryMilestone.description}</span>
+              <strong>Mastery {nextMasteryMilestone.level}</strong>
             </div>
           ) : (
             <span className="muted">All listed mastery milestones unlocked.</span>
@@ -3366,6 +3384,31 @@ function MissionProgressSummary({
         </div>
       </div>
     </section>
+  );
+}
+
+function MasteryMilestonesModal({ currentLevel, onClose }: { currentLevel: number; onClose: () => void }) {
+  return (
+    <div className="weapon-modification-backdrop" role="presentation" onClick={onClose}>
+      <article className="panel mastery-milestones-modal" role="dialog" aria-modal="true" aria-labelledby="mastery-milestones-title" onClick={(event) => event.stopPropagation()}>
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Current Mastery {currentLevel}</p>
+            <h2 id="mastery-milestones-title">Mastery Milestones</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Close mastery milestones"><X size={18} /></button>
+        </div>
+        <div className="mastery-milestone-list">
+          {actionMasteryMilestones.map((milestone) => (
+            <div className={currentLevel >= milestone.level ? "unlocked" : "locked"} key={milestone.level}>
+              <strong>Mastery {milestone.level}</strong>
+              <span>{milestone.description}</span>
+              <em>{currentLevel >= milestone.level ? "Unlocked" : "Locked"}</em>
+            </div>
+          ))}
+        </div>
+      </article>
+    </div>
   );
 }
 
@@ -3738,26 +3781,6 @@ function ActionStartStopButton({
       </button>
     </footer>
   );
-}
-
-function RecommendationBadges({ badges }: { badges: string[] }) {
-  if (!badges.length) return null;
-  return (
-    <div className="recommendation-row">
-      {badges.map((badge) => <span key={badge}>{badge}</span>)}
-    </div>
-  );
-}
-
-function actionRecommendationBadges(state: GameState, action: SkillAction, rewards: RewardBundle) {
-  const badges: string[] = [];
-  if (!state.manualDiscovery.skillActions[action.id]) badges.push("New");
-  if (action.xpReward >= 100 || action.levelReq >= state.skills[action.skillId].level - 2) badges.push("Best XP");
-  if ((rewards.credits ?? 0) >= 50) badges.push("Credits");
-  if (action.requiredUnlocks?.length || action.rareDrops?.some((drop) => drop.id.includes("bp") || drop.id.includes("blueprint"))) badges.push("Unlock");
-  if ((action.heatChange ?? 0) <= 0 && (action.traceChance ?? 0) <= 0.12) badges.push("Low Risk");
-  if (action.rareDrops?.some((drop) => !state.discoveredItems[drop.id])) badges.push("New Drop");
-  return badges.slice(0, 3);
 }
 
 function positiveRewardBundle(rewards: RewardBundle): RewardBundle {
@@ -6543,6 +6566,8 @@ function MoreTab({
   onNewSave,
   tabNoticesEnabled,
   onTabNoticesEnabledChange,
+  actionPopupsEnabled,
+  onActionPopupsEnabledChange,
 }: {
   state: GameState;
   section: MoreSection;
@@ -6564,6 +6589,8 @@ function MoreTab({
   onNewSave: (slot: SaveSlotId) => void;
   tabNoticesEnabled: boolean;
   onTabNoticesEnabledChange: (enabled: boolean) => void;
+  actionPopupsEnabled: boolean;
+  onActionPopupsEnabledChange: (enabled: boolean) => void;
 }) {
   return (
     <section className="stack">
@@ -6599,6 +6626,15 @@ function MoreTab({
           </div>
           <button className={`toggle-button ${tabNoticesEnabled ? "active" : ""}`} onClick={() => onTabNoticesEnabledChange(!tabNoticesEnabled)}>
             {tabNoticesEnabled ? "On" : "Off"}
+          </button>
+        </div>
+        <div className="settings-option-row">
+          <div>
+            <h3>Action Completion Popups</h3>
+            <p className="muted">Show a notification whenever a repeating skill action completes. Rewards remain available in the activity log when disabled.</p>
+          </div>
+          <button className={`toggle-button ${actionPopupsEnabled ? "active" : ""}`} onClick={() => onActionPopupsEnabledChange(!actionPopupsEnabled)}>
+            {actionPopupsEnabled ? "On" : "Off"}
           </button>
         </div>
         <h2>Saves</h2>

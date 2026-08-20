@@ -183,6 +183,7 @@ export interface RewardPopupGroup {
   lines: RewardPopupLine[];
   createdAt: number;
   expiresAt: number;
+  completionCount?: number;
 }
 
 export interface MasteryState {
