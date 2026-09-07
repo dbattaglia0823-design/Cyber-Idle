@@ -6,14 +6,7 @@ export function getXpForLevel(level: number, curveType: XpCurveType) {
   const curve = balanceConfig.xpCurves[curveType];
   const safeLevel = Math.max(1, Math.min(curve.maxLevel, Math.floor(level)));
   const baseXp = curve.base * Math.pow(safeLevel, curve.exponent);
-  return Math.floor(baseXp * idleTierMultiplier(safeLevel, curveType) * endgameCurveMultiplier(safeLevel, curveType));
-}
-
-function endgameCurveMultiplier(level: number, curveType: XpCurveType) {
-  if (curveType !== "skill" || level <= 100) return 1;
-  // Preserve the exact curve through level 100, then gently reduce its slope.
-  // Level 150 requires roughly 10% less XP than before without a discontinuity.
-  return Math.pow(100 / level, 0.25);
+  return Math.floor(baseXp * idleTierMultiplier(safeLevel, curveType));
 }
 
 export function getSkillXpForLevel(level: number) {
@@ -37,15 +30,7 @@ function idleTierMultiplier(level: number, curveType: XpCurveType) {
   // slope keeps each level a small increase, including district transitions.
   const tier = 0.72 + (Math.max(1, level) - 1) * 0.012;
 
-  if (curveType === "mastery") {
-    // Starter actions award at least 10 Mastery XP, so the original 9 XP first
-    // level was skipped immediately. Keep early mastery deliberate, then blend
-    // back into the established curve at level 25.
-    if (level < 5) return 2.6;
-    if (level < 10) return 2;
-    if (level < 25) return 1.75;
-    return tier * 1.25;
-  }
+  if (curveType === "mastery") return tier * 1.25;
   if (curveType === "districtMastery") return tier * 1.65;
   if (curveType === "weaponClass") return tier * 1.1;
   return tier;

@@ -12,14 +12,11 @@ import { changeLocalStanding, discoverDistrictContent } from "./districtProgress
 import { scenarioBonusForTags } from "./scenarioModifiers";
 import { addWeaponClassXp, equippedWeaponClass } from "./weaponSystem";
 import { unlockAchievement } from "./achievements";
-import { calculateDropChance, calculateHeatGain, calculateJobRewards, calculateJobSuccessChance } from "./balanceFormulas";
+import { calculateHeatGain, calculateJobRewards, calculateJobSuccessChance } from "./balanceFormulas";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { addDistrictMasteryXp, districtMasteryRewardBonus } from "./districtMasteryProcessor";
-import { fixerFactionReputation } from "./factionContacts";
-import { addItem } from "./collectionSystem";
-import { getItem } from "../data/items";
-import type { DistrictId, FactionId, GameState, JobContract, PercentDropEntry, SkillId } from "../types";
+import type { DistrictId, FactionId, GameState, JobContract, SkillId } from "../types";
 
 export function getJob(jobId: string) {
   return jobs.find((job) => job.id === jobId);
@@ -32,7 +29,7 @@ export function availableJobsForFixer(state: GameState, fixerId: string) {
 export function startJob(state: GameState, jobId: string, now = Date.now()) {
   const job = getJob(jobId);
   if (!job || !canAttemptJob(state, job)) return state;
-  const trust = fixerFactionReputation(state, job.fixerId);
+  const trust = state.fixerTrust[job.fixerId]?.trust ?? 0;
   const next = cloneState(state);
   clearActiveActivityForSwitch(state, next, job.name);
   next.activeJob = {
@@ -141,7 +138,7 @@ export function jobRequirementMet(state: GameState, job: JobContract, requiremen
   if (reputationMatch) return state.resources.reputation >= Number(reputationMatch[1]);
 
   const trustMatch = normalized.match(/trust\s+(\d+)/i);
-  if (trustMatch) return fixerFactionReputation(state, job.fixerId) >= Number(trustMatch[1]);
+  if (trustMatch) return (state.fixerTrust[job.fixerId]?.trust ?? 0) >= Number(trustMatch[1]);
 
   return true;
 }
@@ -185,9 +182,9 @@ function completeJob(state: GameState, job: JobContract) {
     });
     applyRewards(state, rewards);
     applySkillXp(state, job, 1);
-    const factionReputationReward = applyFactionReputation(state, job);
-    applyContractFactionProgress(state, job, factionReputationReward);
-    const expeditionDrops = maybeExpeditionDrops(state, job);
+    applyFactionReputation(state, job);
+    applyFixerTrust(state, job);
+    applyCompanionRelationship(state, job);
     const rareReward = maybeRareReward(state, job);
     markJobManual(state, job.id);
     state.marketStatistics.contractsCompletedByFixer[job.fixerId] = (state.marketStatistics.contractsCompletedByFixer[job.fixerId] ?? 0) + 1;
@@ -206,10 +203,10 @@ function completeJob(state: GameState, job: JobContract) {
     emitRewardPopupGroup(state, {
       title: `${job.name} Complete`,
       resources: rewards,
-      reputation: { [factionName(job.factionId)]: factionReputationReward },
+      reputation: { Fixer: job.fixerTrustReward },
       heat,
       neuralInstability: neural,
-      rareDrops: [...expeditionDrops, ...(rareReward ? [rareReward] : [])],
+      rareDrops: rareReward ? [rareReward] : [],
     });
   } else {
     const partial = calculateJobRewards(state, { ...job, rewards: { credits: Math.floor((job.rewards.credits ?? 0) * balanceConfig.jobs.partialFailurePayout) } });
@@ -239,74 +236,47 @@ function applySkillXp(state: GameState, job: JobContract, multiplier: number) {
   });
 }
 
-export function contractFactionReputationReward(state: GameState, job: JobContract) {
-  return scaledContractReputation(state, job.factionReputation[job.factionId] ?? 0);
-}
-
-function scaledContractReputation(state: GameState, listedReward: number) {
-  if (listedReward <= 0) return listedReward;
-  const modifiers = getActiveModifiers(state);
-  const baseReward = Math.min(8, Math.max(2, Math.ceil(listedReward / 3)));
-  const gainMultiplier = Math.max(0.1, 1 + modifiers.factionReputationGain + modifiers.fixerTrustGain);
-  // A single contract must never provide a full 10-point faction rank by itself.
-  return Math.min(9, Math.max(1, Math.round(baseReward * gainMultiplier)));
-}
-
 function applyFactionReputation(state: GameState, job: JobContract) {
-  let primaryReward = 0;
   Object.entries(job.factionReputation).forEach(([factionId, amount]) => {
     const id = factionId as FactionId;
-    const gain = scaledContractReputation(state, amount ?? 0);
     const beforeRank = factionRank(state.factions[id].reputation);
-    state.factions[id].reputation += gain;
-    if (id === job.factionId) primaryReward = gain;
+    state.factions[id].reputation += Math.round((amount ?? 0) * (1 + getActiveModifiers(state).factionReputationGain));
     const afterRank = factionRank(state.factions[id].reputation);
     if (afterRank > beforeRank) {
       pushCategorizedLog(state, "World", `${factionName(id)} reached faction rank ${afterRank}.`);
     }
   });
 
-  if (!job.factionConflict) return primaryReward;
+  if (!job.factionConflict) return;
   const faction = factions.find((entry) => entry.id === job.factionId);
   faction?.rivals.forEach((rival) => {
     state.factions[rival].reputation = Math.max(-50, state.factions[rival].reputation - 1);
   });
-  return primaryReward;
 }
 
-function applyContractFactionProgress(state: GameState, job: JobContract, gain: number) {
-  if (factionRank(state.factions[job.factionId].reputation) >= 5) unlockAchievement(state, "fixer-rank-5", "Reach Contact Faction Rank 5");
-  pushCategorizedLog(state, "World", `${factionName(job.factionId)} reputation +${gain} through its local contact.`);
+function applyFixerTrust(state: GameState, job: JobContract) {
+  const trust = state.fixerTrust[job.fixerId] ?? { trust: 0, completedJobs: 0 };
+  trust.trust += Math.round(job.fixerTrustReward * (1 + getActiveModifiers(state).fixerTrustGain));
+  trust.completedJobs += 1;
+  state.fixerTrust[job.fixerId] = trust;
+  if (Math.floor(trust.trust / 10) + 1 >= 5) unlockAchievement(state, "fixer-rank-5", "Reach Fixer Trust Rank 5");
+  pushCategorizedLog(state, "World", `Fixer trust +${job.fixerTrustReward}.`);
+}
+
+function applyCompanionRelationship(state: GameState, job: JobContract) {
+  Object.entries(job.companionRelationship ?? {}).forEach(([id, amount]) => {
+    const companion = state.companions[id];
+    if (!companion?.unlocked) return;
+    companion.relationship = Math.min(100, companion.relationship + Math.round((amount ?? 0) * (1 + getActiveModifiers(state).companionRelationshipGain)));
+    pushCategorizedLog(state, "World", `Companion relationship +${amount}: ${id}.`);
+  });
 }
 
 function maybeRareReward(state: GameState, job: JobContract) {
-  const chance = calculateDropChance(job.rareRewardChance ?? balanceConfig.rewards.defaultRareJobChance, state, job.tags);
-  if (!job.rareReward || Math.random() > chance) return "";
+  if (!job.rareReward || Math.random() > balanceConfig.rewards.defaultRareJobChance) return "";
   state.inventory[job.rareReward] = (state.inventory[job.rareReward] ?? 0) + 1;
   pushCategorizedLog(state, "Loot", `Rare job reward: ${job.rareReward}.`);
   return job.rareReward;
-}
-
-function maybeExpeditionDrops(state: GameState, job: JobContract) {
-  const gained: string[] = [];
-  (job.rareRewardTable ?? []).forEach((drop) => {
-    const chance = calculateDropChance(drop.chancePercent / 100, state, drop.affectedByScenarioModifiers ? job.tags : []);
-    if (Math.random() > chance) return;
-    const quantity = randomDropQuantity(drop);
-    if (drop.itemId in state.resources) {
-      const resources = state.resources as unknown as Record<string, number>;
-      resources[drop.itemId] = (resources[drop.itemId] ?? 0) + quantity;
-    } else {
-      addItem(state, drop.itemId, quantity);
-    }
-    gained.push(drop.itemId);
-    pushCategorizedLog(state, "Loot", `Contract expedition recovered ${quantity} ${getItem(drop.itemId)?.name ?? drop.itemId}.`);
-  });
-  return gained;
-}
-
-function randomDropQuantity(drop: PercentDropEntry) {
-  return drop.minQuantity + Math.floor(Math.random() * (drop.maxQuantity - drop.minQuantity + 1));
 }
 
 function factionName(id: FactionId) {

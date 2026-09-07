@@ -38,7 +38,7 @@ const suites: CyberwareSuite[] = [
   suite("ghost-market", "Ghost Market", "Illegal chrome for profitable work that stays below the scanners.", "fixer", "Uncommon", 2, 15, "underpassMarket", 3, { scrap: 10, encryptedData: 5, cyberwareParts: 7 }),
   suite("null-choir", "Null Choir", "Blacknet-linked implants for aggressive data extraction.", "netrunner", "Rare", 3, 20, "blacknetQuarter", 3, { circuitBoards: 7, encryptedData: 12, cyberwareParts: 8, "blacknet-cipher": 1 }),
   suite("helix-synapse", "Helix Synapse", "Clinically stabilized chrome for engineers and resilient operators.", "techie", "Rare", 3, 25, "helixWard", 2, { circuitBoards: 6, cyberwareParts: 12, "medical-gel": 4 }),
-  suite("glassline-executive", "Glassline Executive", "Premium corporate implants for precise and profitable work.", "corporate", "Epic", 4, 30, "glasslineDistrict", 3, { circuitBoards: 10, encryptedData: 14, cyberwareParts: 14, "corporate-access-token": 1 }),
+  suite("glassline-executive", "Glassline Executive", "Premium corporate implants for precise and profitable operations.", "corporate", "Epic", 4, 30, "glasslineDistrict", 3, { circuitBoards: 10, encryptedData: 14, cyberwareParts: 14, "corporate-access-token": 1 }),
   suite("redline-warform", "Redline Warform", "Championship combat chrome that converts strain into dominance.", "juggernaut", "Epic", 4, 40, "redlineBlocks", 4, { scrap: 24, armorPlating: 4, cyberwareParts: 16, "bounty-token": 2 }),
   suite("skyline-apex", "Skyline Apex", "Singular adaptive chrome capable of supporting any elite build.", "apex", "Legendary", 5, 50, "skylineCore", 4, { circuitBoards: 16, encryptedData: 20, cyberwareParts: 20, "stabilized-chrome-frame": 1, "prototype-neural-core": 1, "boss-data-key": 1 }),
 ];
@@ -230,7 +230,7 @@ function slotDescription(slot: CyberwareSlot) {
     skin: "It manages exposure, impact, and physiological strain.",
     skeleton: "It reinforces the operator under sustained workloads.",
     operatingSystem: "It coordinates the suite's specialized routines.",
-    utility: "It provides economic and support functions.",
+    utility: "It provides economic and operational support functions.",
   };
   return descriptions[slot];
 }

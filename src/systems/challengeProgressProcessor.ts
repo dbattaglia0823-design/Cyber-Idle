@@ -23,8 +23,12 @@ export function syncChallengeProgress(state: GameState) {
 
 export function challengeObjectiveProgress(state: GameState, objective: ChallengeObjective) {
   switch (objective.type) {
+    case "operationClears":
+      return { current: state.operationLogs[objective.operationId]?.clears ?? 0, target: objective.count };
     case "enemyKills":
       return { current: state.enemyLog[objective.enemyId]?.kills ?? 0, target: objective.count };
+    case "bossKills":
+      return { current: state.bossLogs[objective.bossId]?.kills ?? 0, target: objective.count };
     case "districtMastery":
       return { current: state.districtMastery[objective.districtId]?.level ?? 1, target: objective.level };
     case "actionMastery":
@@ -40,7 +44,9 @@ export function challengeObjectiveProgress(state: GameState, objective: Challeng
 
 export function challengeObjectiveText(objective: ChallengeObjective) {
   switch (objective.type) {
+    case "operationClears": return `Clear ${objective.operationId} ${objective.count}x`;
     case "enemyKills": return `Kill ${objective.enemyId} ${objective.count}x`;
+    case "bossKills": return `Defeat ${objective.bossId} ${objective.count}x`;
     case "districtMastery": return `${objective.districtId} mastery ${objective.level}`;
     case "actionMastery": return `${objective.actionId} mastery ${objective.level}`;
     case "skillLevel": return `${objective.skillId} level ${objective.level}`;

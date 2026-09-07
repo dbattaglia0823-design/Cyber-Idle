@@ -7,8 +7,7 @@ import { scenarioBonusForTags } from "./scenarioModifiers";
 import { effectiveNeuralInstability } from "./itemFormulas";
 import { scaledStats } from "./itemFormulas";
 import { equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
-import { totalFactionReputation } from "./factionContacts";
-import type { BlackMarketStrategy, DistrictId, Enemy, EnemyDrop, GameState, ItemDefinition, JobContract, PlayerCombatStats, RewardBundle, SkillAction } from "../types";
+import type { BlackMarketStrategy, DistrictId, EnemyDrop, GameState, ItemDefinition, JobContract, PlayerCombatStats, RewardBundle, SkillAction } from "../types";
 
 export interface FormulaBreakdown {
   label: string;
@@ -30,13 +29,9 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
       totals.damage += stats.damage ?? 0;
       totals.attackSpeedMs += stats.attackSpeed ?? 0;
       totals.armor += stats.armor ?? 0;
-      totals.accuracy += stats.accuracy ?? 0;
-      totals.dodge += stats.dodge ?? 0;
-      totals.critChance += stats.critChance ?? 0;
-      totals.critDamage += stats.critDamage ?? 0;
       return totals;
     },
-    { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0, accuracy: 0, dodge: 0, critChance: 0, critDamage: 0 },
+    { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0 },
   );
   const rawMaxHp = balanceConfig.combat.baseMaxHp + state.skills.combat.level * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
   const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs;
@@ -51,26 +46,7 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
     ),
     attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(rawAttackSpeed * (1 - Math.min(0.45, modifiers.combatAttackSpeed)))),
     armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(state.skills.combat.level / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
-    accuracy: clampPercent(balanceConfig.combat.baseAccuracy + gearStats.accuracy / 100, balanceConfig.combat.minHitChance, balanceConfig.combat.maxHitChance),
-    dodge: clampPercent(balanceConfig.combat.baseDodge + gearStats.dodge + modifiers.dodgeChance, 0, 0.65),
-    critChance: calculateCritChance(balanceConfig.combat.baseCritChance, gearStats.critChance),
-    critDamage: Math.max(1, balanceConfig.combat.baseCritDamage + gearStats.critDamage),
   };
-}
-
-export function enemyDodgeChance(enemy: Enemy) {
-  const traits = new Set(enemy.traits ?? []);
-  const traitDodge = (traits.has("highDodge") ? 0.12 : 0) + (traits.has("agile") ? 0.06 : 0);
-  return clampPercent((enemy.dodge ?? 0) + traitDodge, 0, 0.45);
-}
-
-export function enemyAccuracy(enemy: Enemy) {
-  return clampPercent(enemy.accuracy ?? balanceConfig.combat.baseAccuracy + (enemy.threatScaling ?? 0) * 0.02, balanceConfig.combat.minHitChance, balanceConfig.combat.maxHitChance);
-}
-
-export function enemyCritChance(enemy: Enemy) {
-  const traitBonus = enemy.traits?.includes("highCrit") ? 0.12 : 0;
-  return calculateCritChance(enemy.critChance ?? balanceConfig.combat.baseCritChance, traitBonus);
 }
 
 export function calculateEstimatedKillTime(state: GameState, effectiveHp: number) {
@@ -98,6 +74,10 @@ export function calculateJobRewards(state: GameState, job: JobContract, multipli
   return scaleRewards(applyRewardFormula(state, job.rewards, job.tags), multiplier * requirementRewardMultiplier(job.requirements, balanceConfig.rewards.jobRequirementRewardGrowth));
 }
 
+export function calculateOperationRewards(state: GameState, rewards: RewardBundle, multiplier = 1) {
+  return scaleRewards(applyRewardFormula(state, rewards, ["operation"]), multiplier);
+}
+
 export function calculateCraftingOutput(rewards: RewardBundle, efficiency = 1) {
   return scaleRewards(rewards, efficiency);
 }
@@ -107,36 +87,34 @@ export function calculateJobSuccessChance(job: JobContract, state: GameState) {
   const scenario = scenarioBonusForTags(state, job.tags);
   const weaponClass = equippedWeaponClass(state);
   const classBonus = weaponClass ? weaponClassBonus(state, weaponClass).jobSuccess : 0;
-  const factionBonus = Math.min(0.08, Math.max(0, state.factions[job.factionId]?.reputation ?? 0) / 1000);
+  const trustBonus = Math.min(0.08, (state.fixerTrust[job.fixerId]?.trust ?? 0) / 1000);
+  const factionBonus = Math.min(0.06, Math.max(0, state.factions[job.factionId]?.reputation ?? 0) / 1000);
   const standingBonus = Math.min(0.05, Math.max(0, state.districtStanding[job.districtId]?.standing ?? 0) / 1000);
-  const skillBonus = contractSkillSuccessBonus(job, state);
   const threatPenalty = districtThreatPenalty(state, job.districtId);
-  let chance = job.baseSuccessChance + skillBonus + modifiers.jobSuccessChance + scenario.successChance + classBonus + factionBonus + standingBonus - threatPenalty;
+  let chance = job.baseSuccessChance + modifiers.jobSuccessChance + scenario.successChance + classBonus + trustBonus + factionBonus + standingBonus - threatPenalty;
   if (state.startingPath === "streetborn" && job.tags.includes("corporate")) chance -= 0.05;
   const instability = effectiveNeuralInstability(state);
   if (instability >= 25 && job.tags.includes("hacking")) chance -= instability >= 75 ? 0.1 : instability >= 50 ? 0.05 : 0.02;
   if (instability >= 75 && job.tags.includes("corporate")) chance -= balanceConfig.jobs.corporateInstabilityPenalty;
+  const requirementPenalty = requirementScore(job.requirements) * balanceConfig.jobs.requirementSuccessPenalty;
+  chance -= requirementPenalty;
   const final = clampPercent(chance, balanceConfig.jobs.minSuccess, balanceConfig.jobs.maxSuccess);
   return {
     chance: final,
     guaranteed: final >= balanceConfig.jobs.guaranteedAt,
     breakdown: [
       { label: "Base", value: job.baseSuccessChance },
-      { label: job.successSkill ? `${job.successSkill} skill` : "Assigned skill", value: skillBonus },
       { label: "Modifiers", value: modifiers.jobSuccessChance },
       { label: "Scenario", value: scenario.successChance },
       { label: "Weapon class", value: classBonus },
+      { label: "Fixer trust", value: trustBonus },
       { label: "Faction", value: factionBonus },
       { label: "Standing", value: standingBonus },
       { label: "Threat penalty", value: -threatPenalty },
+      { label: "Requirement", value: -requirementPenalty },
       { label: "Final", value: final },
     ] satisfies FormulaBreakdown[],
   };
-}
-
-export function contractSkillSuccessBonus(job: JobContract, state: GameState) {
-  if (!job.successSkill) return 0;
-  return Math.min(0.3, Math.max(0, state.skills[job.successSkill]?.level ?? 0) * 0.002);
 }
 
 export function calculateHeatGain(state: GameState, heat: number, tags: string[] = []) {
@@ -144,19 +122,6 @@ export function calculateHeatGain(state: GameState, heat: number, tags: string[]
   const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
   const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
   return Math.round(heat * multiplier);
-}
-
-/**
- * Positive Heat values on skill actions are authored as whole percentage
- * ratings (1 = 1%, 5 = 5%). Heat modifiers adjust the chance instead of the
- * amount so a successful roll always adds exactly one Heat.
- */
-export function calculateSkillHeatChance(state: GameState, heatRating: number, tags: string[] = []) {
-  if (heatRating <= 0) return 0;
-  const modifiers = getActiveModifiers(state);
-  const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
-  const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
-  return clampPercent((heatRating / 100) * multiplier);
 }
 
 export function calculateHeatTier(value: number) {
@@ -246,7 +211,7 @@ export function calculateBlackMarketRisk(state: GameState, strategy: BlackMarket
   const ghostReduction = factionRank(state.factions.ghostMarket.reputation) * 0.008;
   const tradingReduction = Math.min(0.08, (state.skills.blackMarket?.level ?? 1) * 0.0015);
   const heatRisk = Math.max(0.01, config.risk * (0.04 + heatScale) - ghostReduction - tradingReduction + getActiveModifiers(state).heatGain);
-  const buyerRisk = Math.max(0.02, 0.16 * config.risk - totalFactionReputation(state) / 2000);
+  const buyerRisk = Math.max(0.02, 0.16 * config.risk - Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0) / 2000);
   const saleChance = clampPercent(config.chance + ghostReduction + tradingReduction - calculateHeatEffects(state.resources.heat).blackMarketRisk * 0.35, 0.08, 0.97);
   return { heatRisk, buyerRisk, saleChance, durationMs: Math.round(config.durationMs * (1 - Math.min(0.35, tradingReduction))) };
 }
@@ -254,39 +219,11 @@ export function calculateBlackMarketRisk(state: GameState, strategy: BlackMarket
 export function calculateVendorPrice(state: GameState, basePrice: number, districtId: DistrictId, modifier = 1) {
   const standingDiscount = Math.min(0.18, (state.districtStanding[districtId]?.standing ?? 0) / 600);
   const threatMarkup = districtThreatPenalty(state, districtId);
-  return Math.max(balanceConfig.economy.vendorMinPrice, Math.round(basePrice * districtMarketPriceMultiplier(districtId) * modifier * (1 + threatMarkup - standingDiscount + getActiveModifiers(state).shopPrices)));
-}
-
-export function districtMarketPriceMultiplier(districtId: DistrictId) {
-  const multipliers: Record<DistrictId, number> = {
-    neonRow: 1,
-    rustYards: 1.1,
-    underpassMarket: 1.25,
-    blacknetQuarter: 1.4,
-    helixWard: 1.55,
-    glasslineDistrict: 1.7,
-    redlineBlocks: 1.85,
-    skylineCore: 2,
-  };
-  return multipliers[districtId];
+  return Math.max(balanceConfig.economy.vendorMinPrice, Math.round(basePrice * modifier * (1 + threatMarkup - standingDiscount + getActiveModifiers(state).shopPrices)));
 }
 
 export function calculateRarityShopBasePrice(item: ItemDefinition) {
   if (item.type === "Resource") return 0;
-  if (item.type === "Weapon" || item.type === "Armor" || item.type === "Cyberware") {
-    const equipmentBase: Record<ItemDefinition["rarity"], number> = {
-      Common: 1_000,
-      Uncommon: 4_000,
-      Rare: 9_000,
-      Epic: 60_000,
-      Legendary: 450_000,
-      Prototype: 2_250_000,
-      Relic: 8_000_000,
-    };
-    const typeMultiplier = item.type === "Cyberware" ? 1.2 : item.type === "Armor" ? 1.05 : 1;
-    const tierMultiplier = 0.8 + Math.min(6, Math.max(1, item.tier ?? 1)) * 0.08;
-    return Math.round(equipmentBase[item.rarity] * typeMultiplier * tierMultiplier);
-  }
   const rarityMultiplier: Record<ItemDefinition["rarity"], number> = {
     Common: 1,
     Uncommon: 1.45,

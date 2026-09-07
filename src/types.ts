@@ -132,12 +132,14 @@ export type EnemyArchetypeId =
 export type EnemyDifficultyTier = "Common" | "Hardened" | "Elite" | "Mini-Boss" | "Boss" | "Apex";
 export type EnemyVariantId = "hardened" | "chromePlated" | "blacknetLinked" | "prototype" | "wanted" | "elite" | "corrupted" | "factionBacked" | "highValueTarget";
 export type CombatMatchupRating = "Poor Matchup" | "Neutral Matchup" | "Good Matchup" | "Excellent Matchup";
+export type OperationRouteId = "directAssault" | "silentEntry" | "blacknetBreach" | "smugglerRoute" | "corporateDisguise" | "factionFavor" | "fixerSetup";
 export type StoryCategory =
   | "Main Arc"
   | "District Arc"
   | "Fixer Chain"
   | "Faction Conflict"
-  | "Contact Quest"
+  | "Companion Quest"
+  | "Operation Lead"
   | "Ripperdoc Case"
   | "Black Market Deal"
   | "Vehicle Chain"
@@ -146,6 +148,7 @@ export type StoryObjectiveType =
   | "completeSkillAction"
   | "reachSkillLevel"
   | "killEnemy"
+  | "clearOperation"
   | "completeFixerContract"
   | "gainFactionReputation"
   | "buyInstallCyberware"
@@ -183,7 +186,6 @@ export interface RewardPopupGroup {
   lines: RewardPopupLine[];
   createdAt: number;
   expiresAt: number;
-  completionCount?: number;
 }
 
 export interface MasteryState {
@@ -251,7 +253,6 @@ export interface CombatAffinity {
   modTags?: string[];
   scenarioTags?: string[];
   cyberwareTags?: string[];
-  matchMode?: "any" | "allGroups";
   damageMultiplier: number;
   heatMultiplier?: number;
   dropChance?: number;
@@ -355,6 +356,7 @@ export interface WeaponStatistics {
   killsByClass: Partial<Record<WeaponClassId, number>>;
   damageByClass: Partial<Record<WeaponClassId, number>>;
   jobsByClass: Partial<Record<WeaponClassId, number>>;
+  operationsByClass: Partial<Record<WeaponClassId, number>>;
   rareDropsFound: number;
   attachmentDropsFound: number;
   modsInstalled: number;
@@ -365,7 +367,7 @@ export interface WeaponStatistics {
 export interface CraftingRecipe {
   id: string;
   name: string;
-  category: "Components" | "Cyberware" | "Weapons" | "Attachments" | "Weapon Mods" | "Ammo/Power Cells" | "Upgrade Parts" | "Armor" | "Consumables" | "Upgrades" | "Player Upgrades";
+  category: "Components" | "Cyberware" | "Weapons" | "Attachments" | "Weapon Mods" | "Ammo/Power Cells" | "Upgrade Parts" | "Armor" | "Consumables" | "Upgrades";
   requiredSkill: SkillId;
   requiredLevel: number;
   requiredBlueprint?: string;
@@ -387,10 +389,6 @@ export interface Enemy {
   hp: number;
   damage: number;
   attackSpeedMs: number;
-  accuracy?: number;
-  dodge?: number;
-  critChance?: number;
-  critDamage?: number;
   archetype?: EnemyArchetypeId;
   difficulty?: EnemyDifficultyTier;
   variants?: EnemyVariantId[];
@@ -405,6 +403,7 @@ export interface Enemy {
   threatScaling?: number;
   specialLootCategory?: string;
   combatModifiers?: CombatModifier[];
+  operationModifiers?: CombatModifier[];
   damageTypes?: DamageType[];
   recommendedLoadoutTags?: string[];
   requiredCombatLevel?: number;
@@ -434,10 +433,6 @@ export interface PlayerCombatStats {
   damage: number;
   attackSpeedMs: number;
   armor: number;
-  accuracy: number;
-  dodge: number;
-  critChance: number;
-  critDamage: number;
 }
 
 export interface ActiveAction {
@@ -459,6 +454,14 @@ export interface ActiveCraft {
   durationMs: number;
 }
 
+export interface ActiveOperation {
+  operationId: string;
+  routeId?: OperationRouteId;
+  startedAt: number;
+  durationMs: number;
+  stageIndex: number;
+}
+
 export interface CurrentCombat {
   enemyId: string;
   startedAt: number;
@@ -473,14 +476,10 @@ export interface CurrentCombat {
   lastPlayerHit?: {
     amount: number;
     at: number;
-    missed?: boolean;
-    critical?: boolean;
   };
   lastEnemyHit?: {
     amount: number;
     at: number;
-    missed?: boolean;
-    critical?: boolean;
   };
   lastDamageTaken?: number;
   lastHealingReceived?: number;
@@ -514,6 +513,7 @@ export interface HealthStatistics {
   healingItemsUsed: number;
   deaths: number;
   deathsByEnemy: Record<string, number>;
+  deathsByOperation: Record<string, number>;
   autoHealsTriggered: number;
   ripperdocRecoveries: number;
   lowestHpSurvived: number | null;
@@ -578,11 +578,46 @@ export interface SimulationRecap {
   dropsGained: Record<string, number>;
   heatChange: number;
   neuralInstabilityChange: number;
-  damageTaken: number;
-  healingReceived: number;
-  healingItemsUsed: number;
   stoppedReason: string;
   warnings: string[];
+}
+
+export interface OperationStage {
+  name: string;
+  enemyIds: string[];
+  modifiers?: CombatModifier[];
+  recommendedTags?: string[];
+}
+
+export interface OperationRoute {
+  id: OperationRouteId;
+  name: string;
+  description: string;
+  requirements: string[];
+  recommendedTags: string[];
+  successModifier: number;
+  enemyDamageMultiplier?: number;
+  heatChange?: number;
+  neuralInstabilityChange?: number;
+  rewardMultiplier?: number;
+  rareDropModifier?: number;
+  factionConsequences?: Partial<Record<FactionId, number>>;
+  bonusDrop?: EnemyDrop;
+}
+
+export interface OperationMechanic {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  successModifier?: number;
+  damageMultiplier?: number;
+  heatChange?: number;
+  threatChange?: number;
+  neuralInstabilityChange?: number;
+  rewardMultiplier?: number;
+  rareDropModifier?: number;
+  warning?: string;
 }
 
 export interface BossPhase {
@@ -596,6 +631,53 @@ export interface BossPhase {
   logMessage: string;
 }
 
+export interface OperationDefinition {
+  id: string;
+  name: string;
+  districtId: DistrictId;
+  description: string;
+  unlockRequirements: string[];
+  recommendedStats: string[];
+  recommendedLoadoutTags?: string[];
+  requiredItems?: Record<string, number>;
+  stages: OperationStage[];
+  mechanics?: OperationMechanic[];
+  routes?: OperationRoute[];
+  defaultRouteId?: OperationRouteId;
+  bossId: string;
+  completionRewards: RewardBundle;
+  rareDrops: EnemyDrop[];
+  firstClearRewards: RewardBundle;
+  repeatClearRewards: RewardBundle;
+  heatChange: number;
+  neuralInstabilityChange?: number;
+  factionReputation: Partial<Record<FactionId, number>>;
+  fixerTrust?: Record<string, number>;
+}
+
+export interface OperationLog {
+  clears: number;
+  bestClearMs: number | null;
+  firstClear: boolean;
+  drops: Record<string, number>;
+}
+
+export interface OperationRecap {
+  operationId: string;
+  routeId?: OperationRouteId;
+  success: boolean;
+  clearMs: number;
+  enemiesDefeated: number;
+  bossDefeated: boolean;
+  xpGained: number;
+  rewards: RewardBundle;
+  itemsGained: Record<string, number>;
+  heatChange: number;
+  neuralInstabilityChange: number;
+  firstClear: boolean;
+  message: string;
+}
+
 export interface VehicleStats {
   speed: number;
   armor: number;
@@ -606,8 +688,6 @@ export interface VehicleStats {
   smugglingRewardBonus: number;
   districtAccessBonus: number;
 }
-
-export type VehicleUpgradePartId = "body" | "engine" | "cargo" | "electronics";
 
 export interface VehicleDefinition {
   id: string;
@@ -620,6 +700,7 @@ export interface VehicleDefinition {
   stats: VehicleStats;
   passiveModifiers: Partial<ActiveModifiers>;
   maxUpgradeLevel: number;
+  garageSlotsRequired: number;
   sourceHint: string;
 }
 
@@ -637,7 +718,6 @@ export interface RipperdocService {
   fixerTrustDiscount?: string;
   heatChange?: number;
   neuralInstabilityChange?: number;
-  healthRestorePercent?: number;
   riskLevel?: number;
   risk?: string;
   effects?: string[];
@@ -674,7 +754,6 @@ export interface VendorItemEntry {
   requiredFactionRank?: Partial<Record<FactionId, number>>;
   requiredDistrictUnlock?: DistrictId;
   requiredUnlock?: string;
-  requiredSkillLevel?: Partial<Record<SkillId, number>>;
   sourceHint: string;
 }
 
@@ -719,6 +798,7 @@ export interface DistrictCompletionBreakdown {
   housing: number;
   factions: number;
   services: number;
+  operations: number;
   vendors: number;
   total: number;
 }
@@ -854,6 +934,7 @@ export interface HousingOption {
   neuralRecoveryBonus: number;
   craftingBonus?: number;
   hackingBonus?: number;
+  garageSlots?: number;
   passiveModifiers?: Partial<ActiveModifiers>;
 }
 
@@ -889,6 +970,7 @@ export interface Fixer {
   jobChains: string[];
   trustRewards?: Array<{ rank: number; description: string }>;
   uniqueUnlocks?: string[];
+  operationLeads?: string[];
   districtLeads?: DistrictId[];
   marketConnections?: string[];
   ripperdocConnections?: string[];
@@ -912,8 +994,6 @@ export interface JobContract {
   durationMs: number;
   requirements: string[];
   baseSuccessChance: number;
-  successSkill?: SkillId;
-  expeditionStep?: number;
   recommendedLoadoutTags?: string[];
   heatChange: number;
   neuralInstabilityChange?: number;
@@ -923,7 +1003,6 @@ export interface JobContract {
   companionRelationship?: Record<string, number>;
   fixerTrustReward: number;
   rareReward?: string;
-  rareRewardChance?: number;
   rareRewardTable?: PercentDropEntry[];
   failureOutcomes?: string[];
   repeatable: boolean;
@@ -1007,6 +1086,7 @@ export interface StoryChoice {
   fixerTrust?: Record<string, number>;
   companionRelationship?: Record<string, number>;
   worldFlags?: string[];
+  operationLeads?: string[];
   permanent?: boolean;
 }
 
@@ -1089,8 +1169,6 @@ export interface ActiveModifiers {
   offlineProgressCapHours: number;
   fixerTrustGain: number;
   masteryXpGain: number;
-  craftingSpeed: number;
-  doubleCraftChance: number;
   craftingCostReduction: number;
   upgradeCostReduction: number;
   vehicleUpgradeCostReduction: number;
@@ -1154,6 +1232,7 @@ export interface GameState {
   activeAction: ActiveAction | null;
   activeJob: ActiveJob | null;
   activeCraft: ActiveCraft | null;
+  activeOperation: ActiveOperation | null;
   currentCombat: CurrentCombat | null;
   health: PlayerHealthState;
   autoHeal: AutoHealSettings;
@@ -1164,6 +1243,7 @@ export interface GameState {
   districtMastery: Record<DistrictId, DistrictMasteryState>;
   streetLegend: StreetLegendState;
   challengeProgress: Record<string, ChallengeContractProgress>;
+  highThreatOperationClears: Record<string, number>;
   collectionRewardsClaimed: Record<string, boolean>;
   prestigeProtocol: PrestigeProtocolState;
   endgameStatistics: EndgameStatistics;
@@ -1184,7 +1264,9 @@ export interface GameState {
   claimedTierRewards: Record<string, boolean>;
   simulationEfficiency: Partial<SimulationEfficiency>;
   simulationRecap: SimulationRecap | null;
+  operationLogs: Record<string, OperationLog>;
   bossLogs: Record<string, EnemyLog>;
+  operationRecap: OperationRecap | null;
   ownedVehicles: Record<string, boolean>;
   activeVehicle: string | null;
   vehicleUpgradeLevels: Record<string, number>;
@@ -1213,6 +1295,7 @@ export interface GameState {
   storyArcs: Record<string, StoryArcState>;
   storyFlags: Record<string, boolean>;
   storyChoices: StoryChoiceRecord[];
+  operationLeads: Record<string, boolean>;
   factionConflicts: Record<string, FactionConflictState>;
   districtStanding: Record<DistrictId, DistrictStandingState>;
   districtEvents: Record<string, boolean>;
