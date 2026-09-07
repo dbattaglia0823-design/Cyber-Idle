@@ -69,7 +69,7 @@ export type CyberwareSlot =
   | "operatingSystem"
   | "utility";
 export type GearSlot = "weapon" | "head" | "chest" | "hands" | "legs" | "boots" | "accessory1" | "accessory2";
-export type ItemType = "Resource" | "Material" | "Component" | "Cyberware" | "Weapon" | "WeaponAttachment" | "WeaponMod" | "Armor" | "Consumable" | "Blueprint" | "Quest";
+export type ItemType = "Quickhack" | "Resource" | "Material" | "Component" | "Cyberware" | "Weapon" | "WeaponAttachment" | "WeaponMod" | "Armor" | "Consumable" | "Blueprint" | "Quest";
 export type ItemRarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Prototype" | "Relic";
 export type ContractType =
   | "Courier"

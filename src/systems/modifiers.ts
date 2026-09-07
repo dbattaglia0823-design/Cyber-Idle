@@ -7,7 +7,7 @@ import { balanceConfig } from "../data/balanceConfig";
 import { cyberwareLoad, effectiveNeuralInstability } from "./itemFormulas";
 import { heatTier, neuralInstabilityTierName } from "./riskEvents";
 import { masteryPoolBonus } from "./masteryPool";
-import { applyPerkModifiers } from "./perkSystem";
+import { attributeDefinitions, rpgPerks } from "../data/rpgCampaign";
 import { streetLegendMilestones } from "../data/streetLegendData";
 import type { ActiveModifiers, GameState, RewardBundle, SkillId } from "../types";
 
@@ -49,7 +49,17 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
     activeSources: [],
   };
 
-  applyPerkModifiers(state, modifiers);
+  for (const attribute of attributeDefinitions) {
+    const points = Math.max(0, state.rpg.attributes[attribute.id] - 3);
+    if (!points) continue;
+    mergeModifiers(modifiers, attribute.bonuses, points);
+    modifiers.activeSources.push(attribute.name);
+  }
+  for (const perk of rpgPerks) {
+    if (!state.rpg.perks[perk.id] || !perk.modifiers) continue;
+    mergeModifiers(modifiers, perk.modifiers);
+    modifiers.activeSources.push(perk.name);
+  }
   applyStartingPath(state, modifiers);
   applyHousing(state, modifiers);
   applyFactions(state, modifiers);
@@ -61,12 +71,7 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyRipperdocEffects(state, modifiers);
   applyStreetLegend(state, modifiers);
   applyRiskState(state, modifiers);
-  if (state.rpg?.starterClaimed) {
-    modifiers.combatMaxHp += (state.rpg.attributes.body - 3) * 0.035 + (state.rpg.level - 1) * 0.025;
-    modifiers.combatDamage += (state.rpg.attributes.reflexes - 3) * 0.015;
-    modifiers.craftingCostReduction += (state.rpg.attributes.technical - 3) * 0.008;
-    modifiers.activeSources.push("Runner attributes");
-  }
+
   Object.entries(state.prestigeProtocol.skillPrestiges).forEach(([skill, count]) => {
     const id = skill as SkillId;
     modifiers.skillXp[id] = (modifiers.skillXp[id] ?? 0) + (count ?? 0) * 0.1;
@@ -314,10 +319,10 @@ function mergeItemModifiers(modifiers: ActiveModifiers, itemId?: string) {
   modifiers.activeSources.push(item.name);
 }
 
-function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModifiers>) {
+function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModifiers>, multiplier = 1) {
   Object.entries(itemMods.skillXp ?? {}).forEach(([skill, value]) => {
     modifiers.skillXp[skill as keyof ActiveModifiers["skillXp"]] =
-      (modifiers.skillXp[skill as keyof ActiveModifiers["skillXp"]] ?? 0) + (value ?? 0);
+      (modifiers.skillXp[skill as keyof ActiveModifiers["skillXp"]] ?? 0) + (value ?? 0) * multiplier;
   });
   ([
     "skillRewards",
@@ -352,7 +357,7 @@ function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModi
     "factionReputationGain",
     "simCacheEfficiency",
   ] as const).forEach((key) => {
-    modifiers[key] += itemMods[key] ?? 0;
+    modifiers[key] += (itemMods[key] ?? 0) * multiplier;
   });
 }
 

@@ -155,7 +155,7 @@ test('old saves acquire the RPG profile without changing existing progress or ge
   const old=createInitialState(); delete old.rpg; old.saveVersion=8;
   old.skills.combat.level=75; old.resources.credits=9000; old.equippedGear.weapon='street-knife';
   const state=normalizeSave(old);
-  assert.equal(state.rpg.level,1); assert.equal(state.rpg.attributePoints,7);
+  assert.equal(state.rpg.level,16); assert.equal(state.rpg.attributePoints,37);
   assert.equal(state.resources.credits,9000); assert.equal(state.skills.combat.level,75);
   assert.equal(state.equippedGear.weapon,'street-knife');
   const copy=cloneState(state); copy.rpg.attributes.body=10;
@@ -183,7 +183,7 @@ test('unknown mission data is dropped safely while the rest of a save is retaine
 });
 
 test('RPG entry, briefing, combat, decision and failure screens render without invalid values',()=>{
-  const render=state=>renderToStaticMarkup(createElement(RpgHub,{state,onUpdate(){},onServices(){},onLoadout(){}}));
+  const render=state=>renderToStaticMarkup(createElement(RpgHub,{state,onUpdate(){},onServices(){},page:"journal",onPage(){}}));
   let state=fresh();
   assert.match(render(state),/Dead Drop/);
   state=startRpgMission(state,'dead-drop'); assert.match(render(state),/Choose your way in/);
@@ -192,4 +192,22 @@ test('RPG entry, briefing, combat, decision and failure screens render without i
   assert.doesNotMatch(render(state),/NaN|undefined|Infinity/);
   const failed=cloneState(state); failed.rpg.active.phase='failed'; assert.match(render(failed),/Retry mission/);
   state=fight(state); assert.match(render(state),/Hide the courier/);
+});
+
+
+test('Main keeps runner tools inside the shared Journal shell', () => {
+  const state = fresh();
+  for (const page of ['character', 'progress']) {
+    const html = renderToStaticMarkup(createElement(RpgHub, {
+      state, page, onPage() {}, onUpdate() {}, onServices() {}, inventoryNoticeCount: 2,
+    }, createElement('article', null, 'Runner tool content')));
+    assert.ok(html.includes('NEON CITY / MERCENARY NETWORK'));
+    assert.match(html, /main-section-content/);
+    assert.match(html, /Runner tool content/);
+    assert.match(html, /2 inventory updates/);
+    assert.match(html, /Manage character/);
+    assert.doesNotMatch(html, />Inventory<|>Loadout</);
+    assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
+    assert.doesNotMatch(html, /rpg-journal|Claim field kit/);
+  }
 });

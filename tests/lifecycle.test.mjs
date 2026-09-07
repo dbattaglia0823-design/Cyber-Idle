@@ -131,6 +131,7 @@ for (const operation of operations) test(`${operation.name} is clearable with eq
   let state=createInitialState(1000);
   const minimum=Math.max(districtLevelBands[operation.districtId].entryLevel,...operation.unlockRequirements.map(r=>Number(r.match(/level (\d+)/i)?.[1]??1)));
   const level=Math.min(150,minimum+10);
+  state.rpg.level = Math.min(30, 1 + Math.ceil((level - 1) / 5));
   for(const skill of Object.values(state.skills)) skill.level=level;
   updateWorldUnlocks(state);
   state.resources.reputation=1000; state.operationLeads[operation.id]=true;

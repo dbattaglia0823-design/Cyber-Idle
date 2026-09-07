@@ -48,18 +48,18 @@ export interface ItemSourceEntry {
 
 export function getItemSources(itemId: string, state: GameState): ItemSourceEntry[] {
   const sources: ItemSourceEntry[] = [];
-  if (itemId === "rpg-weapon-0") sources.push({ type: "Contract reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Journal.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
+  if (itemId === "rpg-weapon-0") sources.push({ type: "Contract reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Main > Missions.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
   allRpgMissions.forEach(mission => {
     const supply = materialSupplyActions.find(action => action.districtReq === mission.district);
     const weapon = !mission.sideGig && itemId === `rpg-weapon-${Math.min(7, mission.act + 1)}`;
     if (weapon || supply?.itemRewards?.[itemId] || itemId === "basic-med-injector" || (mission.id === rpgMissions[7].id && itemId === "rpg-afterimage-os")) {
-      sources.push({ type: "Contract reward", name: mission.title, detail: "Guaranteed mission reward. Open Journal to accept this main job or local gig.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+      sources.push({ type: "Contract reward", name: mission.title, detail: "Guaranteed mission reward. Open Main > Missions to accept this main job or local gig.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
     }
   });
   if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {
-    sources.push({ type: "Crafting recipe", name: itemId === "iconic-reflex-spine" ? "Legacy Reflex Core" : "Blacknet Processor", detail: "Assemble in Progress > Legacy. The bench lists the required skills, mastery and materials.", unlocked: state.streetLegend.rank >= (itemId === "iconic-reflex-spine" ? 20 : 30) });
+    sources.push({ type: "Crafting recipe", name: itemId === "iconic-reflex-spine" ? "Legacy Reflex Core" : "Blacknet Processor", detail: "Assemble in Main > Progress > Street Legend > Legacy. The bench lists the required skills, mastery and materials.", unlocked: state.streetLegend.rank >= (itemId === "iconic-reflex-spine" ? 20 : 30) });
   }
-  if (itemId === "iconic-exec-os") sources.push({ type: "Operation reward", name: "City of Static campaign", detail: "Guaranteed for clearing all eight campaign operations shown in Progress.", districtId: "skylineCore", unlocked: state.districts.skylineCore.unlocked });
+  if (itemId === "iconic-exec-os") sources.push({ type: "Operation reward", name: "City of Static campaign", detail: "Guaranteed for clearing all eight campaign operations shown in Main > Progress.", districtId: "skylineCore", unlocked: state.districts.skylineCore.unlocked });
   if (itemId === "boss-data-key") {
     operations.forEach(operation => sources.push({ type: "Operation reward", name: operation.name, detail: "Guaranteed 1 Boss Data Key on every successful clear.", districtId: operation.districtId, unlocked: canStartOperation(state, operation) }));
   }

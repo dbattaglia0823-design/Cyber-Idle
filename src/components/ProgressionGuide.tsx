@@ -46,7 +46,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
       <div className="runner-guide-intro">
         <span className="runner-guide-kicker"><Radio size={14} /> RUNNER NETWORK / NEXT OBJECTIVE</span>
         <h2>{next ? `Open ${next.name}` : "Own your place in the city"}</h2>
-        <p>{next ? `Reach level ${target} in any main skill. Gather local components, build your loadout, then take on the district operation.` : "Complete the eight district operations, assemble iconic gear, and begin your prestige runs."}</p>
+        <p>{next ? `Complete Main missions to open districts, or reach level ${target} in any training skill. Gather components and prepare for local operations.` : "Complete the eight district operations, assemble iconic gear, and begin your prestige runs."}</p>
         <div className="runner-guide-stats"><span><Zap size={14} /> Highest skill <b>{highest}</b></span><span><Crosshair size={14} /> Campaign <b>{campaign.cleared}/{campaign.total}</b></span></div>
       </div>
       <div className="runner-guide-meter" role="progressbar" aria-label="Next district level progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}>
@@ -80,7 +80,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
       </article>
       <article><div className="runner-guide-card-label"><Zap size={18} /><span>03 / ADVANCE</span><em>LV {skill.level}</em></div>
         <label className="runner-training-label">Train <select value={trainingSkill} onChange={event => setTrainingSkill(event.target.value as SkillId)}>{skillOrder.filter(id => id !== "combat").map(id => <option key={id} value={id}>{skillNames[id]}</option>)}</select></label>
-        <h3>{training?.name ?? "Gather required inputs"}</h3><p>{skill.level >= 150 ? "Skill complete. Prestige is available in Progress." : training ? `${Math.round(xpRate(training)).toLocaleString()} XP/min · about ${Math.max(1, Math.ceil(minutes))} min to your next level while supplied.` : "Visit an unlocked district to check action costs and requirements."}</p>
+        <h3>{training?.name ?? "Gather required inputs"}</h3><p>{skill.level >= 150 ? "Skill complete. Prestige is available in Main / Progress." : training ? `${Math.round(xpRate(training)).toLocaleString()} XP/min · about ${Math.max(1, Math.ceil(minutes))} min to your next level while supplied.` : "Visit an unlocked district to check action costs and requirements."}</p>
         <button disabled={!training || skill.level >= 150 || state.activeAction?.actionId === training.id} onClick={() => training && onStartSkill(training.id)}>{state.activeAction?.actionId === training?.id ? "Training…" : "Train best available action"}<ArrowRight size={15} /></button>
       </article>
     </div>

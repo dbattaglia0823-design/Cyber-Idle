@@ -179,7 +179,7 @@ export function estimateIncomingDamage(state: GameState, enemy: Enemy, durationM
 
 export function unlockAutoHeal(state: GameState) {
   if (state.autoHeal.unlocked) return;
-  if (state.skills.combat.level >= 5 || Object.keys(healingItems).some((id) => (state.inventory[id] ?? 0) > 0)) {
+  if (state.rpg.attributes.body >= 5 || state.rpg.perks["field-medic"] || Object.keys(healingItems).some((id) => (state.inventory[id] ?? 0) > 0)) {
     state.autoHeal.unlocked = true;
   }
 }

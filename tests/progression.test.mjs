@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { report, problems, sources } from '../scripts/audit-progression.mjs';
+import { report, problems, sources, rewardProblems, craftingRewardProblems } from '../scripts/audit-progression.mjs';
 import { recipes } from '../src/data/recipes.ts';
 import { skillActions } from '../src/data/skills.ts';
 import { materialSupplyActions } from '../src/data/materialSupply.ts';
@@ -101,4 +101,33 @@ test('districts stay unlocked after a skill reset and mastery respects its cap',
   assert.deepEqual(state.actionMastery['supply-neonRow'],{level:99,xp:0});
   assert.equal(items.find(i=>i.id==='neon-runner-legs').type,'Armor');
   assert.equal(items.find(i=>i.id==='neon-runner-legs-implant').type,'Cyberware');
+});
+
+
+test('skill loot stays within district material tiers and crafting XP follows unlock levels', () => {
+  assert.deepEqual(rewardProblems, []);
+  assert.deepEqual(craftingRewardProblems, []);
+  for (const recipe of recipes) {
+    if (['Weapons', 'Armor', 'Attachments', 'Weapon Mods', 'Upgrade Parts'].includes(recipe.category)) assert.equal(recipe.requiredSkill, 'streetcraft', recipe.id);
+    if (recipe.category === 'Consumables' && recipe.outputItemId !== 'basic-sim-cache') assert.equal(recipe.requiredSkill, 'medical', recipe.id);
+  }
+});
+
+test('legacy early equipment has timely recipes without late district ingredients', () => {
+  for (const [id, level] of [['redline-burst-pistol', 8], ['subdermal-plate-carrier', 20], ['ghoststep-joint-kit', 40], ['backroom-breacher', 40], ['impact-driver', 32]]) {
+    const recipe = recipes.find(r => r.outputItemId === id);
+    assert.equal(recipe.requiredLevel, level, id);
+    for (const material of Object.keys(recipe.inputCosts)) assert.ok(sources.get(material).level <= level, id + ': ' + material);
+  }
+});
+
+test('weapon crafting awards Streetcraft XP instead of Cyberware XP', () => {
+  let state = chooseStartingPath(createInitialState(1000), 'streetborn');
+  state.resources.scrap = 50;
+  const oldStreet = state.skills.streetcraft.xp, oldCyber = state.skills.cyberware.xp;
+  state = startCraft(state, 'recipe-street-knife', 1000);
+  assert.ok(state.activeCraft);
+  state = processCrafting(state, 1000 + state.activeCraft.durationMs);
+  assert.ok(state.skills.streetcraft.xp > oldStreet);
+  assert.equal(state.skills.cyberware.xp, oldCyber);
 });

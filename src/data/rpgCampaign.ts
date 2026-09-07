@@ -1,24 +1,25 @@
 import type { AttributeId } from "../rpgTypes";
-import type { DistrictId, StartingPathId } from "../types";
+import type { ActiveModifiers, DistrictId, StartingPathId } from "../types";
 
-export const attributeDefinitions: Array<{ id: AttributeId; name: string; description: string }> = [
-  { id: "body", name: "Body", description: "More health and stronger direct attacks. Force open assault routes." },
-  { id: "reflexes", name: "Reflexes", description: "Stronger weapon attacks and aimed shots. Strike before the counterattack." },
-  { id: "intelligence", name: "Intelligence", description: "More RAM and quickhack damage. Open netrunner routes." },
-  { id: "technical", name: "Technical", description: "Better field medicine and damage reduction. Improve your crafting efficiency." },
-  { id: "cool", name: "Cool", description: "Stronger opening attacks and cover. Open silent infiltration routes." },
+export const attributeDefinitions: Array<{ id: AttributeId; name: string; description: string; bonusDescription: string; bonuses: Partial<ActiveModifiers> }> = [
+  { id: "body", name: "Body", description: "More health, stronger direct attacks and better healing.", bonusDescription: "+2% max HP and +1% healing per point above 3.", bonuses: { combatMaxHp: 0.02, healingReceived: 0.01 } },
+  { id: "reflexes", name: "Reflexes", description: "Stronger weapon attacks and aimed shots. Strike before the counterattack.", bonusDescription: "+1% weapon damage and +0.5% attack speed per point above 3.", bonuses: { combatDamage: 0.01, combatAttackSpeed: 0.005 } },
+  { id: "intelligence", name: "Intelligence", description: "More RAM and quickhack damage. Open netrunner routes.", bonusDescription: "+1% hacking XP and +0.5% job success per point above 3. RAM and quickhack damage also scale with Intelligence.", bonuses: { skillXp: { hacking: 0.01 }, jobSuccessChance: 0.005 } },
+  { id: "technical", name: "Technical", description: "Better field medicine and damage reduction. Improve your crafting efficiency.", bonusDescription: "+1% armor, 1% lower crafting costs and 1% lower upgrade credit costs per point above 3. Each point unlocks another upgrade level.", bonuses: { combatDefense: 0.01, craftingCostReduction: 0.01, upgradeCostReduction: 0.01 } },
+  { id: "cool", name: "Cool", description: "Stronger opening attacks and cover. Open silent infiltration routes.", bonusDescription: "+0.25% damage reduction and 1% lower heat gain per point above 3.", bonuses: { damageReduction: 0.0025, heatGain: -0.01 } },
 ];
-export const rpgPerks: Array<{ id: string; name: string; attribute: AttributeId; requirement: number; description: string }> = [
-  { id: "adrenaline", name: "Adrenaline", attribute: "body", requirement: 5, description: "+30% weapon damage while below half health." },
-  { id: "second-wind", name: "Second Wind", attribute: "body", requirement: 9, description: "Recover 20% health after each encounter." },
-  { id: "deadeye", name: "Deadeye", attribute: "reflexes", requirement: 5, description: "Aimed attacks deal another 40% damage." },
-  { id: "finisher", name: "Finisher", attribute: "reflexes", requirement: 9, description: "Weapon attacks execute enemies below 25% health." },
-  { id: "ram-recycler", name: "RAM Recycler", attribute: "intelligence", requirement: 5, description: "Regenerate 2 RAM per turn instead of 1." },
-  { id: "synapse", name: "Synapse Burn", attribute: "intelligence", requirement: 9, description: "+40% quickhack damage." },
-  { id: "field-medic", name: "Field Medic", attribute: "technical", requirement: 5, description: "One extra field injector per mission." },
-  { id: "reactive-armor", name: "Reactive Armor", attribute: "technical", requirement: 9, description: "Take 20% less damage during missions." },
-  { id: "ambush", name: "Ambush", attribute: "cool", requirement: 5, description: "+60% damage on the first turn of each encounter." },
-  { id: "vanishing-point", name: "Vanishing Point", attribute: "cool", requirement: 9, description: "Taking cover also primes an aimed shot." },
+export const rpgPerks: Array<{ id: string; name: string; attribute: AttributeId; requirement: number; description: string; modifiers?: Partial<ActiveModifiers> }> = [
+  { id: "adrenaline", name: "Adrenaline", attribute: "body", requirement: 5, description: "+30% weapon damage while below half health. Also +3% weapon damage in all combat.", modifiers: { combatDamage: 0.03 } },
+  { id: "second-wind", name: "Second Wind", attribute: "body", requirement: 9, description: "Recover 20% health after each encounter. Also +5% max HP.", modifiers: { combatMaxHp: 0.05 } },
+  { id: "deadeye", name: "Deadeye", attribute: "reflexes", requirement: 5, description: "Aimed attacks deal another 40% damage. Also +3% weapon damage in all combat.", modifiers: { combatDamage: 0.03 } },
+  { id: "finisher", name: "Finisher", attribute: "reflexes", requirement: 9, description: "Weapon attacks execute enemies below 25% health. Also +3% attack speed in idle combat.", modifiers: { combatAttackSpeed: 0.03 } },
+  { id: "ram-recycler", name: "RAM Recycler", attribute: "intelligence", requirement: 5, description: "Regenerate 2 RAM per turn instead of 1. Also +5% hacking XP.", modifiers: { skillXp: { hacking: 0.05 } } },
+  { id: "synapse", name: "Synapse Burn", attribute: "intelligence", requirement: 9, description: "+40% quickhack damage. Also +2% job success.", modifiers: { jobSuccessChance: 0.02 } },
+  { id: "field-medic", name: "Field Medic", attribute: "technical", requirement: 5, description: "One extra field injector per mission. Also +10% healing received.", modifiers: { healingReceived: 0.1 } },
+  { id: "reactive-armor", name: "Reactive Armor", attribute: "technical", requirement: 9, description: "Take 20% less damage during missions. Also +5% armor.", modifiers: { combatDefense: 0.05 } },
+  { id: "ambush", name: "Ambush", attribute: "cool", requirement: 5, description: "+60% damage on the first turn of each encounter. Also 5% lower heat gain.", modifiers: { heatGain: -0.05 } },
+  { id: "vanishing-point", name: "Vanishing Point", attribute: "cool", requirement: 9, description: "Taking cover also primes an aimed shot. Also +3% damage reduction in all combat.", modifiers: { damageReduction: 0.03 } },
+  { id: "tinkerer", name: "Tinkerer", attribute: "technical", requirement: 5, description: "Unlock two extra equipment upgrade levels and reduce upgrade credit costs by 10%.", modifiers: { upgradeCostReduction: 0.1 } },
 ];
 
 export interface RpgMission {

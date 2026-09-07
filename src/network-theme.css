@@ -1,0 +1,267 @@
+/* Shared visual language for Main, the city, services, and personal terminal. */
+:root {
+  --bg: #0b0d13;
+  --panel: #10121a;
+  --panel-2: #191d29;
+  --line: #303541;
+  --text: #edf0f6;
+  --muted: #a0a6b6;
+  --cyan: #6de4ed;
+  --pink: #ff6479;
+  --amber: #f1e660;
+  --danger: #ff6479;
+  --network-yellow: #f1e660;
+  --network-red: #ff6479;
+  --page-max-width: 1440px;
+  --dashboard-max-width: 1440px;
+  --full-page-max-width: 1440px;
+}
+
+body { background: #080a10; color: var(--text); }
+.app-shell { background: transparent; }
+.app-main { width: 100%; max-width: 1440px; margin-inline: auto; }
+.app-shell button { transition: background .15s, border-color .15s, color .15s; }
+.app-shell :is(button, a, summary, input, select, textarea):focus-visible { outline: 2px solid var(--network-yellow); outline-offset: 3px; }
+.app-shell button:disabled { cursor: not-allowed; }
+.app-shell .eyebrow { color: var(--network-red); font: 10px Consolas, monospace; letter-spacing: 1.3px; line-height: 1.6; }
+.app-shell :is(.muted, .fine) { line-height: 1.65; }
+.app-shell :is(.panel, .neon-panel, .action-card, .status-panel, .category-card, .resource-card, .slot-card, .qol-card, .compact-run-card, .save-slot-card, .district-info-panel, .district-mastery-panel, .faction-reward-card, .progress-dropdown) {
+  background: #10131c;
+  border-color: var(--line);
+  border-radius: 2px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.app-shell :is(.neon-panel, .hologram-card)::after { display: none; }
+.app-shell .panel-heading { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.app-shell .panel-heading h2 { font-size: 22px; letter-spacing: -.5px; }
+.app-shell :is(.primary-button, .danger-button) { border-radius: 0; box-shadow: none; }
+.app-shell .primary-button {
+  background: var(--network-yellow); border: 1px solid var(--network-yellow); color: #151612;
+  font-size: 12px; font-weight: 750; padding: 12px 18px;
+  clip-path: polygon(0 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%);
+}
+.app-shell .primary-button:hover:not(:disabled) { background: #fff784; transform: none; }
+.app-shell :is(.secondary-button, .icon-button, .toggle-button, .details-button) { background: #171b26; border: 1px solid #3b4051; color: #c5ccda; border-radius: 2px; box-shadow: none; }
+.app-shell :is(.secondary-button, .details-button):hover:not(:disabled) { border-color: var(--network-yellow); color: var(--network-yellow); background: #f1e66009; }
+.app-shell .danger.icon-button { color: var(--network-red); border-color: #ff647955; background: #ff647910; }
+.app-shell .secondary-button.danger-text { color: var(--network-red); border-color: #ff647955; }
+.app-shell .toggle-button.active { background: #f1e66012; color: var(--network-yellow); border-color: #f1e66077; }
+.app-shell :is(input, select, textarea) { border-color: #3b4051; border-radius: 2px; background: #0b0d13; color: var(--text); }
+.app-shell :is(.status-chip, .warning-badge, .faction-badge, .reward-status-badge, .reward-category-chip) { border-radius: 2px; box-shadow: none; font: 10px Consolas, monospace; }
+.app-shell .progress-track { background: #292e3b; border: 0; border-radius: 0; box-shadow: none; }
+.app-shell .progress-fill { background: var(--network-yellow); border-radius: 0; box-shadow: none; }
+.app-shell .progress-wrap > span { color: var(--muted); font: 10px Consolas, monospace; }
+.app-shell :is(.segmented, .district-tabs, .endgame-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row) { background: #12141d; border-color: var(--line); border-radius: 0; box-shadow: none; gap: 4px; }
+.app-shell :is(.segmented, .district-tabs, .endgame-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row) > button { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; box-shadow: none; color: var(--muted); }
+.app-shell :is(.segmented, .district-tabs, .endgame-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row) > button.active { background: #f1e66008; color: var(--network-yellow); border-bottom-color: var(--network-yellow); }
+
+/* Persistent chrome stays compact while the page supplies its own hierarchy. */
+.app-shell .topbar { border-bottom: 1px solid var(--line); background: #090b12f5; box-shadow: none; gap: 20px; }
+.app-shell :is(.stat-pill, .player-level-alert, .starting-path-badge) { border-radius: 2px; box-shadow: none; border-color: var(--line); background: #10131c; }
+.app-shell .player-level-alert.has-points { border-color: #f1e66066; background: #f1e6600a; }
+.app-shell .player-level-alert span { color: var(--muted); }
+.app-shell .player-level-alert strong { color: var(--network-yellow); }
+.app-shell .player-level-alert i b, .app-shell .topbar-activity-progress b { background: var(--network-yellow); box-shadow: none; }
+.app-shell .bottom-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); background: #0b0d13f5; border-color: var(--line); }
+.app-shell .bottom-nav button { border-radius: 0; border-top: 2px solid transparent; font-size: 11px; letter-spacing: .7px; }
+.app-shell .bottom-nav button.active { color: var(--network-yellow); background: #f1e66009; border-top-color: var(--network-yellow); }
+.app-shell .tab-indicator { border-radius: 2px; background: var(--network-yellow); color: #0b0d13; }
+
+/* A shared masthead and lighter hero for secondary destinations. */
+.network-shell { min-width: 0; border: 1px solid var(--line); border-radius: 3px; background: #0b0d13; overflow: clip; }
+.network-masthead { display: flex; justify-content: space-between; gap: 16px; padding: 13px 24px; border-bottom: 1px solid var(--line); font: 10px Consolas, monospace; letter-spacing: 1px; color: var(--muted); }
+.network-masthead > span:first-child { display: flex; align-items: center; gap: 10px; }
+.network-masthead svg { color: var(--network-red); flex-shrink: 0; }
+.network-status { color: var(--cyan); white-space: nowrap; }
+.network-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; min-height: 190px; padding: 28px 32px; background-size: cover, 65%; background-position: center, right 44%; border-bottom: 1px solid #ff647948; }
+.network-header h1 { margin: 12px 0; color: var(--network-yellow); font-size: clamp(30px, 4vw, 46px); line-height: 1.08; letter-spacing: -1.5px; }
+.network-description { margin: 0; max-width: 650px; color: #b9c1d0; font-size: 13px; line-height: 1.7; }
+.network-header-actions { display: flex; flex-wrap: wrap; flex-shrink: 0; gap: 8px; }
+.network-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px; border-bottom: 1px solid var(--line); background: #12141d; }
+.network-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 14px 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.network-tabs button.active { color: var(--network-yellow); border-bottom-color: var(--network-yellow); }
+.network-tabs button:hover { color: var(--text); background: #ffffff04; }
+.network-body { padding: 26px 30px; min-width: 0; }
+.network-hero-copy { flex: 1; min-width: 0; }
+.network-hero-copy .rpg-hero-copy { max-width: 560px; }
+.district-primary-tabs small { color: var(--muted); font: 9px Consolas, monospace; white-space: nowrap; }
+.district-primary-tabs .selected small { color: var(--network-yellow); }
+.district-service-tabs { border-left: 2px solid var(--network-red); }
+.network-shell > .tab-notice-panel { margin: 18px 24px; }
+.network-disclosure { padding: 16px; border: 1px solid var(--line); background: #10131c; }
+.network-disclosure summary { cursor: pointer; color: var(--muted); font: 11px Consolas, monospace; }
+.network-disclosure[open] summary { margin-bottom: 18px; color: var(--network-yellow); }
+
+/* City selection mirrors the mission directory in Main. */
+.map-network .city-image-shell { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.map-network .city-image-header { background: #10121a; border-color: var(--line); padding: 18px 24px; }
+.map-network .city-image-header h2 { font-size: 18px; margin: 5px 0 0; }
+.city-explorer { display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+.city-map-canvas { min-width: 0; }
+.network-sidebar { background: #10121a; border-right: 1px solid var(--line); padding: 18px 0; min-width: 0; }
+.network-nav-label { margin: 20px 18px 10px; font: 9px Consolas, monospace; color: #818da3; letter-spacing: 1.4px; }
+.network-nav-label:first-child { margin-top: 0; }
+.network-sidebar button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 45px; padding: 12px 18px; background: transparent; color: #b6bfd0; border: 0; border-left: 2px solid transparent; border-radius: 0; text-align: left; font-size: 12px; cursor: pointer; }
+.network-sidebar button:hover { background: #ffffff05; color: #fff; }
+.network-sidebar button.active { background: #ff647911; border-left-color: var(--network-red); color: var(--network-yellow); }
+.network-sidebar button small { font: 9px Consolas, monospace; color: #8e9bb2; }
+.network-sidebar button svg { flex-shrink: 0; }
+.city-district-list button { min-height: 65px; }
+.city-district-list button > span { flex: 1; }
+.city-district-list strong { display: block; margin-bottom: 6px; font-size: 12px; }
+.city-district-number { width: 20px; flex-shrink: 0; font-size: 14px !important; }
+.map-network .city-image-stage { height: clamp(360px, 55vh, 650px); max-height: 650px; background: #080b12; }
+.map-network .city-map-drawer { margin: 0; padding: 22px; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; background: #10131c; backdrop-filter: none; max-height: none; }
+.map-network .drawer-grip { display: none; }
+.map-network .drawer-title-row h3 { font-size: 23px; letter-spacing: -.5px; }
+.map-network .drawer-summary-strip { margin-top: 12px; }
+.map-network :is(.drawer-summary-strip span, .district-state-badge) { border-radius: 2px; background: #191d29; border-color: var(--line); }
+.map-network .drawer-expanded { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 16px; }
+
+/* District activities sit beneath the shared hero and skill tabs. */
+.network-workspace-content { padding: 24px; min-width: 0; container-type: inline-size; }
+.network-workspace-content > * { min-width: 0; }
+.district-intel-expanded { display: grid; gap: 16px; background: #10121a; border-bottom: 1px solid var(--line); }
+.district-hub .activity-category-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.app-shell .category-card { text-align: left; border-left: 2px solid #ff64794d; }
+.app-shell .category-card:hover { border-color: var(--network-yellow); background: #f1e66006; transform: none; }
+
+/* Training guidance and all service screens follow the same restrained palette. */
+.app-shell .runner-guide { border-color: var(--line); border-radius: 2px; background: #0b0d13; box-shadow: none; }
+.app-shell .runner-guide-hero { padding: 26px; background: #10131c; border-color: var(--line); }
+.app-shell .runner-guide-hero::before { display: none; }
+.app-shell .runner-guide-kicker { color: var(--network-red); font: 10px Consolas, monospace; letter-spacing: 1.3px; }
+.app-shell .runner-guide-intro h2 { color: var(--network-yellow); font-size: clamp(24px, 3vw, 35px); letter-spacing: -1px; }
+.app-shell .runner-guide-meter circle:last-child { stroke: var(--network-yellow); }
+.app-shell .runner-route { background: #10121a; border-color: var(--line); }
+.app-shell .runner-guide-cards > article { border-color: var(--line); border-radius: 2px; background: #121620; box-shadow: none; }
+.app-shell .runner-guide-cards button { border-radius: 0; border-color: #f1e66077; color: var(--network-yellow); background: #f1e66009; }
+.app-shell .runner-guide-tags span { border-radius: 2px; background: #191d29; border-color: var(--line); }
+.app-shell :is(.market-shell, .market-screen, .ripperdoc-screen, .ripperdoc-shell, .crafting-shell, .crafting-screen, .cyberware-screen, .focused-panel, .market-main-panel, .market-detail-panel, .ripperdoc-list-panel, .ripperdoc-detail-panel) { border-color: var(--line); border-radius: 2px; background-color: #10131c; box-shadow: none; }
+.app-shell :is(.market-header, .market-sign, .ripperdoc-header, .crafting-header) { border-color: var(--line); background: #12141d; box-shadow: none; }
+.app-shell :is(.market-item-row, .ripperdoc-item-row, .crafting-recipe-row, .inventory-slot) { border-radius: 2px; box-shadow: none; }
+.app-shell :is(.crafting-recipe-tile, .crafting-detail-panel, .inventory-sort-cycle, .inventory-sort-direction, .item-index-tile) { border-radius: 2px; border-color: var(--line); background: #151923; box-shadow: none; }
+.app-shell :is(.crafting-recipe-tile.active, .inventory-slot.active, .item-index-tile.active) { border-color: var(--network-yellow); background: #f1e66009; }
+.app-shell .crafting-recipe-tile.running { border-left: 3px solid var(--cyan); }
+.app-shell .crafting-recipe-tile:is(.locked-card, .missing-card) { border-color: #ff64794d; }
+.app-shell .crafting-recipe-tile.craftable-card:not(.active) { border-color: #6de4ed55; }
+.app-shell :is(.inventory-sort-cycle, .inventory-sort-direction):hover { border-color: var(--network-yellow); color: var(--network-yellow); }
+.app-shell .crafting-recipe-tile strong { line-height: 1.4; }
+.app-shell .crafting-recipe-tile em { white-space: normal; line-height: 1.5; }
+.app-shell :is(.market-item-row, .ripperdoc-item-row, .crafting-recipe-row).active { border-color: var(--network-yellow); background: #f1e66009; }
+.app-shell :is(.ripperdoc-shop-card, .ripperdoc-service-card, .market-item-card) { border-color: var(--line); border-radius: 2px; background: #151923; box-shadow: none; }
+.app-shell :is(.ripperdoc-shop-card, .ripperdoc-service-card, .market-item-card).selected { border-color: var(--network-yellow); background: #f1e66009; }
+.app-shell :is(.terminal-log, .combat-log, .recent-log) { background: #080a10; border-color: var(--line); border-radius: 2px; color: #9eacc2; }
+.app-shell :is(.combat-area-header, .active-combat-panel, .combat-panel, .operations-hero, .operations-sidebar, .operation-section, .operation-card, .operation-boss-card) { border-color: var(--line); border-radius: 2px; background: #10131c; box-shadow: none; }
+.app-shell :is(.market-resource-strip, .ripperdoc-status-bar, .operations-resource-strip, .combat-summary-strip) > span,
+.app-shell .market-info-grid article { border-color: var(--line); border-radius: 2px; background: #151923; box-shadow: none; }
+.app-shell :is(.market-resource-strip, .ripperdoc-status-bar, .operations-resource-strip) b { color: var(--muted); font: 9px Consolas, monospace; }
+.app-shell .sim-cache-menu { border-color: var(--line); border-radius: 3px; background: #10131c; }
+.app-shell .sim-cache-button { border-radius: 2px 0 0 2px; border-color: var(--line); background: #10131c; color: var(--muted); box-shadow: none; }
+.app-shell .sim-cache-button.ready { border-color: #f1e66077; color: var(--network-yellow); }
+.app-shell :is(.progress-dropdown, .district-return-goals) > summary { color: #c5ccda; background: #121620; border-color: var(--line); }
+
+/* Dialogs, notices, and the character selection flow are part of the same game. */
+:is(.source-popover-panel, .info-popover-panel, .offline-recap-modal, .reward-popup, .sim-menu-panel) { border-radius: 3px; border-color: #414555; background: #10131c; box-shadow: 0 18px 50px #0008; color: var(--text); }
+.app-shell :is(.path-choice-card, .path-save-slots, .path-lockbar, .path-selected-chip) { border-color: var(--line); border-radius: 3px; background-color: #10131c; box-shadow: none; }
+.app-shell .path-choice-card:hover, .app-shell .path-choice-card.selected { border-color: var(--network-yellow); box-shadow: none; }
+.app-shell .path-hero h1 { color: var(--network-yellow); letter-spacing: -1.5px; }
+
+@container (max-width: 800px) {
+  .network-workspace-content :is(.market-layout, .ripperdoc-workspace, .crafting-workbench-layout, .operations-layout, .operations-hero, .operation-card-grid, .operation-section.split) { grid-template-columns: minmax(0, 1fr); }
+  .network-workspace-content :is(.market-header, .ripperdoc-header) { grid-template-columns: auto minmax(0, 1fr); }
+  .network-workspace-content :is(.market-header-badges, .ripperdoc-tag-row) { grid-column: 1 / -1; justify-content: flex-start; }
+  .network-workspace-content :is(.market-detail-panel, .ripperdoc-detail-panel, .crafting-detail-panel, .operations-sidebar) { position: static; }
+  .network-workspace-content .card-list.compact { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+}
+
+@media (max-width: 1050px) {
+  .network-header { background-size: cover, 100%; }
+  .city-explorer { grid-template-columns: 205px minmax(0, 1fr); }
+  .network-workspace-content { padding: 18px; }
+  .network-header-actions { flex-shrink: 1; }
+  .app-shell .topbar { gap: 12px; }
+}
+@media (max-width: 760px) {
+  .map-network > .rpg-section-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .district-primary-tabs button { flex-wrap: wrap; }
+  .district-primary-tabs small { width: 100%; }
+  .network-masthead { padding: 12px 16px; font-size: 8px; letter-spacing: .5px; }
+  .network-masthead .network-status { display: none; }
+  .network-header { min-height: 165px; padding: 24px 18px; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .network-header h1 { font-size: 32px; }
+  .network-tabs { gap: 0; padding: 0 8px; }
+  .network-tabs button { flex: 1 0 auto; min-height: 46px; padding: 12px 10px; font-size: 11px; }
+  .menu-network .network-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .network-body { padding: 18px 14px; }
+  .city-explorer { grid-template-columns: minmax(0, 1fr); }
+  .city-district-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .city-district-list .network-nav-label { grid-column: 1 / -1; }
+  .city-district-list button { padding: 10px; min-height: 58px; gap: 7px; }
+  .city-district-list strong { font-size: 11px; }
+  .map-network .city-image-stage { min-height: 310px; height: 46vh; }
+  .city-map-canvas { display: flex; flex-direction: column; }
+  .map-network .city-map-drawer { order: -1; }
+  .map-network .city-map-drawer { padding: 18px 14px; }
+  .map-network .drawer-primary { grid-template-columns: minmax(0, 1fr); }
+  .map-network .drawer-actions { flex-wrap: wrap; }
+  .network-workspace-content { padding: 18px 12px; }
+  .app-shell :is(.market-tabs, .ripperdoc-tabs, .inventory-filter-row, .district-tabs, .endgame-tabs) > button { min-height: 44px; }
+  .app-shell .runner-guide-hero { padding: 20px 16px; }
+}
+@media (max-width: 520px) {
+  .rpg-shell > .rpg-hero { flex-direction: column; align-items: stretch; }
+  .rpg-shell .network-hero-copy h1 { font-size: clamp(32px, 8vw, 39px); }
+  .rpg-shell .rpg-hero-location { width: 100%; margin-top: 14px; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
+  .rpg-shell .rpg-hero-location > strong { grid-column: 2; grid-row: 1 / 3; margin: 0; align-self: center; }
+  .rpg-shell .rpg-hero-location .rpg-bar { grid-column: 1; }
+  .rpg-shell .rpg-hero-location > p { grid-column: 1 / -1; margin-top: 0; font-size: 8px; }
+  .rpg-shell .rpg-hero-location > span { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell button { transition: none; }
+}
+
+/* Character: one workspace for equipped items, stash and progression. */
+.runner-summary { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 22px; border: 1px solid var(--line); background: linear-gradient(110deg, #1c2027, #10131c); }
+.runner-identity { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.runner-identity img { width: 66px; height: 76px; object-fit: cover; object-position: top; border: 1px solid var(--line); }
+.runner-identity h2 { margin: 4px 0; font-size: 24px; color: var(--network-yellow); }
+.runner-identity p { margin: 0; }
+.runner-vitals { display: grid; grid-template-columns: repeat(4, auto); gap: 24px; }
+.runner-vitals span { color: var(--muted); font: 10px Consolas, monospace; }
+.runner-vitals strong { display: block; color: var(--text); font: 600 20px / 1.8 system-ui, sans-serif; white-space: nowrap; }
+.app-shell .runner-workspace > .character-tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--line); }
+.app-shell .runner-workspace > .character-tabs button { display: flex; align-items: center; gap: 8px; padding: 14px 18px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.app-shell .runner-workspace > .character-tabs button.active { color: var(--network-yellow); border-bottom-color: var(--network-yellow); background: #f1e66008; }
+.runner-tab-count { padding: 2px 5px; background: var(--network-yellow); color: #090b10; font-size: 10px; }
+.runner-stash-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.runner-stash-layout > * { min-width: 0; }
+.runner-equipment .slot-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
+.app-shell .runner-equipment .slot-card { text-align: left; min-height: 125px; align-content: start; border-radius: 2px; background: #151923; }
+.app-shell .runner-equipment .slot-card.active { border-color: var(--network-yellow); background: #f1e66009; }
+.runner-equipment .slot-card small { color: var(--muted); }
+.runner-search { display: grid; gap: 8px; margin: 16px 0; color: var(--muted); font-size: 12px; }
+.runner-search input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--line); border-radius: 2px; background: #090c12; color: var(--text); padding: 12px; }
+.runner-search input:focus-visible { outline: 2px solid var(--network-yellow); outline-offset: 2px; }
+.runner-slot-filter { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--network-yellow); font-size: 12px; }
+.runner-wallet { margin: 12px 0; }
+.runner-wallet summary { cursor: pointer; padding: 10px 0; }
+.runner-stash .item-slot-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 120px), 1fr)); max-height: 560px; overflow-y: auto; padding: 3px; align-content: start; }
+.runner-stash .inventory-slot { min-width: 0; overflow-wrap: anywhere; }
+.runner-item-inspector { position: sticky; top: 96px; }
+.runner-item-inspector .card-list.compact { grid-template-columns: repeat(auto-fit, minmax(min(100%, 135px), 1fr)); }
+.runner-item-inspector .inventory-detail { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 1100px) {
+  .runner-summary { flex-direction: column; align-items: stretch; gap: 20px; }
+  .runner-vitals { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+}
+@media (max-width: 760px) {
+  .runner-summary { padding: 16px; }
+  .runner-vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .runner-stash-layout { grid-template-columns: minmax(0, 1fr); }
+  .runner-item-inspector { position: static; }
+  .runner-stash .item-slot-grid { max-height: 340px; }
+  .app-shell .runner-workspace > .character-tabs button { flex: 1 0 auto; padding: 12px; font-size: 12px; }
+}

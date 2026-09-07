@@ -1,3 +1,4 @@
+import { upgradeTechnicalRequirement } from "./runnerProgression";
 import { getItem } from "../data/items";
 import { recipes } from "../data/recipes";
 import { removeItem } from "./collectionSystem";
@@ -11,7 +12,7 @@ export function upgradeItem(state: GameState, itemId: string) {
   const item = getItem(itemId);
   const current = state.upgradeLevels[itemId] ?? 0;
   if (!item?.maxUpgradeLevel || current >= item.maxUpgradeLevel) return state;
-  if (item.requiredSkill && state.skills[item.requiredSkill].level < Math.max(1, current + 1)) return state;
+  if (state.rpg.attributes.technical < upgradeTechnicalRequirement(state, current + 1)) return state;
   const cost = itemUpgradeCost(state, itemId);
   if (!canAffordItemUpgrade(state, itemId)) return state;
   const next = cloneState(state);
@@ -62,7 +63,7 @@ export function canAffordItemUpgrade(state: GameState, itemId: string) {
   const current = state.upgradeLevels[itemId] ?? 0;
   if (!item?.maxUpgradeLevel || current >= item.maxUpgradeLevel) return false;
   if ((state.inventory[itemId] ?? 0) <= 0) return false;
-  if (item.requiredSkill && state.skills[item.requiredSkill].level < Math.max(1, current + 1)) return false;
+  if (state.rpg.attributes.technical < upgradeTechnicalRequirement(state, current + 1)) return false;
   const cost = itemUpgradeCost(state, itemId);
   return Object.entries(cost).every(([id, amount]) => {
     if (id in state.resources) return state.resources[id as keyof typeof state.resources] >= amount;

@@ -1,3 +1,4 @@
+import { runnerCombatLevel } from "./runnerProgression";
 import { balanceConfig } from "../data/balanceConfig";
 import { getItem } from "../data/items";
 import { factionRank, getActiveModifiers } from "./modifiers";
@@ -33,19 +34,19 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
     },
     { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0 },
   );
-  const rawMaxHp = balanceConfig.combat.baseMaxHp + state.skills.combat.level * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
+  const rawMaxHp = balanceConfig.combat.baseMaxHp + runnerCombatLevel(state) * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
   const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs;
   return {
     maxHp: Math.round(rawMaxHp * (1 + modifiers.combatMaxHp)),
     damage: Math.round(
       (balanceConfig.combat.baseDamage +
-        state.skills.combat.level * balanceConfig.combat.damagePerCombatLevel +
+        runnerCombatLevel(state) * balanceConfig.combat.damagePerCombatLevel +
         gearStats.damage +
         (!state.equippedGear.weapon && weaponClass === "bluntWeapons" ? classBonus.unarmedDamage : 0)) *
         (1 + modifiers.combatDamage + classBonus.damage),
     ),
     attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(rawAttackSpeed * (1 - Math.min(0.45, modifiers.combatAttackSpeed)))),
-    armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(state.skills.combat.level / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
+    armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(runnerCombatLevel(state) / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
   };
 }
 
@@ -234,6 +235,7 @@ export function calculateRarityShopBasePrice(item: ItemDefinition) {
     Relic: 13,
   };
   const typeBase: Record<ItemDefinition["type"], number> = {
+    Quickhack: 120,
     Resource: 0,
     Material: 120,
     Component: 80,
@@ -262,7 +264,7 @@ export function calculateSellValue(state: GameState, item: ItemDefinition, modif
 export function calculateUpgradeCost(state: GameState, item: ItemDefinition, level: number) {
   const rarity = balanceConfig.economy.rarityMultiplier[item.rarity];
   const tier = item.tier ?? 1;
-  const reduction = item.type === "Cyberware" ? getActiveModifiers(state).upgradeCostReduction + getActiveModifiers(state).craftingCostReduction : getActiveModifiers(state).upgradeCostReduction;
+  const reduction = getActiveModifiers(state).upgradeCostReduction;
   return Math.max(1, Math.round(balanceConfig.economy.upgradeBaseCredits * rarity * tier * Math.pow(level + 1, balanceConfig.economy.upgradeLevelExponent) * (1 - Math.min(0.65, reduction))));
 }
 

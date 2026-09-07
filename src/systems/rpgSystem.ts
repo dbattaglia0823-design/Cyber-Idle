@@ -1,3 +1,4 @@
+import { equippedDeck, grantStarterQuickhacks, installedQuickhacks } from "./quickhackSystem";
 import { allRpgMissions, rpgMissions, rpgPerks, type RpgMission } from "../data/rpgCampaign";
 import { getItem } from "../data/items";
 import { materialSupplyActions } from "../data/materialSupply";
@@ -33,6 +34,7 @@ export function claimFieldKit(state: GameState) {
   if (!state.startingPath || state.rpg.starterClaimed) return state;
   const next = cloneState(state);
   next.rpg.starterClaimed = true;
+  grantStarterQuickhacks(next);
   addItem(next, "rpg-weapon-0"); addItem(next, "padded-street-vest"); addItem(next, "basic-med-injector", 5);
   if (!next.equippedGear.weapon) next.equippedGear.weapon = "rpg-weapon-0";
   if (!next.equippedGear.chest) next.equippedGear.chest = "padded-street-vest";
@@ -94,7 +96,7 @@ export function chooseMissionApproach(state: GameState, approach: MissionApproac
   return next;
 }
 
-export function maxRam(state: GameState) { return 5 + Math.floor(state.rpg.attributes.intelligence / 2) + (state.equippedCyberware.operatingSystem ? 2 : 0); }
+export function maxRam(state: GameState) { const deck = equippedDeck(state); return deck ? 5 + Math.floor(state.rpg.attributes.intelligence / 2) + Math.min(6, (deck.tier ?? 1) + 1) : 0; }
 export function tacticalStats(state: GameState) {
   const a = state.rpg.attributes, weapon = state.equippedGear.weapon && getItem(state.equippedGear.weapon);
   const gear = weapon ? Math.min(22, Math.sqrt(scaledStats(state, weapon.id).damage ?? 0) * 2) : 0;
@@ -103,8 +105,8 @@ export function tacticalStats(state: GameState) {
   return {
     damage: Math.round((20 + a.body * 0.8 + a.reflexes + state.rpg.level * 1.5 + gear) * (1 + Math.min(0.5, modifiers.combatDamage))),
     hack: Math.round((19 + a.intelligence * 3 + state.rpg.level) * (state.rpg.perks.synapse ? 1.4 : 1)),
-    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + Math.min(0.2, armor * 0.004) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
-    heal: Math.min(0.75, 0.35 + a.technical * 0.015),
+    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + Math.min(0.2, armor * (1 + modifiers.combatDefense) * 0.004) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
+    heal: Math.min(0.75, (0.35 + a.technical * 0.015) * (1 + modifiers.healingReceived)),
   };
 }
 export function enemyIntent(state: GameState) {
@@ -114,8 +116,7 @@ export function enemyIntent(state: GameState) {
 export function canUseTactic(state: GameState, action: TacticalAction) {
   const e = state.rpg.active;
   if (!e || e.phase !== "combat") return false;
-  if (action === "hack") return e.ram >= 2;
-  if (action === "disrupt") return e.ram >= 4;
+  if (["hack", "disrupt", "burnout"].includes(action)) { const hack = installedQuickhacks(state).find(h => h.action === action); return Boolean(hack && e.ram >= hack.ram); }
   if (action === "heal") return e.meds > 0 && state.health.currentHp < calculateMaxHP(state);
   if (action === "overclock") return e.ram < maxRam(state);
   return ["attack", "aim", "cover"].includes(action);
@@ -132,10 +133,11 @@ export function performTactic(state: GameState, action: TacticalAction) {
     if (next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * 0.25) damage = e.enemyHp;
     e.aimed = false;
   }
-  if (action === "hack" || action === "disrupt") {
-    e.ram -= action === "hack" ? 2 : 4;
-    damage = stats.hack * (action === "disrupt" ? 0.55 : 1) * (e.approach === "netrunner" ? 1.35 : 1);
-    stun = action === "disrupt";
+  if (action === "hack" || action === "disrupt" || action === "burnout") {
+    const hack = installedQuickhacks(next).find(h => h.action === action)!;
+    e.ram -= hack.ram;
+    damage = stats.hack * hack.multiplier * (e.approach === "netrunner" ? 1.35 : 1);
+    stun = hack.interrupt;
   }
   if (action === "aim") { e.aimed = true; cover = true; }
   if (action === "cover") { cover = true; if (next.rpg.perks["vanishing-point"]) e.aimed = true; }
@@ -144,7 +146,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if (e.turn === 0 && next.rpg.perks.ambush) damage *= 1.6;
   damage = Math.round(damage);
   e.enemyHp = Math.max(0, e.enemyHp - damage);
-  const labels: Record<TacticalAction, string> = { attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", heal: "Used field injector", overclock: "Recovered RAM from cover" };
+  const labels: Record<TacticalAction, string> = { attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", burnout: "Synapse Burnout", heal: "Used field injector", overclock: "Recovered RAM from cover" };
   e.log.push(`${labels[action]}${damage ? `: ${damage} damage` : ""}.`);
   if (e.enemyHp <= 0) {
     e.log.push(`${mission.enemies[e.enemyIndex]} neutralized.`);
@@ -204,7 +206,8 @@ export function resolveRpgMission(state: GameState, choiceId: string) {
   }
   if (next.rpg.level >= 30) next.rpg.xp = 0;
   const supply = materialSupplyActions.find(action => action.districtReq === mission.district);
-  const loot = { ...supply?.itemRewards, "basic-med-injector": 2 };
+  const loot: Record<string, number> = { ...supply?.itemRewards, "basic-med-injector": 2 };
+  if (mission.act >= 2 && !state.inventory["quickhack-synapse-burnout"]) loot["quickhack-synapse-burnout"] = 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
   if (!mission.sideGig) {
     const weaponId = `rpg-weapon-${Math.min(7, mission.act + 1)}`;

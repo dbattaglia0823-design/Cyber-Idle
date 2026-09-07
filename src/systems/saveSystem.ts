@@ -1,3 +1,5 @@
+import { grantStarterQuickhacks } from "./quickhackSystem";
+import { spentPerkPoints } from "./perkSystem";
 import { startingResources } from "../data/resources";
 import { normalizeRpgState } from "./rpgState";
 import { createInitialState, normalizeLogEntries, SAVE_VERSION } from "./gameState";
@@ -252,6 +254,15 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     offlineRecap: saved.offlineRecap ?? null,
     lastSavedAt: saved.lastSavedAt ?? Date.now(),
   };
+  // Transfer legacy character investment once, before recalculating health.
+  if (!saved.rpg?.attributeProgressionVersion) {
+    const runnerLevel = Math.min(30, Math.max(normalized.rpg.level, 1 + Math.ceil((normalized.skills.combat.level - 1) / 5)));
+    const gained = runnerLevel - normalized.rpg.level;
+    normalized.rpg.level = runnerLevel;
+    normalized.rpg.attributePoints = Math.min(65, normalized.rpg.attributePoints + gained * 2);
+    normalized.rpg.perkPoints = Math.min(31, normalized.rpg.perkPoints + gained + spentPerkPoints(normalized));
+    normalized.rpg.attributeProgressionVersion = 1;
+  }
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
   normalized.health.currentHp = Math.max(0, Math.min(maxHp, Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp));
@@ -272,5 +283,6 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
       normalized.discoveredItems[`${id}-implant`] = true;
     }
   }
+  if (normalized.rpg.starterClaimed && !saved.rpg?.quickhackVersion) grantStarterQuickhacks(normalized);
   return normalized;
 }

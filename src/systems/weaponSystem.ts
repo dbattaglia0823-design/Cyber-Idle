@@ -37,7 +37,7 @@ export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, x
 }
 
 export function weaponClassBonus(state: GameState, weaponClass: WeaponClassId) {
-  const level = state.weaponClasses[weaponClass]?.level ?? 1;
+  const level = state.rpg.attributes[weaponClass === "bluntWeapons" || weaponClass === "heavyWeapons" ? "body" : weaponClass === "smartWeapons" ? "intelligence" : "reflexes"] - 3;
   return {
     damage: Math.floor(level / 5) * 0.01,
     unarmedDamage: weaponClass === "bluntWeapons" ? Math.floor(level / 4) : 0,

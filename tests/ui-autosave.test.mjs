@@ -62,5 +62,9 @@ test('new game and saved character render through the actual application entry p
   const playing = renderToStaticMarkup(createElement(App));
   assert.match(playing, /Afterimage RPG/);
   assert.match(playing, /Claim field kit/);
+  const primary = playing.match(/<nav class="bottom-nav"[^>]*>(.*?)<\/nav>/s)?.[1];
+  assert.ok(primary);
+  assert.deepEqual([...primary.matchAll(/<span>(.*?)<\/span>/g)].map(match => match[1]), ['Map', 'Main', 'Menu']);
+  assert.equal((primary.match(/<button /g) ?? []).length, 3);
   assert.doesNotMatch(playing, /NaN|undefined/);
 });

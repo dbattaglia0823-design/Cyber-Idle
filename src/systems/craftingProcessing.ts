@@ -70,7 +70,7 @@ export function completeCraft(state: GameState, recipe: CraftingRecipe, masteryE
   const masteryXp = Math.round(recipe.masteryXpReward * masteryEfficiency * (1 + getActiveModifiers(state).masteryXpGain));
   const masteryUps = addMasteryXp(state, recipe.id, masteryXp);
   addMasteryPoolXp(state, recipe.requiredSkill, Math.ceil(masteryXp * 0.25));
-  addDistrictMasteryXp(state, recipeDistrict(recipe), "craft", Math.max(3, Math.round(recipe.xpReward * 0.25)));
+  addDistrictMasteryXp(state, recipeDistrict(recipe), "craft", Math.max(3, Math.round(recipe.masteryXpReward * 0.55)));
   if (markManual) markRecipeManual(state, recipe.id);
   updateWorldUnlocks(state);
   pushCategorizedLog(state, "Skill", `Crafted ${recipe.name}: +${recipe.xpReward} ${recipe.requiredSkill} XP.`);

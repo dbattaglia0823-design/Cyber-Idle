@@ -16,5 +16,5 @@ export const rpgIconic: ItemDefinition = {
   type: "Cyberware", rarity: "Legendary", slot: "operatingSystem", requiredSkill: "cyberware", requiredLevel: 1,
   tags: ["cyberware", "iconic", "campaign"], stackable: false, sellValue: 3000, instabilityLoad: 5,
   modifiers: { combatMaxHp: 0.15, combatDamage: 0.1, skillRewards: 0.05 },
-  sourceHint: "Finish the Afterimage main story in Journal. Usable immediately after the finale.",
+  sourceHint: "Finish the Afterimage main story in Main > Missions. Usable immediately after the finale.",
 };

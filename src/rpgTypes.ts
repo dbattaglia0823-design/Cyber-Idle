@@ -1,6 +1,6 @@
 export type AttributeId = "body" | "reflexes" | "intelligence" | "technical" | "cool";
 export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
-export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "heal" | "overclock";
+export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock";
 export interface RpgEncounter {
   missionId: string;
   phase: "briefing" | "combat" | "decision" | "failed";
@@ -15,6 +15,9 @@ export interface RpgEncounter {
   log: string[];
 }
 export interface RpgState {
+  quickhackVersion?: number;
+  quickhackLoadouts?: Record<string, string[]>;
+  attributeProgressionVersion?: number;
   level: number;
   xp: number;
   attributes: Record<AttributeId, number>;

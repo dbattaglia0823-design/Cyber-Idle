@@ -1,3 +1,4 @@
+import { meetsItemAttributeRequirement } from "./runnerProgression";
 import { getItem } from "../data/items";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -6,8 +7,9 @@ import type { CyberwareSlot, GameState, GearSlot } from "../types";
 
 export function equipItem(state: GameState, itemId: string) {
   const item = getItem(itemId);
+  if (state.rpg.active && item?.slot === "operatingSystem") return state;
   if (!item || !item.slot || (state.inventory[itemId] ?? 0) <= 0) return state;
-  if (item.requiredSkill && state.skills[item.requiredSkill].level < (item.requiredLevel ?? 1)) return state;
+  if (!meetsItemAttributeRequirement(state, item)) return state;
   const next = cloneState(state);
 
   if (item.type === "Cyberware") {
@@ -32,6 +34,7 @@ export function unequipGear(state: GameState, slot: GearSlot) {
 }
 
 export function unequipCyberware(state: GameState, slot: CyberwareSlot) {
+  if (state.rpg.active && slot === "operatingSystem") return state;
   const itemId = state.equippedCyberware[slot];
   if (!itemId) return state;
   const next = cloneState(state);

@@ -1,3 +1,4 @@
+import { trainingXpPerSecond } from "./progressionPacing";
 import type { CraftingRecipe } from "../types";
 import { armorSpecs } from "./armor";
 import { cyberwareSpecs } from "./cyberware";
@@ -48,7 +49,7 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-neural-stabilizer", "Neural Stabilizer", "Consumables", 3, { encryptedData: 2, "neural-connector": 1 }, "neural-stabilizer", 1, 8000, 28),
   recipe("recipe-advanced-med-injector", "Advanced Med Injector", "Consumables", 8, { "medical-gel": 2, "neural-connector": 1, cyberwareParts: 2 }, "advanced-med-injector", 1, 12000, 44),
   recipe("recipe-emergency-reboot-kit", "Emergency Reboot Kit", "Consumables", 16, { "medical-gel": 4, "precision-parts": 2, "neural-connector": 2 }, "emergency-reboot-kit", 1, 24000, 95),
-  recipe("recipe-basic-sim-cache", "Basic Sim Cache", "Consumables", 4, { encryptedData: 3, circuitBoards: 1 }, "basic-sim-cache", 1, 10000, 32),
+  recipe("recipe-basic-sim-cache", "Basic Sim Cache", "Consumables", 4, { encryptedData: 3, circuitBoards: 1 }, "basic-sim-cache", 1, 10000, 32, undefined, undefined, "hacking"),
   recipe("recipe-precision-grip", "Precision Grip Actuators", "Cyberware", 5, { "cyberware-frame": 1, "neural-connector": 1, cyberwareParts: 6 }, "precision-grip-actuators", 1, 15000, 64, "bp-precision-grip"),
   recipe("recipe-stabilized-buffer", "Stabilized Neural Buffer", "Cyberware", 6, { "neural-connector": 2, encryptedData: 6, cyberwareParts: 4 }, "stabilized-neural-buffer", 1, 17000, 72, "bp-stabilized-buffer"),
   recipe("recipe-dampener-weave", "Dampener Weave", "Cyberware", 8, { "cyberware-frame": 1, "neural-dampener": 1, cyberwareParts: 5 }, "dampener-weave", 1, 18000, 78, "neural-dampener-blueprint"),
@@ -117,6 +118,9 @@ for (let pass = 0; pass < recipes.length; pass += 1) {
   }
   if (!changed) break;
 }
+// Crafting grants 60% of the same-level training rate, plus the crafted item.
+// Keep mastery rewards independent of this skill-XP rebalance.
+for (const entry of recipes) entry.xpReward = Math.max(entry.xpReward, Math.round(trainingXpPerSecond(entry.requiredLevel) * entry.durationMs / 1000 * 0.6));
 recipes.sort(sortRecipes);
 
 function blueprintRecipes(): CraftingRecipe[] {
@@ -137,7 +141,7 @@ function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
   return a.requiredLevel - b.requiredLevel || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
 }
 
-function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = "cyberware"): CraftingRecipe {
+function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = category === "Weapons" || category === "Armor" || category === "Attachments" || category === "Weapon Mods" || category === "Upgrade Parts" ? "streetcraft" : category === "Consumables" ? "medical" : "cyberware"): CraftingRecipe {
   return {
     id,
     name,
@@ -168,7 +172,7 @@ function expandedEquipmentRecipes(): CraftingRecipe[] {
     recipe("recipe-street-runner-pants", "Street Runner Pants", "Armor", 1, { scrap: 5, "grip-polymer": 1 }, "street-runner-pants", 1, 5400, 17),
     recipe("recipe-reinforced-treads", "Reinforced Treads", "Armor", 4, { scrap: 10, "rust-plated-frame": 1 }, "reinforced-treads", 1, 9200, 32),
     recipe("recipe-patchwork-combat-helm", "Patchwork Combat Helm", "Armor", 5, { scrap: 12, "armorPlating": 1, "circuit-bundle": 1 }, "patchwork-combat-helm", 1, 9800, 34),
-    recipe("recipe-subdermal-plate-carrier", "Subdermal Plate Carrier", "Armor", 16, { "armorPlating": 3, "rust-plated-frame": 1, "cyberware-frame": 1 }, "subdermal-plate-carrier", 1, 20000, 82, "bp-corporate-cyberware"),
+    recipe("recipe-subdermal-plate-carrier", "Subdermal Plate Carrier", "Armor", 16, { "armorPlating": 3, "rust-plated-frame": 1, "cyberware-frame": 1 }, "subdermal-plate-carrier", 1, 20000, 82, "bp-scavenger-rig"),
     recipe("recipe-servo-lined-gloves", "Servo-Lined Gloves", "Armor", 15, { "salvaged-servo": 2, "grip-polymer": 3, "precision-parts": 1 }, "servo-lined-gloves", 1, 18000, 72),
     recipe("recipe-silent-step-boots", "Silent Step Boots", "Armor", 16, { "smuggler-seal": 1, "grip-polymer": 4, "suppressor-baffles": 2 }, "silent-step-boots", 1, 19000, 76),
     recipe("recipe-chromeweave-armor", "Chromeweave Armor", "Armor", 30, { "glassline-alloy": 3, "bioware-thread": 2, "armorPlating": 5 }, "chromeweave-armor", 1, 36000, 150, "bp-corporate-cyberware"),
@@ -176,7 +180,7 @@ function expandedEquipmentRecipes(): CraftingRecipe[] {
 
     recipe("recipe-compact-holdout", "Compact Holdout", "Weapons", 1, { scrap: 5, "weapon-frame": 1 }, "compact-holdout", 1, 6200, 19),
     recipe("recipe-sprayline-smg", "Sprayline SMG", "Weapons", 2, { "weapon-frame": 1, "barrel-assembly": 1, "redline-wire": 1 }, "sprayline-smg", 1, 9200, 32),
-    recipe("recipe-redline-burst-pistol", "Redline Burst Pistol", "Weapons", 8, { "weapon-frame": 1, "redline-trigger-kit": 1, "precision-parts": 2 }, "redline-burst-pistol", 1, 15000, 58),
+    recipe("recipe-redline-burst-pistol", "Redline Burst Pistol", "Weapons", 8, { "weapon-frame": 1, "urban-reflex-chip": 2, "precision-parts": 2 }, "redline-burst-pistol", 1, 15000, 58),
     recipe("recipe-swarmtag-carbine", "Swarmtag Carbine", "Weapons", 20, { "weapon-frame": 1, "smartlink-chip": 2, "drone-motor": 2, "barrel-assembly": 1 }, "swarmtag-carbine", 1, 24000, 98, "bp-blacknet-tool"),
     recipe("recipe-coil-lance", "Coil Lance", "Weapons", 24, { "weapon-frame": 1, "barrel-assembly": 2, "security-override-chip": 1, "glassline-alloy": 2 }, "coil-lance", 1, 28000, 110, "bp-corporate-cyberware"),
     recipe("recipe-yard-lmg", "Yard LMG", "Weapons", 28, { "weapon-frame": 2, "barrel-assembly": 3, "chrome-jackal-gearset": 1, "armorPlating": 3 }, "yard-lmg", 1, 32000, 126, "bp-scavenger-rig"),
@@ -188,7 +192,7 @@ function expandedEquipmentRecipes(): CraftingRecipe[] {
     recipe("recipe-salvage-filter", "Salvage Filter", "Cyberware", 7, { "cyberware-frame": 1, "neon-circuit-fragment": 2, "drone-recovery-kit": 1 }, "salvage-filter", 1, 15000, 62),
     recipe("recipe-trace-buffer-os", "Trace Buffer OS", "Cyberware", 12, { "neural-connector": 1, "trace-scrambler-chip": 1, encryptedData: 8 }, "trace-buffer-os", 1, 19000, 80, "bp-blacknet-tool"),
     recipe("recipe-weakpoint-analyzer", "Weakpoint Analyzer", "Cyberware", 18, { "optic-lens": 2, "drone-eye": 1, "smartlink-chip": 1 }, "weakpoint-analyzer", 1, 23000, 94, "bp-precision-grip"),
-    recipe("recipe-ghoststep-joint-kit", "Ghoststep Joint Kit", "Cyberware", 24, { "salvaged-servo": 2, "smuggler-seal": 1, "trace-scrambler-chip": 1 }, "ghoststep-joint-kit", 1, 27000, 112),
+    recipe("recipe-ghoststep-joint-kit", "Ghoststep Joint Kit", "Cyberware", 24, { "salvaged-servo": 2, "smuggler-seal": 1, "contraband-chip": 2 }, "ghoststep-joint-kit", 1, 27000, 112),
     recipe("recipe-adaptive-skin-plating", "Adaptive Skin Plating", "Cyberware", 44, { "stabilized-chrome-frame": 1, "glassline-alloy": 3, "neural-dampener": 2 }, "adaptive-skin-plating", 1, 46000, 190, "bp-corporate-cyberware"),
     recipe("recipe-ghostline-command-os", "Ghostline Command OS", "Cyberware", 68, { "prototype-neural-core": 1, "daemon-fragment": 3, "encrypted-memory-stack": 4, "blacknet-cipher": 2 }, "ghostline-command-os", 1, 72000, 310, "bp-blacknet-tool"),
     recipe("recipe-adaptive-utility-core", "Adaptive Utility Core", "Cyberware", 86, { "prototype-neural-core": 2, "legendary-chrome-matrix": 1, "relic-circuit": 1, "luxury-processor": 2 }, "adaptive-utility-core", 1, 92000, 420, "bp-prototype-implant"),
@@ -206,14 +210,14 @@ function expandedHighTierWeaponRecipes(): CraftingRecipe[] {
     recipe("recipe-overwatch-helix", "Overwatch Helix", "Weapons", 82, { "prototype-weapon-core": 2, "helix-authorization": 2, "medical-gel-matrix": 4, "boss-data-key": 1 }, "overwatch-helix", 1, 88000, 390, "bp-prototype-implant"),
     recipe("recipe-scrapstorm-lmg", "Scrapstorm LMG", "Weapons", 36, { "weapon-frame": 2, engineCore: 1, "rust-plated-frame": 3, "armorPlating": 5 }, "scrapstorm-lmg", 1, 39000, 156, "bp-scavenger-rig"),
     recipe("recipe-apex-rotary-frame", "Apex Rotary Frame", "Weapons", 88, { "prototype-weapon-core": 2, prototypeDriveUnit: 1, "legendary-chrome-matrix": 1, "ballistic-core": 4 }, "apex-rotary-frame", 1, 94000, 430, "bp-prototype-implant"),
-    recipe("recipe-backroom-breacher", "Backroom Breacher", "Weapons", 28, { "weapon-frame": 1, "smuggler-seal": 2, "barrel-assembly": 2, "reinforced-grip": 2 }, "backroom-breacher", 1, 28000, 118),
+    recipe("recipe-backroom-breacher", "Backroom Breacher", "Weapons", 28, { "weapon-frame": 1, "smuggler-seal": 2, "barrel-assembly": 2, "grip-polymer": 4 }, "backroom-breacher", 1, 28000, 118),
     recipe("recipe-thundercoil-scattergun", "Thundercoil Scattergun", "Weapons", 80, { "prototype-weapon-core": 2, "security-override-chip": 2, "armor-breaker-plate": 3, "relic-circuit": 1 }, "thundercoil-scattergun", 1, 87000, 385, "bp-prototype-implant"),
     recipe("recipe-glassline-marksman", "Glassline Marksman", "Weapons", 36, { "weapon-frame": 1, "corporate-optic-lens": 2, "executive-processor": 1, "barrel-assembly": 3 }, "glassline-marksman", 1, 38000, 158, "bp-corporate-cyberware"),
     recipe("recipe-midnight-protocol", "Midnight Protocol", "Weapons", 66, { "weapon-frame": 1, "black-ledger-shard": 3, "suppressor-baffles": 4, "rare-blueprint-fragment": 5 }, "midnight-protocol", 1, 70000, 305, "bp-blacknet-tool"),
     recipe("recipe-red-horizon-tac", "Red Horizon TAC", "Weapons", 90, { "prototype-weapon-core": 2, "legendary-chrome-matrix": 1, "relic-circuit": 2, "executive-processor": 3 }, "red-horizon-tac", 1, 98000, 455, "bp-prototype-implant"),
     recipe("recipe-neon-fang", "Neon Fang", "Weapons", 30, { "weapon-frame": 1, "redline-wire": 3, "urban-reflex-chip": 2, "grip-polymer": 4 }, "neon-fang", 1, 30000, 126),
     recipe("recipe-phase-edge", "Phase Edge", "Weapons", 84, { "prototype-neural-core": 2, "blacknet-cipher": 3, "daemon-fragment": 2, "prototype-weapon-core": 1 }, "phase-edge", 1, 90000, 405, "bp-prototype-implant"),
-    recipe("recipe-impact-driver", "Impact Driver", "Weapons", 32, { "weapon-frame": 1, "salvaged-servo": 3, engineCore: 1, "reinforced-grip": 2 }, "impact-driver", 1, 34000, 142, "bp-scavenger-rig"),
+    recipe("recipe-impact-driver", "Impact Driver", "Weapons", 32, { "weapon-frame": 1, "salvaged-servo": 3, engineCore: 1, "grip-polymer": 4 }, "impact-driver", 1, 34000, 142, "bp-scavenger-rig"),
     recipe("recipe-grav-piston-hammer", "Grav-Piston Hammer", "Weapons", 86, { engineCore: 2, prototypeDriveUnit: 1, "prototype-weapon-core": 2, "armor-breaker-plate": 4 }, "grav-piston-hammer", 1, 92000, 420, "bp-prototype-implant"),
     recipe("recipe-railspike-vx", "Railspike VX", "Weapons", 34, { "weapon-frame": 1, "smartlink-chip": 2, "barrel-assembly": 3, "security-override-chip": 1 }, "railspike-vx", 1, 36000, 150, "bp-corporate-cyberware"),
     recipe("recipe-nullbreaker-coilgun", "Nullbreaker Coilgun", "Weapons", 92, { "prototype-weapon-core": 2, "relic-circuit": 2, "glassline-alloy": 4, "boss-data-key": 1 }, "nullbreaker-coilgun", 1, 100000, 470, "bp-prototype-implant"),

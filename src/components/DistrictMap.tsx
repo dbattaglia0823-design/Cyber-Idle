@@ -1,3 +1,4 @@
+import { ChevronRight, LockKeyhole } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import mapImage from "../assets/maps/Map.png";
 import { factions } from "../data/factions";
@@ -32,11 +33,25 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
       <div className="city-image-header">
         <div>
           <p className="eyebrow">Metro Grid / Live Overlay</p>
-          <h2>City Map</h2>
+          <h2>Select a district</h2>
         </div>
         <span className="warning-badge">{cityDistrictOrder.filter((id) => state.districts[id]?.unlocked).length}/{cityDistrictOrder.length} open</span>
       </div>
 
+      <div className="city-explorer">
+        <nav className="network-sidebar city-district-list" aria-label="City districts">
+          <p className="network-nav-label">DISTRICT DIRECTORY</p>
+          {cityDistrictOrder.map((id, index) => {
+            const district = getDistrict(id)!;
+            const unlocked = Boolean(state.districts[id]?.unlocked);
+            return <button key={id} className={selectedDistrict === id ? "active" : ""} aria-current={selectedDistrict === id ? "true" : undefined} onClick={() => selectDistrict(id)}>
+              <small className="city-district-number">{String(index + 1).padStart(2, "0")}</small>
+              <span><strong>{district.name}</strong><small>{activeDistrictId === id ? "Activity running" : unlocked ? "District open" : "Access locked"}</small></span>
+              {unlocked ? <ChevronRight size={14} /> : <LockKeyhole size={13} />}
+            </button>;
+          })}
+        </nav>
+        <div className="city-map-canvas">
       <div className="city-image-stage">
         <img className="city-map-art" src={mapImage} alt="Cyberpunk city district map" />
         <svg className="city-map-overlay" viewBox="0 0 1122 1402" preserveAspectRatio="xMidYMid meet" aria-label="District selection overlay">
@@ -90,6 +105,8 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
         onToggleExpanded={() => setExpanded((value) => !value)}
         onEnter={() => onOpenDistrict(selectedDistrict)}
       />
+        </div>
+      </div>
     </section>
   );
 }
@@ -125,7 +142,7 @@ function CityMapBottomDrawer({
 
   return (
     <aside className={`city-map-drawer ${expanded ? "expanded" : ""} ${unlocked ? "open" : "locked"}`}>
-      <button className="drawer-grip" aria-label={expanded ? "Collapse district details" : "Expand district details"} onClick={onToggleExpanded} />
+      <button className="drawer-grip" aria-expanded={expanded} aria-label={expanded ? "Collapse district details" : "Expand district details"} onClick={onToggleExpanded} />
       <div className="drawer-primary">
         <div>
           <div className="drawer-title-row">
@@ -139,7 +156,7 @@ function CityMapBottomDrawer({
           {active && <p className="fine active-text">Active: {activeActivityName ?? "Activity running"}</p>}
         </div>
         <div className="drawer-actions">
-          <button className="secondary-button" onClick={onToggleExpanded}>{expanded ? "Less" : unlocked ? "District Info" : "Requirements"}</button>
+          <button className="secondary-button" aria-expanded={expanded} onClick={onToggleExpanded}>{expanded ? "Less" : unlocked ? "District Info" : "Requirements"}</button>
           <button className="primary-button" disabled={!unlocked} onClick={onEnter}>{unlocked ? "Enter District" : "Locked"}</button>
         </div>
       </div>

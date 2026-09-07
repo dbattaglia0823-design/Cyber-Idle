@@ -1,3 +1,5 @@
+import { materialStage } from "../src/data/materialSupply.ts";
+import { trainingXpPerSecond } from "../src/data/progressionPacing.ts";
 import { getContentValidationReport } from '../src/systems/contentValidation.ts';
 import { recipes } from '../src/data/recipes.ts';
 import { skillActions } from '../src/data/skills.ts';
@@ -51,9 +53,19 @@ for (const r of recipes) for (const id of [...Object.keys(r.inputCosts), ...(r.r
     p.needed = Math.min(p.needed, at); p.recipes.push(r.id); problems.set(id,p);
   }
 }
+export const rewardProblems = skillActions.flatMap(action => {
+  const band = action.districtReq && districtLevelBands[action.districtReq];
+  const issues = band && (action.levelReq < band.entryLevel || action.levelReq > band.max) ? [action.id + ': outside district level band'] : [];
+  const rewards = [...Object.entries(action.rewards).filter(([, n]) => n > 0).map(([id]) => id), ...Object.keys(action.itemRewards ?? {}), ...(action.rareDrops ?? []).map(drop => drop.id)];
+  for (const id of rewards) if ((materialStage[id] ?? 1) > action.levelReq) issues.push(action.id + ': premature ' + id);
+  return issues;
+});
+export const craftingRewardProblems = recipes.filter(recipe => recipe.xpReward < Math.round(trainingXpPerSecond(recipe.requiredLevel) * recipe.durationMs / 1000 * 0.6)).map(recipe => recipe.id);
 if (process.argv[1]?.endsWith('audit-progression.mjs')) {
   console.log(`Checked ${recipes.length} recipes and ${skillActions.length} actions.`);
   console.log('Content errors', JSON.stringify({ missing: report.missingReferences, duplicates: report.duplicateIds }));
+  console.log('Skill reward problems', JSON.stringify(rewardProblems));
+  console.log('Crafting XP problems', JSON.stringify(craftingRewardProblems));
   console.log('Material timing problems', JSON.stringify(Object.fromEntries(problems), null, 2));
-  process.exitCode = report.missingReferences.length || report.duplicateIds.length || problems.size ? 1 : 0;
+  process.exitCode = report.missingReferences.length || report.duplicateIds.length || problems.size || rewardProblems.length || craftingRewardProblems.length ? 1 : 0;
 }

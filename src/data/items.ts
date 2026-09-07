@@ -1,3 +1,4 @@
+import { quickhackItems } from "./quickhacks";
 import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemRarity, WeaponClassId } from "../types";
 import { armorSpecs, type ArmorSpec } from "./armor";
 import { cyberwareSpecs, type CyberwareSpec } from "./cyberware";
@@ -28,6 +29,7 @@ export const gearSlots: Array<{ id: GearSlot; label: string }> = [
 ];
 
 export const items: ItemDefinition[] = [
+  ...quickhackItems,
   ...endgameItems,
   ...rpgWeapons,
   rpgIconic,
