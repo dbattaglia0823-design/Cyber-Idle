@@ -4,7 +4,7 @@ import { factionRank } from "./modifiers";
 import type { GameState } from "../types";
 
 export function syncStreetLegend(state: GameState) {
-  const totalXp = calculateStreetLegendXp(state);
+  const totalXp = Math.max(state.streetLegend.totalXp, calculateStreetLegendXp(state));
   let remaining = totalXp;
   let rank = 1;
   while (rank < 100 && remaining >= streetLegendXpForRank(rank)) {
@@ -20,7 +20,7 @@ export function syncStreetLegend(state: GameState) {
     state.streetLegend.claimedMilestones[milestone.rank] = true;
     state.unlocks[`streetLegend:${milestone.unlockKey}`] = true;
   });
-  state.prestigeProtocol.unlocked = rank >= 50 || state.streetLegend.claimedMilestones[50];
+  state.prestigeProtocol.unlocked = Boolean(state.prestigeProtocol.unlocked || rank >= 50 || state.streetLegend.claimedMilestones[50] || Object.values(state.skills).some(skill => skill.level >= 150));
   if (rank >= 10) state.achievements["street-legend-rank-10"] = true;
   if (rank >= 50) state.achievements["street-legend-rank-50"] = true;
   if (state.prestigeProtocol.unlocked) state.achievements["unlock-prestige-protocol"] = true;

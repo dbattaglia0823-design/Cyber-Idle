@@ -3,11 +3,18 @@ import assaultRifleIcon from "../assets/inventory/AssaultRifle.png";
 import bladesIcon from "../assets/inventory/Blades.png";
 import bluntIcon from "../assets/inventory/Blunt.png";
 import bootsIcon from "../assets/inventory/Boots.png";
-import cyberwareIcon from "../assets/inventory/Cyberware.png";
+import cyberwareIcon from "../assets/cyberware/OperatingSystem.png";
+import neuralIcon from "../assets/cyberware/Neural.png";
+import opticsIcon from "../assets/cyberware/Optics.png";
+import armsIcon from "../assets/cyberware/Arms.png";
+import cyberLegsIcon from "../assets/cyberware/Legs.png";
+import skinIcon from "../assets/cyberware/Skin.png";
+import skeletonIcon from "../assets/cyberware/Skeleton.png";
+import utilityIcon from "../assets/cyberware/Utility.png";
 import handsIcon from "../assets/inventory/Hands.png";
 import heavyIcon from "../assets/inventory/Heavy.png";
 import helmetIcon from "../assets/inventory/Helmet.png";
-import iconicCyberwareIcon from "../assets/inventory/IconicCyberware.png";
+import iconicCyberwareIcon from "../assets/cyberware/IconicOperatingSytem.png";
 import legsArmorIcon from "../assets/inventory/Legs.png";
 import pistolIcon from "../assets/inventory/Pistol.png";
 import shotgunIcon from "../assets/inventory/Shotgun.png";
@@ -63,14 +70,14 @@ const gearSlotIcons: Record<GearSlot, EquipmentIconInfo> = {
 };
 
 const cyberwareSlotIcons: Record<CyberwareSlot, EquipmentIconInfo> = {
-  neural: icon("NEU", "Neural cyberware", "cyberware", cyberwareIcon),
-  optics: icon("OPT", "Optics cyberware", "cyberware", cyberwareIcon),
-  arms: icon("ARM", "Arm cyberware", "cyberware", cyberwareIcon),
-  legs: icon("LEG", "Leg cyberware", "cyberware", cyberwareIcon),
-  skin: icon("SKN", "Skin cyberware", "cyberware", cyberwareIcon),
-  skeleton: icon("SKL", "Skeleton cyberware", "cyberware", cyberwareIcon),
+  neural: icon("NEU", "Neural cyberware", "cyberware", neuralIcon),
+  optics: icon("OPT", "Optics cyberware", "cyberware", opticsIcon),
+  arms: icon("ARM", "Arm cyberware", "cyberware", armsIcon),
+  legs: icon("LEG", "Leg cyberware", "cyberware", cyberLegsIcon),
+  skin: icon("SKN", "Skin cyberware", "cyberware", skinIcon),
+  skeleton: icon("SKL", "Skeleton cyberware", "cyberware", skeletonIcon),
   operatingSystem: icon("OS", "Operating system", "cyberware", cyberwareIcon),
-  utility: icon("UTIL", "Utility cyberware", "cyberware", cyberwareIcon),
+  utility: icon("UTIL", "Utility cyberware", "cyberware", utilityIcon),
 };
 
 const itemTypeIcons: Partial<Record<ItemType, EquipmentIconInfo>> = {

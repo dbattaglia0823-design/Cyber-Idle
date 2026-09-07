@@ -1,234 +1,109 @@
-import { skillActions } from "../data/skills";
-import { balanceConfig } from "../data/balanceConfig";
-import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
-import { actionMasteryXpReward, actionXpRewardWithMastery, canAffordRewards, getSkillAction } from "./actionProcessing";
-import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
-import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
-import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
-import { cloneState, pushCategorizedLog } from "./gameState";
-import { adjustedActionDurationMs, getActiveModifiers } from "./modifiers";
-import { applyRiskEvents } from "./riskEvents";
+import { processActionCompletion, getSkillAction } from "./actionProcessing";
+import { processCrafting, getRecipe } from "./craftingProcessing";
+import { processCombat, getEnemy } from "./combatProcessing";
+import { processJobCompletion, getJob } from "./jobProcessing";
+import { processOperation, getOperation } from "./operationProcessor";
 import { processBlackMarketListings } from "./blackMarketSystem";
-import { addDistrictMasteryXp } from "./districtMasteryProcessor";
+import { cloneState, pushCategorizedLog } from "./gameState";
+import { getActiveModifiers } from "./modifiers";
+import { applyPassiveRecovery, unlockAutoHeal } from "./healthSystem";
+import { updateWorldUnlocks } from "./worldUnlocks";
+import { updateStoryProgress } from "./storySystem";
 import { emitRewardPopupGroup } from "./rewardPopups";
-import type { GameState, OfflineRecap, ResourceId, RewardBundle } from "../types";
+import { getTotalXpForLevel } from "./xpCurves";
+import type { GameState, OfflineRecap, ResourceId } from "../types";
 
-const OFFLINE_CAP_MS = 1000 * 60 * 60 * 12;
+export const OFFLINE_CAP_MS = 12 * 60 * 60 * 1000;
 
 export function applyOfflineProgress(state: GameState, now = Date.now()) {
-  const modifiers = getActiveModifiers(state);
-  const capMs = Math.max(OFFLINE_CAP_MS, modifiers.offlineProgressCapHours * 60 * 60 * 1000);
-  const elapsed = Math.min(capMs, Math.max(0, now - state.lastSavedAt));
-  const next = cloneState(state);
-  const marketBefore = next.blackMarketCompletedSales.length;
-  const creditsBefore = next.resources.credits;
-  const heatBefore = next.resources.heat;
-
-  if (elapsed < 1000) {
-    next.lastSavedAt = now;
-    return next;
+  const cap = Math.max(OFFLINE_CAP_MS, getActiveModifiers(state).offlineProgressCapHours * 3600000);
+  const elapsed = Math.min(cap, Math.max(0, now - state.lastSavedAt));
+  let next = cloneState(state);
+  if (elapsed < 1000) return next;
+  const action = state.activeAction && getSkillAction(state.activeAction.actionId);
+  const recipe = state.activeCraft && getRecipe(state.activeCraft.recipeId);
+  const job = state.activeJob && getJob(state.activeJob.jobId);
+  const enemy = state.currentCombat && getEnemy(state.currentCombat.enemyId);
+  const operation = state.activeOperation && getOperation(state.activeOperation.operationId);
+  const name = state.rpg.active ? "Field mission paused" : action?.name || recipe?.name || job?.name || enemy?.name || operation?.name || "Recovery and market sales";
+  // Move the capped simulation window forward without losing partial progress
+  // or replaying discarded hours when the next live tick arrives.
+  const shift = now - elapsed - state.lastSavedAt;
+  for (const activity of [next.activeAction, next.activeCraft, next.activeJob, next.activeOperation]) {
+    if (activity) activity.startedAt += shift;
   }
-
   if (next.currentCombat) {
-    next.offlineRecap = {
-      timeAwayMs: elapsed,
-      actionName: "Combat",
-      completions: 0,
-      xpGained: 0,
-      resourcesGained: {},
-      levelsGained: 0,
-      masteryXpGained: 0,
-      masteryLevelsGained: 0,
-      heatGained: 0,
-      neuralInstabilityGained: 0,
-      message: "Combat offline progress will be added later.",
-    };
-    pushCategorizedLog(next, "World", "Offline combat progress is not simulated yet.");
-    next.lastSavedAt = now;
-    return next;
-  }
-
-  if (next.activeCraft) {
-    const recipe = getRecipe(next.activeCraft.recipeId);
-    if (!recipe) {
-      next.activeCraft = null;
-      next.lastSavedAt = now;
-      return next;
+    const combat = next.currentCombat;
+    combat.startedAt += shift;
+    for (const key of ["nextPlayerAttackAt", "nextEnemyAttackAt", "respawnAt", "lastPlayerAttackAt", "lastEnemyAttackAt"] as const) {
+      if (combat[key] !== undefined) combat[key] += shift;
     }
-    const available = elapsed + Math.max(0, state.lastSavedAt - next.activeCraft.startedAt);
-    const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / recipe.durationMs));
-    const recap = {
-      timeAwayMs: elapsed,
-      actionName: recipe.name,
-      completions: 0,
-      xpGained: 0,
-      resourcesGained: {},
-      levelsGained: 0,
-      masteryXpGained: 0,
-      masteryLevelsGained: 0,
-      heatGained: 0,
-      neuralInstabilityGained: 0,
-      message: "Crafting continued while you were away.",
-    };
-    for (let i = 0; i < completions; i += 1) {
-      if (!canCraft(next, recipe)) {
-        recap.message = "Crafting stopped because materials ran out.";
-        next.activeCraft = null;
-        break;
-      }
-      completeCraft(next, recipe, 1, true, false);
-      recap.completions += 1;
-      recap.xpGained += recipe.xpReward;
-      recap.masteryXpGained += recipe.masteryXpReward;
-    }
-    if (next.activeCraft) next.activeCraft.startedAt = now - (available % recipe.durationMs);
-    processBlackMarketListings(next, now);
-    next.offlineRecap = recap;
-    next.lastSavedAt = now;
-    pushCategorizedLog(next, "Skill", `Offline crafting: ${recipe.name} completed ${recap.completions} time${recap.completions === 1 ? "" : "s"}.`);
-    emitOfflineSummary(next, recap);
-    return next;
   }
-
-  if (!next.activeAction) {
-    processBlackMarketListings(next, now);
-    const marketSales = next.blackMarketCompletedSales.length - marketBefore;
-    if (marketSales > 0 || next.blackMarketListings.length !== state.blackMarketListings.length) {
-      next.offlineRecap = {
-        timeAwayMs: elapsed,
-        actionName: "Black Market Listings",
-        completions: marketSales,
-        xpGained: 0,
-        resourcesGained: { credits: Math.max(0, next.resources.credits - creditsBefore) },
-        levelsGained: 0,
-        masteryXpGained: 0,
-        masteryLevelsGained: 0,
-        heatGained: Math.max(0, next.resources.heat - heatBefore),
-        neuralInstabilityGained: 0,
-        message: `Black Market listings progressed while you were away. Completed outcomes: ${marketSales}.`,
-      };
-      emitOfflineSummary(next, next.offlineRecap);
-    }
-    next.lastSavedAt = now;
-    return next;
+  unlockAutoHeal(next);
+  let craftCompletions = 0;
+  let operationCompletions = 0;
+  // Drain the live processors' bounded batches, preserving costs, drops, healing,
+  // death, discoveries and unlocks exactly as in online play.
+  while (true) {
+    if (next.activeAction) {
+      const before = next.activeAction.startedAt;
+      next = processActionCompletion(next, now);
+      if (next.activeAction?.startedAt === before) break;
+    } else if (next.activeCraft) {
+      const before = next.activeCraft.startedAt;
+      const countBefore = recipe ? owned(next, recipe.outputItemId) : 0;
+      next = processCrafting(next, now);
+      if (recipe) craftCompletions += (owned(next, recipe.outputItemId) - countBefore) / recipe.outputQuantity;
+      if (next.activeCraft?.startedAt === before) break;
+    } else if (next.activeJob) {
+      const before = next.activeJob.startedAt;
+      next = processJobCompletion(next, now);
+      if (next.activeJob?.startedAt === before) break;
+    } else if (next.currentCombat) {
+      const before = JSON.stringify(next.currentCombat);
+      next = processCombat(next, now);
+      if (JSON.stringify(next.currentCombat) === before) break;
+    } else if (next.activeOperation) {
+      next = processOperation(next, now);
+      if (next.activeOperation) break;
+      operationCompletions += 1;
+    } else break;
   }
-
-  const action = getSkillAction(next.activeAction.actionId);
-  if (!action) {
-    next.activeAction = null;
-    next.lastSavedAt = now;
-    return next;
-  }
-
-  const durationMs = adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
-  const available = elapsed + Math.max(0, state.lastSavedAt - next.activeAction.startedAt);
-  const completions = Math.min(balanceConfig.simCache.maxLoops, Math.floor(available / durationMs));
-  if (completions <= 0) {
-    next.lastSavedAt = now;
-    return next;
-  }
-
+  if (!enemy && !operation) applyPassiveRecovery(next, elapsed);
+  next = processBlackMarketListings(next, now);
+  updateWorldUnlocks(next);
+  next = updateStoryProgress(next);
+  const completions = action
+    ? (next.marketStatistics.skillActionsCompletedBySkill[action.skillId] ?? 0) - (state.marketStatistics.skillActionsCompletedBySkill[action.skillId] ?? 0)
+    : recipe ? craftCompletions
+    : enemy ? (next.enemyLog[enemy.id]?.kills ?? 0) - (state.enemyLog[enemy.id]?.kills ?? 0)
+    : job ? (next.fixerTrust[job.fixerId]?.completedJobs ?? 0) - (state.fixerTrust[job.fixerId]?.completedJobs ?? 0)
+    : operation ? operationCompletions : next.blackMarketCompletedSales.length - state.blackMarketCompletedSales.length;
+  const itemsGained = Object.fromEntries(Object.entries(next.inventory).map(([id, n]) => [id, n - (state.inventory[id] ?? 0)]).filter(([, n]) => Number(n) > 0));
   const recap: OfflineRecap = {
-    timeAwayMs: elapsed,
-    actionName: action.name,
-    completions: 0,
-    xpGained: 0,
-    resourcesGained: {},
-    levelsGained: 0,
-    masteryXpGained: 0,
-    masteryLevelsGained: 0,
-    heatGained: 0,
+    timeAwayMs: elapsed, actionName: name, completions,
+    xpGained: totalSkillXp(next) - totalSkillXp(state),
+    levelsGained: sumLevels(next.skills) - sumLevels(state.skills),
+    masteryXpGained: totalMasteryXp(next) - totalMasteryXp(state),
+    masteryLevelsGained: sumLevels(next.actionMastery) - sumLevels(state.actionMastery),
+    resourcesGained: Object.fromEntries(Object.keys(next.resources).map(id => [id, next.resources[id as ResourceId] - state.resources[id as ResourceId]]).filter(([, n]) => n !== 0)),
+    itemsGained,
+    heatGained: next.resources.heat - state.resources.heat,
     neuralInstabilityGained: 0,
+    message: next.rpg.active ? "Your field mission is waiting for your next decision. No combat turns elapsed while away."
+      : next.health.lifeState === "downed" ? "You were downed. Combat stopped; free Basic Recovery is available."
+      : (action || recipe || job) && !next.activeAction && !next.activeCraft && !next.activeJob ? "Activity stopped when its requirements could no longer be met."
+      : `Progressed using normal gameplay rules. Offline time is capped at ${Math.round(cap / 3600000)} hours.`,
   };
-
-  for (let i = 0; i < completions; i += 1) {
-    if (!canAffordRewards(next, action.rewards)) {
-      recap.message = "Action stopped because required resources ran out.";
-      next.activeAction = null;
-      break;
-    }
-    const rewards = calculateSkillActionRewards(next, action);
-    const xpReward = actionXpRewardWithMastery(next, action);
-    const masteryReward = actionMasteryXpReward(next, action);
-    applyRewardDelta(next, rewards);
-    addRewardDelta(recap.resourcesGained, rewards);
-    recap.xpGained += xpReward;
-    recap.masteryXpGained += masteryReward;
-    recap.levelsGained += addOfflineSkillXp(next, action.skillId, xpReward);
-    recap.masteryLevelsGained += addOfflineMasteryXp(next, action.id, masteryReward);
-    addDistrictMasteryXp(next, action.districtReq ?? next.selectedDistrict, "action", Math.max(2, Math.round((action.xpReward * 0.55 + masteryReward * 0.35) * 0.5)));
-    if (action.heatChange) {
-      const heat = calculateHeatGain(next, action.heatChange, action.tags);
-      next.resources.heat = clampRiskStat(next.resources.heat + heat);
-      recap.heatGained += heat;
-    }
-    recap.neuralInstabilityGained += 0;
-    recap.completions += 1;
-  }
-
-  if (next.activeAction) {
-    next.activeAction.startedAt = now - (available % durationMs);
-    next.activeAction.durationMs = adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
-  }
-  processBlackMarketListings(next, now);
   next.offlineRecap = recap;
   next.lastSavedAt = now;
-  applyRiskEvents(next);
-  pushCategorizedLog(next, "Skill", `Offline: ${action.name} completed ${recap.completions} time${recap.completions === 1 ? "" : "s"}.`);
-  emitOfflineSummary(next, recap);
+  next.rewardPopups = [];
+  pushCategorizedLog(next, "World", `Offline: ${name}, ${completions} completions. ${recap.message}`);
+  emitRewardPopupGroup(next, { title: "Offline Progress Complete", category: "story", resources: recap.resourcesGained, items: itemsGained, story: [`${completions} completions`, recap.message ?? ""], durationMs: 5200 });
   return next;
 }
 
-function emitOfflineSummary(state: GameState, recap: OfflineRecap) {
-  emitRewardPopupGroup(state, {
-    title: "Offline Progress Complete",
-    category: "story",
-    xp: recap.xpGained ? { [state.activeAction ? getSkillAction(state.activeAction.actionId)?.skillId ?? "scavenging" : "cyberware"]: recap.xpGained } : undefined,
-    masteryXp: recap.masteryXpGained,
-    resources: recap.resourcesGained,
-    heat: recap.heatGained,
-    neuralInstability: recap.neuralInstabilityGained,
-    story: [`${recap.completions} completions`, `${recap.levelsGained} levels gained`],
-    durationMs: 5200,
-  });
-}
-
-function applyRewardDelta(state: GameState, rewards: RewardBundle) {
-  Object.entries(rewards).forEach(([resource, amount]) => {
-    const id = resource as ResourceId;
-    state.resources[id] = Math.max(0, state.resources[id] + Math.round(amount ?? 0));
-  });
-}
-
-function addRewardDelta(target: RewardBundle, rewards: RewardBundle) {
-  Object.entries(rewards).forEach(([resource, amount]) => {
-    const id = resource as ResourceId;
-    target[id] = (target[id] ?? 0) + Math.round(amount ?? 0);
-  });
-}
-
-function addOfflineSkillXp(state: GameState, skillId: (typeof skillActions)[number]["skillId"], xp: number) {
-  const skill = state.skills[skillId];
-  let levels = 0;
-  skill.xp += xp;
-  while (skill.level < MAX_MAIN_SKILL_LEVEL && skill.xp >= xpForNextLevel(skill.level)) {
-    skill.xp -= xpForNextLevel(skill.level);
-    skill.level += 1;
-    levels += 1;
-  }
-  if (skill.level >= MAX_MAIN_SKILL_LEVEL) skill.xp = 0;
-  return levels;
-}
-
-function addOfflineMasteryXp(state: GameState, actionId: string, xp: number) {
-  const mastery = state.actionMastery[actionId] ?? { level: 1, xp: 0 };
-  let levels = 0;
-  mastery.xp += xp;
-  while (mastery.xp >= xpForNextMastery(mastery.level)) {
-    mastery.xp -= xpForNextMastery(mastery.level);
-    mastery.level += 1;
-    levels += 1;
-  }
-  state.actionMastery[actionId] = mastery;
-  return levels;
-}
+function owned(state: GameState, id: string) { return id in state.resources ? state.resources[id as ResourceId] : state.inventory[id] ?? 0; }
+function sumLevels(values: Record<string, { level: number }>) { return Object.values(values).reduce((sum, value) => sum + value.level - 1, 0); }
+function totalSkillXp(state: GameState) { return Object.values(state.skills).reduce((sum, skill) => sum + getTotalXpForLevel(skill.level, "skill") + skill.xp, 0); }
+function totalMasteryXp(state: GameState) { return Object.values(state.actionMastery).reduce((sum, mastery) => sum + getTotalXpForLevel(mastery.level, "mastery") + mastery.xp, 0); }

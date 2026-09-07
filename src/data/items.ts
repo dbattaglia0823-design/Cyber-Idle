@@ -2,6 +2,8 @@ import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemR
 import { armorSpecs, type ArmorSpec } from "./armor";
 import { cyberwareSpecs, type CyberwareSpec } from "./cyberware";
 import { weaponSpecs, type WeaponSpec } from "./weapons";
+import { endgameItems } from "./endgameItems";
+import { rpgWeapons, rpgIconic } from "./rpgLoot";
 
 export const cyberwareSlots: Array<{ id: CyberwareSlot; label: string }> = [
   { id: "neural", label: "Neural" },
@@ -26,6 +28,9 @@ export const gearSlots: Array<{ id: GearSlot; label: string }> = [
 ];
 
 export const items: ItemDefinition[] = [
+  ...endgameItems,
+  ...rpgWeapons,
+  rpgIconic,
   resource("scrap", "Scrap", "Recovered metal, wire, and useful trash.", "Material", 1),
   resource("circuitBoards", "Circuit Boards", "Reusable boards stripped from dead electronics.", "Material", 8),
   resource("encryptedData", "Encrypted Data", "Locked packets pulled from exposed systems.", "Material", 12),
@@ -98,7 +103,7 @@ export const items: ItemDefinition[] = [
   component("prototype-neural-core", "Prototype Neural Core", "High-tier bottleneck for unstable implant projects.", 350, "Epic"),
   component("blacknet-cipher", "Blacknet Cipher", "A rare encrypted key for advanced Blacknet recipes.", 320, "Epic"),
   component("stabilized-chrome-frame", "Stabilized Chrome Frame", "A hardened frame for prototype chrome.", 300, "Epic"),
-  component("boss-data-key", "Boss Data Key", "Future boss and dungeon unlock bottleneck.", 400, "Legendary"),
+  component("boss-data-key", "Boss Data Key", "Operation access and crafting key. Every successful operation awards one.", 400, "Legendary"),
   component("faction-authorization", "Faction Authorization", "A permit token for faction-gated unlocks.", 250, "Epic"),
   component("district-permit", "District Permit", "A district access bottleneck for later progression.", 250, "Epic"),
   component("rare-blueprint-fragment", "Rare Blueprint Fragment", "Fragments used to reconstruct rare blueprints.", 180),
@@ -516,7 +521,7 @@ function expandedWeapons(): ItemDefinition[] {
     customWeapon("midnight-protocol", "Midnight Protocol", "A black-ops sniper rifle designed for silent operation routes.", "Legendary", 5, 66, "sniperRifles", { damage: 58, attackSpeed: 540, accuracy: 19, critChance: 0.18, critDamage: 0.8, armorPenetration: 13, heatModifier: -0.08 }, ["ranged", "sniper", "stealth", "assassination", "operation"], ["muzzle", "scope", "barrel", "stock"], 3, "High-threat corporate operation and legendary sniper blueprint.", "Silent Protocol: stealth and assassination operation routes improve with a suppressor equipped.", { jobSuccessChance: 0.04, combatDamage: 0.05 }),
     customWeapon("red-horizon-tac", "Red Horizon TAC", "An experimental anti-material rifle with a slow skyline charge.", "Prototype", 6, 90, "sniperRifles", { damage: 82, attackSpeed: 760, accuracy: 18, critChance: 0.16, critDamage: 1.05, armorPenetration: 26, heatModifier: 0.12 }, ["ranged", "sniper", "prototype", "antiArmor", "boss"], ["scope", "barrel", "stock", "batteryCore"], 3, "Skyline Core crafting with prototype weapon and relic components.", "Horizon Shot: rare critical hits ignore most enemy armor.", { combatDamage: 0.09, neuralInstabilityGain: 0.02 }),
     customWeapon("neon-fang", "Neon Fang", "A light cyber-katana made for fast unarmored cuts.", "Epic", 4, 30, "blades", { damage: 25, attackSpeed: -230, accuracy: 5, dodge: 0.06, critChance: 0.15, heatModifier: -0.05 }, ["melee", "katana", "blade", "neon", "stealth"], ["grip", "batteryCore"], 3, "Neon Row rare drop and Redline wire crafting.", "Neon Cut: bonus damage against unarmored gang enemies.", { combatDamage: 0.04 }),
-    customWeapon("redline-monowake", "Redline Monowake", "A high-frequency gang blade that leaves a wake in the air.", "Legendary", 5, 64, "blades", { damage: 42, attackSpeed: -210, accuracy: 7, critChance: 0.2, critDamage: 0.45, heatModifier: -0.04 }, ["melee", "katana", "blade", "redline", "bleed"], ["grip", "batteryCore"], 3, "Redline Saints rank reward and Redline Blocks boss drop.", "Wake Slash: chance to apply a bleed-style damage-over-time placeholder.", { skillXp: { combat: 0.06 }, combatDamage: 0.05 }),
+    customWeapon("redline-monowake", "Redline Monowake", "A high-frequency gang blade that leaves a wake in the air.", "Legendary", 5, 64, "blades", { damage: 42, attackSpeed: -210, accuracy: 7, critChance: 0.2, critDamage: 0.45, heatModifier: -0.04 }, ["melee", "katana", "blade", "redline", "bleed"], ["grip", "batteryCore"], 3, "Redline Saints rank reward and Redline Blocks boss drop.", "Wake Slash: +5% combat damage and +6% Street Combat XP.", { skillXp: { combat: 0.06 }, combatDamage: 0.05 }),
     customWeapon("phase-edge", "Phase Edge", "An experimental blade that cuts around armor instead of through it.", "Prototype", 6, 84, "blades", { damage: 52, attackSpeed: -190, accuracy: 8, armorPenetration: 24, dodge: 0.08, critChance: 0.16, neuralInstabilityModifier: 4 }, ["melee", "katana", "blade", "prototype", "stealth"], ["grip", "batteryCore"], 3, "Prototype crafting with Blacknet data and Prototype Neural Core.", "Phase Cut: can ignore enemy armor, adding small Instability on trigger.", { jobSuccessChance: 0.04, neuralInstabilityGain: 0.02 }),
     customWeapon("impact-driver", "Impact Driver", "An industrial hammer repurposed for armor control.", "Epic", 4, 32, "bluntWeapons", { damage: 34, attackSpeed: 310, accuracy: 2, armorPenetration: 14, critChance: 0.06 }, ["melee", "blunt", "industrial", "stun", "armorBreak"], ["grip", "batteryCore"], 3, "Rust Yards enemies and garage vendor special stock.", "Impact Shock: chance to briefly reduce enemy attack speed.", { combatDamage: 0.04 }),
     customWeapon("jackal-maul", "Jackal Maul", "The Chrome Jackals signature hammer, all weight and warning paint.", "Legendary", 5, 60, "bluntWeapons", { damage: 50, attackSpeed: 380, accuracy: 3, armorPenetration: 22, maxHp: 48 }, ["melee", "blunt", "rust", "armored", "mech"], ["grip", "batteryCore"], 3, "Chrome Jackals rank reward and Rust Yards operation boss drop.", "Jackal Crush: bonus damage against armored and mechanical enemies.", { skillXp: { scavenging: 0.04 }, combatDamage: 0.06 }),

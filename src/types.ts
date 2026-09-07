@@ -210,6 +210,8 @@ export interface SkillAction {
   masteryPoolXpReward?: number;
   rewards: RewardBundle;
   rareDrops?: EnemyDrop[];
+  /** Guaranteed items per completion, separate from probabilistic bonus drops. */
+  itemRewards?: Record<string, number>;
   traceChance?: number;
   traceSeverity?: number;
   threatChange?: number;
@@ -530,6 +532,7 @@ export interface OfflineRecap {
   completions: number;
   xpGained: number;
   resourcesGained: RewardBundle;
+  itemsGained?: Record<string, number>;
   levelsGained: number;
   masteryXpGained: number;
   masteryLevelsGained: number;
@@ -1218,6 +1221,7 @@ export interface GameLogEntry {
 }
 
 export interface GameState {
+  rpg: import("./rpgTypes").RpgState;
   saveVersion: number;
   startingPath: StartingPathId | null;
   resources: Record<ResourceId, number>;

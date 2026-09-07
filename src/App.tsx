@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   ArrowDown,
@@ -94,7 +94,7 @@ import { progressionTiers, tierProgress } from "./data/progressionTiers";
 import { perkTrees, perks, specializationMilestones } from "./data/perks";
 import { districtSpecificMaterials, nextDistrictMasteryMilestone } from "./data/districtMastery";
 import { nextActionMasteryMilestone } from "./data/actionMasteryMilestones";
-import { canStartOperation, operationRequirementDetails, operationRouteSuccessChance, processOperation, startOperation, stopOperation } from "./systems/operationProcessor";
+import { canStartOperation, operationRequirementDetails, operationLoadoutReadiness, processOperation, startOperation, stopOperation } from "./systems/operationProcessor";
 import { buyVehicle, canBuyVehicle, garageSlots, setActiveVehicle, upgradeVehicle } from "./systems/vehicleSystem";
 import { threatTier } from "./systems/districtThreat";
 import { cityDistrictOrder, districtCompletionBreakdown, districtCompletionDebug, districtCompletionPercent, getDistrict } from "./data/cityMap";
@@ -141,6 +141,9 @@ import {
 } from "./systems/vendorSystem";
 import { ActivityCard, FactionBadge, LockedOverlay, ModifierList, NeonPanel, RequirementList, TerminalLog, ThreatMeter } from "./components/cyberpunk";
 import { DistrictMap } from "./components/DistrictMap";
+import { ProgressionGuide } from "./components/ProgressionGuide";
+import { RpgHub } from "./components/RpgHub";
+import { rpgXpNeeded, missionById } from "./systems/rpgSystem";
 import { RewardPopupContainer } from "./components/RewardPopups";
 import { InfoButton, ScreenHelpPanel } from "./components/InfoPopover";
 import { ClickableItemRequirement, ItemSourcePopover, RequirementBulletList } from "./components/ItemSourcePopover";
@@ -184,14 +187,19 @@ import { highThreatOperations, legacyCraftingGoals, iconicCyberwareGoals, collec
 import { nextStreetLegendMilestone, streetLegendMilestones } from "./data/streetLegendData";
 import { actionAccessRequirementText, meetsActionAccessRequirement } from "./systems/actionAccess";
 import { updateWorldUnlocks } from "./systems/worldUnlocks";
+import { campaignOperations } from "./data/campaign";
+import { campaignProgress, canAssembleLegacy, assembleLegacy, highThreatUnlocked, startHighThreat, prestigeSkill, collectionPercent, claimCollectionReward } from "./systems/endgameProgress";
+import { materialSupplyActions } from "./data/materialSupply";
+import { startAutoSave } from "./systems/autoSave";
 import { getItemSources } from "./systems/itemSourceLookup";
 import type { ActiveModifiers, AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, EnemyDrop, FactionId, GameState, GearSlot, ItemDefinition, ItemRarity, ItemStats, ItemType, JobContract, OperationDefinition, OperationRoute, OperationRouteId, PerkDefinition, PerkTreeId, ResourceId, RewardBundle, RipperdocService, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry, WeaponClassId } from "./types";
 
-type TabId = "city" | "inventory" | "character" | "loadout" | "progress" | "more";
+type TabId = "field" | "city" | "inventory" | "character" | "loadout" | "progress" | "more";
 type CharacterSectionId = "profile" | "health" | "build" | "skills";
 type TabNotice = { key: string; title: string; detail: string };
 
 const tabs: Array<{ id: TabId; label: string; Icon: typeof Activity }> = [
+  { id: "field", label: "Journal", Icon: FileText },
   { id: "city", label: "Map", Icon: Activity },
   { id: "inventory", label: "Inventory", Icon: Backpack },
   { id: "character", label: "Character", Icon: UserRound },
@@ -215,22 +223,14 @@ const startingPathImages: Record<StartingPathId, string> = {
   corporateDefector: corporateDefectorPathImage,
 };
 
-function runnerLevelProgress(state: GameState) {
-  const currentTotalLevel = totalLevel(state);
-  const completedMilestones = Math.floor(currentTotalLevel / 10);
-  const level = completedMilestones + 1;
-  const previousMilestone = completedMilestones * 10;
-  const nextMilestone = (completedMilestones + 1) * 10;
-  const percent = Math.min(100, Math.max(0, ((currentTotalLevel - previousMilestone) / 10) * 100));
-  return { level, currentTotalLevel, nextMilestone, percent };
-}
-
 function App() {
   const [activeSaveSlot, setActiveSaveSlotState] = useState<SaveSlotId>(() => getActiveSaveSlot());
   const [state, setState] = useState<GameState>(() => loadInitialGameState(getActiveSaveSlot()));
+  const latestSave = useRef({ state, slot: activeSaveSlot });
+  latestSave.current = { state, slot: activeSaveSlot };
   const [reviewedNoticeKeys, setReviewedNoticeKeys] = useState<Set<string>>(() => loadReviewedNoticeKeys(getActiveSaveSlot()));
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
-  const [tab, setTab] = useState<TabId>("city");
+  const [tab, setTab] = useState<TabId>("field");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
   const [importPayload, setImportPayload] = useState("");
@@ -269,10 +269,7 @@ function App() {
     });
   }, [now]);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => saveGame(state, activeSaveSlot), 5000);
-    return () => window.clearInterval(timer);
-  }, [state, activeSaveSlot]);
+  useEffect(() => startAutoSave(() => latestSave.current), []);
 
   useEffect(() => {
     saveGame(state, activeSaveSlot);
@@ -314,8 +311,8 @@ function App() {
   const activeOperation = state.activeOperation ? operations.find((operation) => operation.id === state.activeOperation?.operationId) : null;
   const active = activeActivity(state, now);
   const selectedStartingPath = state.startingPath ? startingPaths.find((path) => path.id === state.startingPath) : null;
-  const perkPointsAvailable = availablePerkPoints(state);
-  const runnerProgress = runnerLevelProgress(state);
+  const perkPointsAvailable = state.rpg.attributePoints + state.rpg.perkPoints;
+  const runnerProgress = { level: state.rpg.level, currentTotalLevel: state.rpg.xp, nextMilestone: rpgXpNeeded(state.rpg.level), percent: state.rpg.level >= 30 ? 100 : state.rpg.xp / rpgXpNeeded(state.rpg.level) * 100 };
   const cityNotices = tabNoticesEnabled ? unreviewedTabNotices(state, "city", reviewedNoticeKeys) : [];
   const inventoryNotices = tabNoticesEnabled ? unreviewedTabNotices(state, "inventory", reviewedNoticeKeys) : [];
   const setTabNoticePreference = (enabled: boolean) => {
@@ -370,16 +367,15 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <TopbarActivityProgress activity={active} />
+        {state.rpg.active ? <button className="topbar-activity-progress" onClick={() => setTab("field")}><p className="eyebrow">Field Mission / Awaiting Your Move</p><h1>{missionById(state.rpg.active.missionId)?.title ?? "Active mission"}</h1></button> : <TopbarActivityProgress activity={active} />}
         <button className={`player-level-alert ${perkPointsAvailable > 0 ? "has-points" : ""}`} onClick={() => {
-            setCharacterSection("build");
-            setTab("character");
+            setTab("field");
           }}>
           <span>Runner Lv {runnerProgress.level}</span>
           <strong>
             {perkPointsAvailable > 0
-              ? `${perkPointsAvailable} skill point${perkPointsAvailable === 1 ? "" : "s"} available`
-              : `${runnerProgress.currentTotalLevel} / ${runnerProgress.nextMilestone} total levels`}
+              ? `${perkPointsAvailable} RPG build point${perkPointsAvailable === 1 ? "" : "s"} available`
+              : `${runnerProgress.currentTotalLevel} / ${runnerProgress.nextMilestone} character XP`}
           </strong>
           <i aria-hidden="true">
             <b style={{ width: `${runnerProgress.percent}%` }} />
@@ -405,6 +401,7 @@ function App() {
             onClose={() => setState((current) => ({ ...current, offlineRecap: null }))}
           />
         )}
+        {tab === "field" && <RpgHub state={state} onUpdate={setState} onServices={openCityTab} onLoadout={() => setTab("loadout")} />}
         {tab === "city" && (
           <CityTab
             state={state}
@@ -487,7 +484,7 @@ function App() {
             onAutoEquip={(mode) => setState((current) => autoEquip(current, mode))}
           />
         )}
-        {tab === "progress" && <ProgressTab state={state} />}
+        {tab === "progress" && <ProgressTab state={state} onUpdate={(update) => setState(update)} />}
         {tab === "more" && (
           <MoreTab
             state={state}
@@ -692,8 +689,8 @@ function StartingPathScreen({
         <section className="path-hero">
           <div>
             <p className="eyebrow">Permanent origin</p>
-            <h1>Choose Your Starting Path</h1>
-            <p className="muted">Your origin changes the rhythm of the whole run: rewards, risks, faction friction, and long-term build identity. Resetting the save is the only way to choose again.</p>
+            <h1>Choose Your Lifepath</h1>
+            <p className="muted">Your origin opens unique mission approaches and shapes your contacts, rewards, and risks. Build your attributes, answer your fixer's call, and decide what the city remembers. Your lifepath is permanent for this save.</p>
           </div>
           <div className="path-selected-chip">
             <StartingPathBadge pathId={selected.id} name={selected.name} />
@@ -942,6 +939,7 @@ function CityTab({
     return (
       <section className="stack">
         <TabNoticePanel title="Map Updates" notices={notices} onReviewNotice={onReviewNotice} onReviewAll={onReviewAllNotices} />
+        <ProgressionGuide state={state} onStartSkill={onStartSkill} onCraft={onCraft} onOpenDistrict={openHub} />
         <DistrictMap state={state} activeDistrictId={active?.districtId ?? null} activeActivityName={active?.name} onOpenDistrict={openHub} />
       </section>
     );
@@ -1091,6 +1089,14 @@ function DistrictHub({
 
       {category === "overview" ? (
         <>
+          <article className="panel">
+            <p className="eyebrow">Resource plan</p>
+            <h3>{materialSupplyActions.find(action => action.districtReq === districtId)?.name}</h3>
+            <p className="muted">Gather guaranteed local components in Scavenging. Use the crafting bench to make parts, medicine, armor and weapons; click an ingredient to see where it comes from.</p>
+            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run and Strip Street Electronics. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
+            <p className="fine">New districts open at your highest skill level: 20, 40, 60, 80, 100, 120 and 140. Reach level 150 and finish the eight campaign operations shown in Progress.</p>
+            <button className="secondary-button" onClick={() => setCategory(skillCategoryFor("scavenging"))}>Find crafting supplies</button>
+          </article>
           <DistrictIntelPanel state={state} districtId={districtId} />
           <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
           <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
@@ -1703,7 +1709,7 @@ function OperationsPanel({
         </div>
       </div>
       <div className="operation-route-guide">
-        <InfoBlock title="Route Guide" lines={["Direct routes favor combat and payout.", "Silent routes lower Heat and improve stealth rewards.", "Fixer, faction, and breach routes trade requirements for better success chances."]} />
+        <InfoBlock title="Route Guide" lines={["Direct routes favor combat and payout.", "Silent routes lower Heat and improve stealth rewards.", "Fixer, faction, and breach routes trade requirements for stronger loadout readiness."]} />
       </div>
     </section>
   );
@@ -1742,18 +1748,18 @@ function OperationMissionCard({
           <RequirementStatusList requirements={operationRequirementDetails(state, operation)} />
         </div>
         <div className="operation-section">
-          <p className="operation-section-title">Routes</p>
+          <p className="operation-section-title">Routes / loadout readiness</p><p className="muted">100% meets the gear check. Survive every encounter to win; bring healing supplies.</p>
           <div className="operation-route-list">
             {(operation.routes ?? []).map((route) => (
               <button key={route.id} disabled={!available || active} onClick={() => onStartOperation(operation.id, route.id)}>
                 <span>{operationRouteIcon(route.id)} {route.name}</span>
-                <strong>{Math.round(operationRouteSuccessChance(state, operation, route) * 100)}%</strong>
+                <strong>{Math.round(operationLoadoutReadiness(state, operation, route) * 100)}%</strong>
               </button>
             ))}
             {!operation.routes?.length && (
               <button disabled={!available || active} onClick={() => onStartOperation(operation.id)}>
                 <span>{operationRouteIcon(operation.defaultRouteId)} Start Operation</span>
-                <strong>{Math.round(operationRouteSuccessChance(state, operation) * 100)}%</strong>
+                <strong>{Math.round(operationLoadoutReadiness(state, operation) * 100)}%</strong>
               </button>
             )}
           </div>
@@ -3409,7 +3415,8 @@ function ActionCard({
               {Object.entries(positiveRewards).filter(([, amount]) => amount).map(([id, amount]) => (
                 <RewardChip key={id} id={id} amount={amount ?? 0} />
               ))}
-              {!Object.values(positiveRewards).some(Boolean) && <span className="muted">No direct resource reward.</span>}
+              {Object.entries(action.itemRewards ?? {}).map(([id, amount]) => <RewardChip key={id} id={id} amount={amount} />)}
+              {!Object.values(positiveRewards).some(Boolean) && !Object.keys(action.itemRewards ?? {}).length && <span className="muted">No direct resource reward.</span>}
             </div>
           </InfoSectionRow>
 
@@ -3696,8 +3703,8 @@ function RequirementStatusList({ requirements, emptyLabel = "No requirements." }
 }
 
 function operationRouteButtonLabel(state: GameState, operation: OperationDefinition, route?: OperationRoute) {
-  const chance = Math.round(operationRouteSuccessChance(state, operation, route) * 100);
-  return `${route?.name ?? "Start Operation"} (${chance}%)`;
+  const chance = Math.round(operationLoadoutReadiness(state, operation, route) * 100);
+  return `${route?.name ?? "Start Operation"} (${chance}% loadout)`;
 }
 
 function textRequirementDetails(state: GameState, requirements: string[]) {
@@ -6748,7 +6755,9 @@ const defaultProgressDropdowns: Record<ProgressDropdownId, boolean> = {
   log: false,
 };
 
-function ProgressTab({ state }: { state: GameState }) {
+type UpdateGame = (update: (state: GameState) => GameState) => void;
+
+function ProgressTab({ state, onUpdate }: { state: GameState; onUpdate: UpdateGame }) {
   const [endgameTab, setEndgameTab] = useState<EndgameTab>("legend");
   const [openSections, setOpenSections] = useState<Record<ProgressDropdownId, boolean>>(loadProgressDropdowns);
 
@@ -6762,8 +6771,9 @@ function ProgressTab({ state }: { state: GameState }) {
 
   return (
     <section className="stack progress-stack">
+      <CampaignPanel state={state} />
       <ProgressDropdown id="endgame" title="Street Legend" eyebrow="Long-term account progression" open={openSections.endgame} onOpenChange={setSectionOpen}>
-        <EndgameSection state={state} activeTab={endgameTab} onTab={setEndgameTab} />
+        <EndgameSection state={state} activeTab={endgameTab} onTab={setEndgameTab} onUpdate={onUpdate} />
       </ProgressDropdown>
       <ProgressDropdown id="goals" title="Progression Goals" eyebrow="Tiers, mastery pools, build milestones" open={openSections.goals} onOpenChange={setSectionOpen}>
         <GoalsSection state={state} />
@@ -7156,7 +7166,7 @@ function BossLogsPanel({ state }: { state: GameState }) {
   );
 }
 
-function EndgameSection({ state, activeTab, onTab }: { state: GameState; activeTab: EndgameTab; onTab: (tab: EndgameTab) => void }) {
+function EndgameSection({ state, activeTab, onTab, onUpdate }: { state: GameState; activeTab: EndgameTab; onTab: (tab: EndgameTab) => void; onUpdate: UpdateGame }) {
   const legend = streetLegendRankProgress(state);
   const nextMilestone = nextStreetLegendMilestone(state.streetLegend.rank);
   return (
@@ -7179,12 +7189,31 @@ function EndgameSection({ state, activeTab, onTab }: { state: GameState; activeT
       </div>
       {activeTab === "legend" && <LegendPanel state={state} />}
       {activeTab === "challenges" && <ChallengesPanel state={state} />}
-      {activeTab === "threat" && <HighThreatPanel state={state} />}
-      {activeTab === "legacy" && <LegacyCraftingPanel state={state} />}
-      {activeTab === "collection" && <CollectionRewardsPanel state={state} />}
-      {activeTab === "prestige" && <PrestigePanel state={state} />}
+      {activeTab === "threat" && <HighThreatPanel state={state} onUpdate={onUpdate} />}
+      {activeTab === "legacy" && <LegacyCraftingPanel state={state} onUpdate={onUpdate} />}
+      {activeTab === "collection" && <CollectionRewardsPanel state={state} onUpdate={onUpdate} />}
+      {activeTab === "prestige" && <PrestigePanel state={state} onUpdate={onUpdate} />}
     </NeonPanel>
   );
+}
+
+function CampaignPanel({ state }: { state: GameState }) {
+  const campaign = campaignProgress(state);
+  return <article className="panel">
+    <p className="eyebrow">Campaign / City of Static</p>
+    <h2>{campaign.complete ? "The city is yours" : "From Neon Row to Skyline Core"}</h2>
+    <p className="muted">{campaign.complete ? "Campaign complete. Continue building your collection, take on high-threat operations, or prestige a skill." : "Follow Act 1 in Story, equip each district's gear, and clear these eight operations. The finale awards 50,000 Credits and Executive Ghost OS."}</p>
+    <Progress value={campaign.cleared / campaign.total * 100} label={`${campaign.cleared} / ${campaign.total} campaign operations cleared`} />
+    <div className="requirement-list">
+      {campaignOperations.map(id => {
+        const operation = operations.find(operation => operation.id === id)!;
+        return <div className={`requirement-row ${state.operationLogs[id]?.firstClear ? "met" : "missing"}`} key={id}>
+          <span>{operation.name} · {getDistrict(operation.districtId)?.name}</span>
+          <strong>{state.operationLogs[id]?.firstClear ? "Cleared" : id === campaign.next ? "Next objective" : "Pending"}</strong>
+        </div>;
+      })}
+    </div>
+  </article>;
 }
 
 function LegendPanel({ state }: { state: GameState }) {
@@ -7241,11 +7270,11 @@ function ChallengesPanel({ state }: { state: GameState }) {
   );
 }
 
-function HighThreatPanel({ state }: { state: GameState }) {
+function HighThreatPanel({ state, onUpdate }: { state: GameState; onUpdate: UpdateGame }) {
   return (
     <div className="card-list">
       {highThreatOperations.map((entry) => {
-        const unlocked = highThreatOperationUnlocked(state, entry);
+        const unlocked = highThreatUnlocked(state, entry.id);
         return (
           <ActivityCard key={entry.id} locked={!unlocked}>
             <div>
@@ -7254,6 +7283,8 @@ function HighThreatPanel({ state }: { state: GameState }) {
               <p className="fine">Base operation: {operations.find((operation) => operation.id === entry.baseOperationId)?.name ?? entry.baseOperationId}</p>
               <p className="fine">Requirements: {entry.unlockRequirements.join(", ")}</p>
               <p className="fine">Rewards: {entry.rewards.join(", ")}</p>
+              <p className="fine">Raises district threat to at least 50. Bring healing supplies.</p>
+              <button className="primary-button" disabled={!unlocked || state.health.lifeState === "downed"} onClick={() => onUpdate(current => startHighThreat(current, entry.id))}>Start high-threat operation</button>
             </div>
           </ActivityCard>
         );
@@ -7262,23 +7293,25 @@ function HighThreatPanel({ state }: { state: GameState }) {
   );
 }
 
-function LegacyCraftingPanel({ state }: { state: GameState }) {
+function LegacyCraftingPanel({ state, onUpdate }: { state: GameState; onUpdate: UpdateGame }) {
   return (
     <div className="card-list">
       {legacyCraftingGoals.map((goal) => (
-        <ActivityCard key={goal.id} locked={state.streetLegend.rank < 30}>
+        <ActivityCard key={goal.id} locked={!canAssembleLegacy(state, goal.id)}>
           <div>
             <p className="eyebrow">{goal.category}</p>
             <h3>{goal.name}</h3>
             <p className="fine">Requirements: {goal.requirements.join(", ")}</p>
+            <p className="fine">Produces {goal.id === "legacy-reflex-core" ? "Reflex Spine: Ghostline" : goal.id === "legacy-blacknet-processor" ? "Null Eye" : "12 Prototype Drive Units"}.</p>
             <div className="requirement-list">
-              {Object.entries(goal.materials).slice(0, 6).map(([id, amount]) => (
+              {Object.entries(goal.materials).map(([id, amount]) => (
                 <span key={id} className={`requirement-row ${getOwnedCount(state, id) < amount ? "missing" : ""}`}>
                   {getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}
                   <strong>{getOwnedCount(state, id).toLocaleString()} / {amount.toLocaleString()}</strong>
                 </span>
               ))}
             </div>
+            <button className="primary-button" disabled={!canAssembleLegacy(state, goal.id)} onClick={() => onUpdate(current => assembleLegacy(current, goal.id))}>Assemble</button>
           </div>
         </ActivityCard>
       ))}
@@ -7296,10 +7329,8 @@ function LegacyCraftingPanel({ state }: { state: GameState }) {
   );
 }
 
-function CollectionRewardsPanel({ state }: { state: GameState }) {
-  const discovered = Object.values(state.discoveredItems).filter(Boolean).length;
-  const totalKnown = Math.max(1, Object.keys(itemNames).length);
-  const percent = Math.min(100, Math.round((discovered / totalKnown) * 100));
+function CollectionRewardsPanel({ state, onUpdate }: { state: GameState; onUpdate: UpdateGame }) {
+  const percent = collectionPercent(state);
   return (
     <div className="stack compact-stack">
       <Progress value={percent} label={`${percent}% item collection discovered`} />
@@ -7310,6 +7341,7 @@ function CollectionRewardsPanel({ state }: { state: GameState }) {
               <p className="eyebrow">{milestone.percent}% Collection</p>
               <h3>{percent >= milestone.percent ? "Unlocked" : "Locked"}</h3>
               <p className="fine">{milestone.reward}</p>
+              <button className="secondary-button" disabled={percent < milestone.percent || state.collectionRewardsClaimed[milestone.percent]} onClick={() => onUpdate(current => claimCollectionReward(current, milestone.percent))}>{state.collectionRewardsClaimed[milestone.percent] ? "Claimed" : "Claim reward"}</button>
             </div>
           </ActivityCard>
         ))}
@@ -7318,7 +7350,7 @@ function CollectionRewardsPanel({ state }: { state: GameState }) {
   );
 }
 
-function PrestigePanel({ state }: { state: GameState }) {
+function PrestigePanel({ state, onUpdate }: { state: GameState; onUpdate: UpdateGame }) {
   return (
     <div className="stack compact-stack">
       <div className="inventory-grid">
@@ -7330,14 +7362,16 @@ function PrestigePanel({ state }: { state: GameState }) {
       <TerminalLog>
         {prestigeProtocolNotes.map((note) => <p key={note}>{note}</p>)}
       </TerminalLog>
+      <div className="card-list">
+        {skillOrder.map(skill => <div className="action-card" key={skill}>
+          <div><strong>{skillNames[skill]}</strong><p className="fine">Level {state.skills[skill].level} / Permanent XP bonus +{(state.prestigeProtocol.skillPrestiges[skill] ?? 0) * 10}%</p></div>
+          <button className="secondary-button" disabled={!state.prestigeProtocol.unlocked || state.skills[skill].level < 150} onClick={() => {
+            if (window.confirm(`Reset ${skillNames[skill]} to level 1 for permanent +10% XP? Your equipment, city access and story progress are kept.`)) onUpdate(current => prestigeSkill(current, skill));
+          }}>Prestige to level 1</button>
+        </div>)}
+      </div>
     </div>
   );
-}
-
-function highThreatOperationUnlocked(state: GameState, entry: (typeof highThreatOperations)[number]) {
-  return Boolean(state.operationLogs[entry.baseOperationId]?.firstClear) &&
-    state.streetLegend.rank >= 25 &&
-    (state.districtMastery[entry.districtId]?.level ?? 1) >= 15;
 }
 
 function SimCacheSection({ state, onRun }: { state: GameState; onRun: (count: number) => void }) {
@@ -7494,6 +7528,7 @@ function OfflineRecap({ state, onClose }: { state: GameState; onClose: () => voi
           <Metric label="IN" value={recap.neuralInstabilityGained} />
         </div>
         <p className="fine">Resources: {formatRewards(recap.resourcesGained)}</p>
+        {Object.keys(recap.itemsGained ?? {}).length > 0 && <p className="fine">Items: {Object.entries(recap.itemsGained ?? {}).map(([id, quantity]) => `${quantity} ${getItem(id)?.name ?? id}`).join(", ")}</p>}
         <button className="primary-button full-width" onClick={onClose}>Close</button>
       </article>
     </div>

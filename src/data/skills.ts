@@ -1,4 +1,6 @@
 import type { EnemyDrop, SkillAction, SkillId } from "../types";
+import { materialSupplyActions } from "./materialSupply";
+import { pacedActionXp } from "./progressionPacing";
 
 export const skillNames: Record<SkillId, string> = {
   scavenging: "Scavenging",
@@ -33,6 +35,7 @@ function action(input: SkillAction): SkillAction {
     simCacheEligible: true,
     sourceHint: "Skill action progression.",
     ...input,
+    xpReward: pacedActionXp(input.levelReq, input.durationMs, input.xpReward),
     masteryXpReward,
     masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),
   };
@@ -43,6 +46,7 @@ function baseMasteryXpReward() {
 }
 
 export const skillActions: SkillAction[] = [
+  ...materialSupplyActions,
   // ===== NEON ROW =====
   action({
     id: "scav-alley-scrap-run",

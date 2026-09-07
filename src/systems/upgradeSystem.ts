@@ -61,6 +61,7 @@ export function canAffordItemUpgrade(state: GameState, itemId: string) {
   const item = getItem(itemId);
   const current = state.upgradeLevels[itemId] ?? 0;
   if (!item?.maxUpgradeLevel || current >= item.maxUpgradeLevel) return false;
+  if ((state.inventory[itemId] ?? 0) <= 0) return false;
   if (item.requiredSkill && state.skills[item.requiredSkill].level < Math.max(1, current + 1)) return false;
   const cost = itemUpgradeCost(state, itemId);
   return Object.entries(cost).every(([id, amount]) => {

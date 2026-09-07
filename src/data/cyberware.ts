@@ -59,7 +59,7 @@ const slots: Array<{ id: CyberwareSlot; label: string; parts: number }> = [
 // copies of the same bonus and encourage mixed loadouts.
 export const cyberwareSpecs: CyberwareSpec[] = suites.flatMap((cyberSuite) =>
   slots.map((slot) => ({
-    id: `${cyberSuite.id}-${slot.id}`,
+    id: `${cyberSuite.id}-${slot.id}${slot.id === "legs" && ["neon-runner", "skyline-apex"].includes(cyberSuite.id) ? "-implant" : ""}`,
     name: `${cyberSuite.name} ${slot.label}`,
     description: `${cyberSuite.description} ${slotDescription(slot.id)}`,
     slot: slot.id,

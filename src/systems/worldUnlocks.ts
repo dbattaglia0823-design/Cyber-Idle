@@ -22,7 +22,7 @@ export function updateWorldUnlocks(state: GameState) {
 function syncDistrictUnlock(state: GameState, id: DistrictId, condition: boolean) {
   const district = state.districts[id];
   if (!district) return;
-  if (condition) {
+  if (condition || district.unlocked) {
     if (!district.unlocked) {
       district.unlocked = true;
       pushCategorizedLog(state, "World", `District unlocked: ${id}.`);

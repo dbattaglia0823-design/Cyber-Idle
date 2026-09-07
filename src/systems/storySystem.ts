@@ -4,6 +4,7 @@ import { changeDistrictThreat } from "./districtThreat";
 import { changeLocalStanding, discoverDistrictContent } from "./districtProgression";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { emitRewardPopupGroup } from "./rewardPopups";
+import { syncCampaignCompletion } from "./endgameProgress";
 import type { FactionId, GameState, StoryArcDefinition, StoryArcState, StoryChoice, StoryObjective, StoryStepDefinition } from "../types";
 
 export function getStoryArc(id: string) {
@@ -22,6 +23,7 @@ export function activeStoryStep(state: GameState, arc: StoryArcDefinition) {
 export function updateStoryProgress(state: GameState) {
   const next = cloneState(state);
   storyArcs.forEach((arc) => updateArcProgress(next, arc));
+  syncCampaignCompletion(next);
   return next;
 }
 
@@ -33,6 +35,7 @@ export function chooseStoryChoice(state: GameState, arcId: string, stepId: strin
   const next = cloneState(state);
   ensureArc(next, arc);
   const arcState = next.storyArcs[arc.id];
+  if (arcState.status === "locked" || arcState.status === "completed" || arcState.activeStepId !== step.id) return state;
   if (arcState.completedSteps[step.id] || arcState.choices[step.id]) return state;
   if (step.objective.type !== "makeChoice" && !storyObjectiveComplete(next, step.objective)) return state;
   applyChoice(next, arc, step, choice);
@@ -234,6 +237,7 @@ function applyStoryUnlock(state: GameState, unlock: string) {
 }
 
 function arcUnlocked(state: GameState, arc: StoryArcDefinition) {
+  if (arc.districtId && !state.districts[arc.districtId]?.unlocked) return false;
   if (arc.id === "main-act-1-neon-entry" || arc.id === "district-neon-row-street-initiation" || arc.id === "fixer-sable-first-credit") return Boolean(state.startingPath);
   if (arc.id === "companion-nyra-intro") return Boolean(state.districts.blacknetQuarter?.unlocked);
   return arc.unlockRequirements.every((requirement) => {

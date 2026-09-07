@@ -1,6 +1,7 @@
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
-import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canAffordRewards, getSkillAction } from "./actionProcessing";
+import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canStartSkillAction, grantActionItems, getSkillAction } from "./actionProcessing";
+import { updateWorldUnlocks } from "./worldUnlocks";
 import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
@@ -18,6 +19,7 @@ export function simCacheEligibility(state: GameState) {
   if (state.activeAction) {
     const action = getSkillAction(state.activeAction.actionId);
     if (!action) return { eligible: false, reason: "Current action is missing." };
+    if (action.simCacheEligible === false || !canStartSkillAction(state, action)) return { eligible: false, reason: "This action's requirements are not met." };
     if (!state.manualDiscovery.skillActions[action.id]) return { eligible: false, reason: "Complete this skill action manually once first." };
     if (action.tags?.includes("hacking") && state.resources.heat >= 75) return { eligible: false, reason: "Heat safety stop: Hunted or higher." };
     return { eligible: true, reason: `Eligible: repeat ${action.name}.` };
@@ -35,8 +37,9 @@ export function simCacheEligibility(state: GameState) {
 }
 
 export function runBasicSimCache(state: GameState, cacheCount: number) {
+  if (!Number.isFinite(cacheCount) || cacheCount < 1) return state;
   const basic = simCacheTypes[0];
-  const count = Math.max(1, Math.min(cacheCount, state.inventory[basic.itemId] ?? 0));
+  const count = Math.max(1, Math.min(Math.floor(cacheCount), state.inventory[basic.itemId] ?? 0));
   const eligible = simCacheEligibility(state);
   if (!eligible.eligible) return state;
   const next = cloneState(state);
@@ -64,6 +67,7 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   else if (next.activeCraft) simulateCraft(next, simulatedMs, recap);
 
   next.worldUnlocks.usedSimCache = true;
+  updateWorldUnlocks(next);
   next.simulationRecap = recap;
   pushCategorizedLog(next, "World", `Sim Cache used: ${recap.completions} completions. ${recap.stoppedReason}`);
   emitRewardPopupGroup(next, {
@@ -88,7 +92,7 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
   recap.activityName = action.name;
   const loops = Math.min(balanceConfig.simCache.maxLoops, Math.floor(simulatedMs / state.activeAction!.durationMs));
   for (let i = 0; i < loops; i += 1) {
-    if (!canAffordRewards(state, action.rewards)) {
+    if (!canStartSkillAction(state, action)) {
       recap.stoppedReason = "Stopped early: missing required resources.";
       break;
     }
@@ -100,6 +104,8 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     const xp = Math.round(actionXpRewardWithMastery(state, action) * efficiency.skillXp);
     const mastery = Math.round(actionMasteryXpReward(state, action) * efficiency.masteryXp);
     applyRewards(state, rewards);
+    grantActionItems(state, action);
+    Object.entries(action.itemRewards ?? {}).forEach(([id, quantity]) => { recap.dropsGained[id] = (recap.dropsGained[id] ?? 0) + quantity; });
     addRewardDelta(recap.resourcesGained, rewards);
     addSkillXp(state, action.skillId, xp);
     const pool = Math.ceil(mastery * 0.25);
@@ -142,7 +148,7 @@ function scaleRewards(rewards: RewardBundle, efficiency: ReturnType<typeof getSi
   Object.entries(rewards).forEach(([resource, amount]) => {
     const id = resource as ResourceId;
     const rate = id === "credits" ? efficiency.credits : efficiency.resources;
-    scaled[id] = Math.round((amount ?? 0) * rate);
+    scaled[id] = (amount ?? 0) < 0 ? amount! : Math.round((amount ?? 0) * rate);
   });
   return scaled;
 }

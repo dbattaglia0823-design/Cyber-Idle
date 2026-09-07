@@ -77,7 +77,7 @@ export const legacyCraftingGoals: LegacyCraftingGoal[] = [
   {
     id: "legacy-blacknet-processor",
     name: "Blacknet Processor",
-    category: "Apex Mod",
+    category: "Iconic Cyberware",
     requirements: ["Hacking 85", "Blacknet Quarter Mastery 50", "Street Legend Rank 30"],
     materials: { encryptedData: 1800, "blacknet-cipher": 25, "trace-scrambler-chip": 18, "daemon-fragment": 8, "boss-data-key": 2 },
   },
@@ -85,29 +85,28 @@ export const legacyCraftingGoals: LegacyCraftingGoal[] = [
     id: "legacy-prototype-drive",
     name: "Prototype Drive Assembly",
     category: "Vehicle Core",
-    requirements: ["Vehicle Tuning 80", "Rust Yards Mastery 50", "Street Legend Rank 30"],
+    requirements: ["Vehicle Tuning 100", "Rust Yards Mastery 50", "Street Legend Rank 30"],
     materials: { vehicleParts: 1800, engineCore: 30, "chrome-jackal-gearset": 12, prototypeDriveUnit: 3 },
   },
 ];
 
 export const iconicCyberwareGoals: IconicCyberwareGoal[] = [
-  { id: "iconic-reflex-spine", name: "Reflex Spine: Ghostline", slot: "Skeleton", instabilityLoad: 14, source: "Legacy Reflex Core", requirements: ["Street Legend Rank 30", "Ripperdoc install", "Neon Row Mastery 50"] },
-  { id: "iconic-null-eye", name: "Null Eye", slot: "Optics", instabilityLoad: 12, source: "Trace Storm high-threat operation", requirements: ["Street Legend Rank 40", "Blacknet Quarter Mastery 50"] },
-  { id: "iconic-exec-os", name: "Executive Ghost OS", slot: "Operating System", instabilityLoad: 18, source: "Black Badge Response", requirements: ["Street Legend Rank 50", "Glassline faction access"] },
+  { id: "iconic-reflex-spine", name: "Reflex Spine: Ghostline", slot: "Skeleton", instabilityLoad: 14, source: "Legacy Reflex Core assembly", requirements: ["Cyberware 80", "Neon Row Mastery 50", "Street Legend Rank 20"] },
+  { id: "iconic-null-eye", name: "Null Eye", slot: "Optics", instabilityLoad: 12, source: "Blacknet Processor assembly", requirements: ["Hacking 85", "Blacknet Quarter Mastery 50", "Street Legend Rank 30"] },
+  { id: "iconic-exec-os", name: "Executive Ghost OS", slot: "Operating System", instabilityLoad: 18, source: "Campaign completion", requirements: ["Clear all eight campaign operations", "Cyberware 140 to equip"] },
 ];
 
 export const collectionRewardMilestones: CollectionRewardMilestone[] = [
-  { percent: 10, reward: "Street Legend XP and small resource bundle" },
-  { percent: 25, reward: "District/resource reward bonus placeholder" },
-  { percent: 50, reward: "Rare drop chance placeholder" },
-  { percent: 75, reward: "Advanced contract/vendor unlock placeholder" },
-  { percent: 90, reward: "Sim Cache or blueprint tracking bonus" },
-  { percent: 100, reward: "Title/passive placeholder" },
+  { percent: 10, reward: "1,000 Credits and 100 Scrap" },
+  { percent: 25, reward: "2,500 Credits, 250 Scrap and +2% resource rewards" },
+  { percent: 50, reward: "5,000 Credits, 500 Scrap and +1% drop chance" },
+  { percent: 75, reward: "7,500 Credits, 750 Scrap and +5% Credits" },
+  { percent: 90, reward: "9,000 Credits, 900 Scrap and +2% Sim Cache efficiency" },
+  { percent: 100, reward: "10,000 Credits, 1,000 Scrap and +3% resource rewards" },
 ];
 
 export const prestigeProtocolNotes = [
   "Optional only; no forced resets.",
-  "Future Skill Prestige can reset a level 150 skill for a small permanent bonus.",
-  "Future District Prestige can reset District Mastery 99 for a district passive.",
-  "Collections, story, major unlocks, and important items should stay preserved.",
+  "Prestige a level 150 skill to reset it to level 1 and gain permanent +10% XP for that skill. Bonuses stack.",
+  "District mastery, collections, story, city access, equipment and possessions are preserved.",
 ];

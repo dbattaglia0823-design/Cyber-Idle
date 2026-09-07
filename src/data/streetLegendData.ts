@@ -17,20 +17,15 @@ export const streetLegendMilestones: StreetLegendMilestone[] = [
   { rank: 25, name: "Lockdown Access", description: "Unlocks High-Threat Operations.", unlockKey: "high-threat-operations" },
   { rank: 30, name: "Legacy Bench", description: "Unlocks Legacy Crafting goals.", unlockKey: "legacy-crafting" },
   { rank: 40, name: "Blueprint Hunter", description: "Unlocks Legendary Blueprint tracking.", unlockKey: "legendary-blueprint-tracking", modifiers: { dropChance: 0.005 } },
-  { rank: 50, name: "Prestige Protocol", description: "Unlocks Prestige Protocol placeholder.", unlockKey: "prestige-protocol" },
-  { rank: 75, name: "Apex Citywork", description: "Unlocks Apex district modifier placeholders.", unlockKey: "apex-district-modifiers", modifiers: { skillRewards: 0.02, dropChance: 0.01 } },
-  { rank: 100, name: "City Legend", description: "City Legend title and passive placeholder.", unlockKey: "city-legend-title", modifiers: { skillRewards: 0.03, combatXp: 0.03 } },
+  { rank: 50, name: "Prestige Protocol", description: "Unlocks optional skill prestige; reaching skill level 150 also opens it.", unlockKey: "prestige-protocol" },
+  { rank: 75, name: "Apex Citywork", description: "+2% resource rewards and +1% drop chance.", unlockKey: "apex-district-modifiers", modifiers: { skillRewards: 0.02, dropChance: 0.01 } },
+  { rank: 100, name: "City Legend", description: "City Legend title, +3% resource rewards and +3% combat XP.", unlockKey: "city-legend-title", modifiers: { skillRewards: 0.03, combatXp: 0.03 } },
 ];
 
 export function streetLegendXpForRank(rank: number) {
   const safeRank = Math.max(1, Math.floor(rank));
-  const tier =
-    safeRank < 10 ? 1 :
-    safeRank < 25 ? 1.45 :
-    safeRank < 50 ? 2.1 :
-    safeRank < 75 ? 3.2 :
-    5;
-  return Math.floor((120 + Math.pow(safeRank, 1.82) * 38) * tier);
+  // Match the hundreds of legend XP earned by district and campaign milestones.
+  return Math.floor(80 + Math.pow(safeRank, 1.25) * 8);
 }
 
 export function nextStreetLegendMilestone(rank: number) {

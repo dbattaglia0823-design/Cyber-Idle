@@ -9,6 +9,7 @@ import { addMasteryPoolXp } from "./masteryPool";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
+import { updateWorldUnlocks } from "./worldUnlocks";
 import type { CraftingRecipe, DistrictId, GameState } from "../types";
 
 export function getRecipe(recipeId: string) {
@@ -71,6 +72,7 @@ export function completeCraft(state: GameState, recipe: CraftingRecipe, masteryE
   addMasteryPoolXp(state, recipe.requiredSkill, Math.ceil(masteryXp * 0.25));
   addDistrictMasteryXp(state, recipeDistrict(recipe), "craft", Math.max(3, Math.round(recipe.xpReward * 0.25)));
   if (markManual) markRecipeManual(state, recipe.id);
+  updateWorldUnlocks(state);
   pushCategorizedLog(state, "Skill", `Crafted ${recipe.name}: +${recipe.xpReward} ${recipe.requiredSkill} XP.`);
   if (emitPopup) {
     emitRewardPopupGroup(state, {
@@ -86,6 +88,7 @@ export function completeCraft(state: GameState, recipe: CraftingRecipe, masteryE
 }
 
 function recipeDistrict(recipe: CraftingRecipe): DistrictId | null {
+  if (recipe.requiredDistrict) return recipe.requiredDistrict;
   const haystack = `${recipe.id} ${recipe.name} ${recipe.tags.join(" ")}`.toLowerCase();
   if (haystack.includes("rust") || haystack.includes("vehicle") || haystack.includes("drone")) return "rustYards";
   if (haystack.includes("market") || haystack.includes("contraband") || haystack.includes("smuggler")) return "underpassMarket";

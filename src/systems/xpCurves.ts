@@ -26,14 +26,9 @@ export function getDistrictMasteryXpForLevel(level: number) {
 }
 
 function idleTierMultiplier(level: number, curveType: XpCurveType) {
-  const tier =
-    level < 5 ? 0.72 :
-    level < 10 ? 0.92 :
-    level < 25 ? 1.12 :
-    level < 50 ? 1.55 :
-    level < 75 ? 2.35 :
-    level < 99 ? 3.65 :
-    6.25;
+  // The former step table nearly doubled XP costs at level 99. A continuous
+  // slope keeps each level a small increase, including district transitions.
+  const tier = 0.72 + (Math.max(1, level) - 1) * 0.012;
 
   if (curveType === "mastery") return tier * 1.25;
   if (curveType === "districtMastery") return tier * 1.65;

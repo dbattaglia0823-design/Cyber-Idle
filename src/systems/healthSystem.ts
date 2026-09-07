@@ -28,8 +28,9 @@ export function calculateCurrentHP(state: GameState) {
 
 export function clampPlayerHP(state: GameState) {
   const maxHp = calculateMaxHP(state);
-  state.health.currentHp = Math.max(0, Math.min(maxHp, Math.round(state.health.currentHp || maxHp)));
-  if (state.health.currentHp > 0 && state.health.lifeState === "downed") state.health.lifeState = "alive";
+  const hp = Number.isFinite(state.health.currentHp) ? state.health.currentHp : maxHp;
+  state.health.currentHp = Math.max(0, Math.min(maxHp, hp));
+  state.health.lifeState = state.health.currentHp <= 0 ? "downed" : "alive";
   return state;
 }
 
@@ -71,6 +72,7 @@ export function useHealingItem(state: GameState, itemId: string, source = "Manua
   const healing = healingItems[itemId];
   if (!item || !healing || (state.inventory[itemId] ?? 0) <= 0) return { used: false, healed: 0 };
   if (state.health.lifeState === "downed" && !healing.revive) return { used: false, healed: 0 };
+  if (state.health.currentHp >= calculateMaxHP(state)) return { used: false, healed: 0 };
   if (!removeItem(state, itemId, 1)) return { used: false, healed: 0 };
   const maxHp = calculateMaxHP(state);
   const amount = (healing.flat ?? 0) + Math.round(maxHp * (healing.percent ?? 0));
@@ -109,7 +111,7 @@ export function maybeAutoHeal(state: GameState, source: string) {
 }
 
 export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
-  if (state.currentCombat || state.activeOperation || state.health.lifeState === "downed") return state;
+  if (state.currentCombat || state.activeOperation || state.rpg?.active || state.health.lifeState === "downed") return state;
   const maxHp = calculateMaxHP(state);
   if (state.health.currentHp >= maxHp) return state;
   const residence = housingOptions.find((housing) => housing.id === state.activeResidence);
@@ -129,7 +131,9 @@ export function applyPassiveRecovery(state: GameState, elapsedMs: number) {
 export function recoverFromDowned(state: GameState, mode: "basic" | "paid" | "full" = "basic") {
   if (state.health.lifeState !== "downed") return state;
   const maxHp = calculateMaxHP(state);
-  const cost = mode === "full" ? Math.min(state.resources.credits, Math.ceil(maxHp * 1.2)) : mode === "paid" ? Math.min(state.resources.credits, Math.ceil(maxHp * 0.5)) : 0;
+  const cost = mode === "paid" ? Math.ceil(maxHp * 0.5) : 0;
+  if (state.resources.credits < cost) return state;
+  if (mode === "full" && !removeItem(state, "emergency-reboot-kit", 1)) return state;
   state.resources.credits -= cost;
   state.health.lifeState = "alive";
   state.health.currentHp = Math.max(1, Math.round(maxHp * (mode === "full" ? 1 : mode === "paid" ? 0.75 : 0.2)));

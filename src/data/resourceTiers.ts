@@ -1,3 +1,5 @@
+import { materialSupplyActions } from "./materialSupply";
+
 export type ResourceTier = "basic" | "refined" | "advanced" | "rare" | "ultraRare";
 
 export const resourceTierInfo: Record<string, { tier: ResourceTier; sourceHint: string }> = {
@@ -35,5 +37,10 @@ export const resourceTierInfo: Record<string, { tier: ResourceTier; sourceHint: 
 };
 
 export function resourceSourceHint(id: string) {
+  const supply = materialSupplyActions.find(action => id in (action.itemRewards ?? {}));
+  if (supply) return `Guaranteed from ${supply.name} in ${supply.district} (Scavenging ${supply.levelReq}).`;
+  if (id === "medical-gel") return "Craft at Medical level 1 from Cyberware Parts and Credits.";
+  if (id === "armorPlating") return "Craft from Scrap at Cyberware level 1; also sold in Rust Yards.";
+  if (id === "engineCore") return "Craft at Vehicle Tuning level 20 or recover from Rust Yards machinery.";
   return resourceTierInfo[id]?.sourceHint;
 }

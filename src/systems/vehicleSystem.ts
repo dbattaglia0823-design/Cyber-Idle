@@ -5,16 +5,29 @@ import { calculateVehicleUpgradeCost } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { updateOperationAchievements } from "./achievements";
 import { emitRewardPopupGroup } from "./rewardPopups";
+import { factionRank } from "./modifiers";
 import type { GameState, RewardBundle } from "../types";
 
 export function garageSlots(state: GameState) {
-  const housing = housingOptions.find((option) => option.id === state.activeResidence);
-  return 1 + (housing?.garageSlots ?? 0);
+  return 1 + housingOptions.filter(option => state.ownedHousing[option.id]).reduce((sum, option) => sum + (option.garageSlots ?? 0), 0);
 }
 
 export function canBuyVehicle(state: GameState, vehicleId: string) {
   const vehicle = vehicles.find((entry) => entry.id === vehicleId);
   if (!vehicle || state.ownedVehicles[vehicleId]) return false;
+  if (!state.districts[vehicle.districtId]?.unlocked) return false;
+  if (!vehicle.unlockRequirements.every(requirement => {
+    const rank = requirement.match(/Chrome Jackals rank (\d+)/i);
+    if (rank) return factionRank(state.factions.chromeJackals.reputation) >= Number(rank[1]);
+    const factionRep = requirement.match(/Chrome Jackals reputation (\d+)/i);
+    if (factionRep) return state.factions.chromeJackals.reputation >= Number(factionRep[1]);
+    const rep = requirement.match(/^Reputation (\d+)/i);
+    if (rep) return state.resources.reputation >= Number(rep[1]);
+    const skill = requirement.match(/Vehicle Tuning level (\d+)/i);
+    if (skill) return state.skills.vehicleTuning.level >= Number(skill[1]);
+    if (requirement === "Corporate Extraction rare reward") return Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear);
+    return true;
+  })) return false;
   if (Object.values(state.ownedVehicles).filter(Boolean).length >= garageSlots(state)) return false;
   return canPay(state, vehicle.cost);
 }

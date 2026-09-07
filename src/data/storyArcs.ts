@@ -223,12 +223,12 @@ export const storyArcs: StoryArcDefinition[] = [
       },
     ],
   },
-  lockedRoadmap("main-act-3-prototype-signal", "Act 3: Prototype Signal", "Main Arc", "Prototype cyberware links Blacknet Quarter, Helix Ward, and Glassline District."),
-  lockedRoadmap("main-act-4-city-fracture", "Act 4: City Fracture", "Main Arc", "District threat and faction conflicts reshape vendors, routes, and operations."),
-  lockedRoadmap("main-act-5-skyline-endgame", "Act 5: Endgame Placeholder", "Main Arc", "Skyline Core, rogue AI secrets, faction outcomes, and final operation chains."),
-  lockedRoadmap("district-rust-scrap-war", "Rust Yards: Chrome Scrap War", "District Arc", "Chrome Jackals clash with salvage gangs over vehicle parts and garage routes.", "rustYards", ["chromeJackals"]),
-  lockedRoadmap("district-underpass-ghost-price", "Underpass Market: Ghost Price", "District Arc", "Ghost Market reputation, risky listings, and prototype deals reshape the market.", "underpassMarket", ["ghostMarket"]),
-  lockedRoadmap("district-blacknet-static", "Blacknet Quarter: Signal in the Static", "District Arc", "Null Choir traces corrupted signals through Blacknet operations.", "blacknetQuarter", ["nullChoir"]),
+  operationChapter("main-act-3-prototype-signal", "Act 3: Prototype Signal", "Main Arc", "Prototype cyberware links Blacknet Quarter, Helix Ward, and Glassline District."),
+  operationChapter("main-act-4-city-fracture", "Act 4: City Fracture", "Main Arc", "District threat and faction conflicts reshape vendors, routes, and operations."),
+  operationChapter("main-act-5-skyline-endgame", "Act 5: Skyline Blackout", "Main Arc", "Skyline Core, rogue AI secrets, faction outcomes, and final operation chains."),
+  operationChapter("district-rust-scrap-war", "Rust Yards: Chrome Scrap War", "District Arc", "Chrome Jackals clash with salvage gangs over vehicle parts and garage routes.", "rustYards", ["chromeJackals"]),
+  operationChapter("district-underpass-ghost-price", "Underpass Market: Ghost Price", "District Arc", "Ghost Market reputation, risky listings, and prototype deals reshape the market.", "underpassMarket", ["ghostMarket"]),
+  operationChapter("district-blacknet-static", "Blacknet Quarter: Signal in the Static", "District Arc", "Null Choir traces corrupted signals through Blacknet operations.", "blacknetQuarter", ["nullChoir"]),
 ];
 
 export const factionConflictDefaults: Record<string, FactionConflictState> = {
@@ -238,7 +238,7 @@ export const factionConflictDefaults: Record<string, FactionConflictState> = {
   "glassline-vs-street": { status: "cold", score: 0, playerLeaning: "neutral", decisions: {} },
 };
 
-function lockedRoadmap(
+function operationChapter(
   id: string,
   name: string,
   category: StoryArcDefinition["category"],
@@ -246,27 +246,32 @@ function lockedRoadmap(
   districtId?: StoryArcDefinition["districtId"],
   involvedFactions: StoryArcDefinition["involvedFactions"] = [],
 ): StoryArcDefinition {
+  const chapterDistrict = districtId ?? (id.includes("act-3") ? "helixWard" : id.includes("act-4") ? "redlineBlocks" : "skylineCore");
+  const objectives: Record<string, Array<[string, string, string]>> = {
+    "main-act-3-prototype-signal": [["op-helix-triage-case", "Trace the Prototype", "Recover the clinical records behind the unstable prototypes."], ["op-corporate-extraction", "Expose the Directive", "Extract the corporate team and their research before the archive is erased."]],
+    "main-act-4-city-fracture": [["op-redline-block-war", "Break the Blockade", "Open Redline's routes and stop the crews from cutting off the city."]],
+    "main-act-5-skyline-endgame": [["op-skyline-concierge", "Enter the Core", "Pass executive security and locate the blackout controls."], ["op-skyline-blackout", "City of Static", "Shut down the executive control network. Complete all eight campaign operations for your iconic reward."]],
+    "district-rust-scrap-war": [["op-junkyard-lockdown", "Free the Salvage Lanes", "Break the yard blockade so the chop shops can work again."]],
+    "district-underpass-ghost-price": [["op-contraband-raid", "Settle the Ghost Price", "Recover the seized contraband and restore the market's supply line."]],
+    "district-blacknet-static": [["op-ghost-signal-dive", "Silence the Ghost Signal", "Track the corrupted broadcast to its source and disconnect it."]],
+  };
   return {
     id,
     name,
     category,
-    districtId,
+    districtId: chapterDistrict,
     description,
     involvedFixers: [],
     involvedFactions,
     involvedCompanions: [],
-    requiredProgressionTier: "future",
-    unlockRequirements: ["Future story update"],
-    outcomeFlags: [],
-    roadmap: true,
-    steps: [
-      {
-        id: `${id}-placeholder`,
-        title: "Encrypted File",
-        description: "This case file exists as a roadmap hook for later long-form progression.",
-        objective: { type: "makeChoice", target: `${id}-future`, requiredCount: 1, districtId },
-      },
-    ],
+    unlockRequirements: ["District unlocked"],
+    outcomeFlags: [`${id}-complete`],
+    roadmap: false,
+    steps: objectives[id].map(([operationId, title, detail], index, entries) => ({
+      id: `${id}-operation-${index + 1}`, title, description: detail,
+      objective: { type: "clearOperation", target: operationId, requiredCount: 1, districtId: chapterDistrict },
+      rewards: { credits: 500 + index * 500, reputation: 10 },
+      nextStepIds: index + 1 < entries.length ? [`${id}-operation-${index + 2}`] : undefined,
+    })),
   };
 }
-

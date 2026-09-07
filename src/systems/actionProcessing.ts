@@ -29,7 +29,7 @@ export function canAffordRewards(state: GameState, rewards: RewardBundle) {
   });
 }
 
-function hasRequiredItems(state: GameState, action: SkillAction) {
+export function hasRequiredItems(state: GameState, action: SkillAction) {
   return Object.entries(action.requiredItems ?? {}).every(([id, amount]) => {
     if (id in resourceNames) return state.resources[id as ResourceId] >= amount;
     return (state.inventory[id] ?? 0) >= amount;
@@ -41,10 +41,18 @@ function canUseActionInWorld(state: GameState, action: SkillAction) {
   return (action.requiredUnlocks ?? []).every((id) => state.unlocks[id] || state.worldUnlocks[id] || state.unlockedBlueprints[id] || Boolean(state.inventory[id]));
 }
 
+export function canStartSkillAction(state: GameState, action: SkillAction) {
+  return meetsActionAccessRequirement(state, action) && canAffordRewards(state, action.rewards) && hasRequiredItems(state, action) && canUseActionInWorld(state, action);
+}
+
+export function grantActionItems(state: GameState, action: SkillAction) {
+  Object.entries(action.itemRewards ?? {}).forEach(([id, quantity]) => addItem(state, id, quantity));
+}
+
 export function startSkillAction(state: GameState, actionId: string, now = Date.now()) {
   const action = getSkillAction(actionId);
   if (!action) return state;
-  if (!meetsActionAccessRequirement(state, action) || !canAffordRewards(state, action.rewards) || !hasRequiredItems(state, action) || !canUseActionInWorld(state, action)) return state;
+  if (!canStartSkillAction(state, action)) return state;
   const next = cloneState(state);
   clearActiveActivityForSwitch(state, next, action.name);
   next.activeAction = {
@@ -68,7 +76,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
 
   while (next.activeAction && now - next.activeAction.startedAt >= next.activeAction.durationMs && guard < 100) {
     const action = getSkillAction(next.activeAction.actionId);
-    if (!action || !meetsActionAccessRequirement(next, action) || !canAffordRewards(next, action.rewards) || !hasRequiredItems(next, action) || !canUseActionInWorld(next, action)) {
+    if (!action || !canStartSkillAction(next, action)) {
       pushCategorizedLog(next, "Warning", "Action stopped because required resources ran out.");
       next.activeAction = null;
       break;
@@ -83,6 +91,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     }
     const xpReward = actionXpRewardWithMastery(next, action);
     applyRewards(next, rewards);
+    grantActionItems(next, action);
     const heatDelta = action.heatChange ? calculateHeatGain(next, action.heatChange, action.tags) : 0;
     if (heatDelta) next.resources.heat = clampRiskStat(next.resources.heat + heatDelta);
     const neuralDelta = 0;
@@ -108,6 +117,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
       masteryXp: masteryReward,
       poolXp: poolReward,
       resources: rewards,
+      items: action.itemRewards,
       rareDrops: rareMessages,
       levelUps: levelUps ? [`${skillNames[action.skillId]} ${next.skills[action.skillId].level}`] : [],
       masteryLevelUps: masteryUps ? [`${action.name} ${next.actionMastery[action.id].level}`] : [],
@@ -222,6 +232,7 @@ export function applyRewards(state: GameState, rewards: RewardBundle) {
   Object.entries(rewards).forEach(([resource, amount]) => {
     const id = resource as ResourceId;
     state.resources[id] = Math.max(0, state.resources[id] + Math.round(amount ?? 0));
+    if ((amount ?? 0) > 0) discoverItem(state, id);
   });
 }
 
@@ -251,11 +262,12 @@ export function addMasteryXp(state: GameState, actionId: string, xp: number) {
   const mastery = state.actionMastery[actionId] ?? { level: 1, xp: 0 };
   let levels = 0;
   mastery.xp += xp;
-  while (mastery.xp >= xpForNextMastery(mastery.level)) {
+  while (mastery.level < balanceConfig.levels.actionMasteryMax && mastery.xp >= xpForNextMastery(mastery.level)) {
     mastery.xp -= xpForNextMastery(mastery.level);
     mastery.level += 1;
     levels += 1;
   }
+  if (mastery.level >= balanceConfig.levels.actionMasteryMax) { mastery.level = balanceConfig.levels.actionMasteryMax; mastery.xp = 0; }
   state.actionMastery[actionId] = mastery;
   return levels;
 }

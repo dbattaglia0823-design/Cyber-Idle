@@ -14,6 +14,8 @@ const combatZoneIds: Partial<Record<DistrictId, string[]>> = {
   rustYards: ["rust-yards"],
   underpassMarket: ["underpass-market"],
   blacknetQuarter: ["blacknet-quarter"],
+  helixWard: ["helix-ward"],
+  skylineCore: ["skyline-core"],
   glasslineDistrict: ["glassline-district"],
   redlineBlocks: ["redline-blocks"],
 };

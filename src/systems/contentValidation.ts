@@ -170,7 +170,11 @@ export function getContentValidationReport(): ContentValidationReport {
   skillActions.forEach((action) => {
     if (!skillLabels[action.skillId]) missingReferences.push(`${action.id} uses missing skill ${action.skillId}`);
     if (action.districtReq) validateKnown(missingReferences, districtIds, `${action.id} district`, action.districtReq);
-    validateRewardBundle(missingReferences, `${action.id} rewards`, action.rewards);
+    validateRewardBundle(missingReferences, `${action.id} rewards`, action.rewards, true);
+    Object.entries(action.itemRewards ?? {}).forEach(([id, quantity]) => {
+      validateItemRef(missingReferences, `${action.id} guaranteed item`, id);
+      if (!Number.isInteger(quantity) || quantity <= 0) balanceWarnings.push(`${action.id} has invalid guaranteed quantity for ${id}`);
+    });
     if (action.levelReq < 1 || action.levelReq > MAX_MAIN_SKILL_LEVEL) balanceWarnings.push(`${action.id} has level requirement outside 1-${MAX_MAIN_SKILL_LEVEL}`);
     if (!majorUnlockLevels.includes(action.levelReq as (typeof majorUnlockLevels)[number])) {
       balanceWarnings.push(`${action.id} uses non-milestone level requirement ${action.levelReq}`);
@@ -372,10 +376,11 @@ function validateItemRef(warnings: string[], label: string, id: string) {
   if (!itemExists(id)) warnings.push(`${label} references unknown item/resource ${id}`);
 }
 
-function validateRewardBundle(warnings: string[], label: string, rewards: RewardBundle) {
+function validateRewardBundle(warnings: string[], label: string, rewards: RewardBundle, allowCosts = false) {
   Object.entries(rewards).forEach(([resource, amount]) => {
     if (!resourceIds.has(resource)) warnings.push(`${label} references unknown reward resource ${resource}`);
-    if ((amount ?? 0) < 0) warnings.push(`${label} has negative reward amount for ${resource}`);
+    if (!Number.isFinite(amount)) warnings.push(`${label} has invalid amount for ${resource}`);
+    if (!allowCosts && (amount ?? 0) < 0) warnings.push(`${label} has negative reward amount for ${resource}`);
   });
 }
 
@@ -422,9 +427,9 @@ function zoneForDistrict(districtId: DistrictId) {
     underpassMarket: ["underpass-market"],
     blacknetQuarter: ["blacknet-quarter"],
     glasslineDistrict: ["glassline-district"],
-    helixWard: [],
+    helixWard: ["helix-ward"],
     redlineBlocks: ["redline-blocks"],
-    skylineCore: [],
+    skylineCore: ["skyline-core"],
   };
   return zones[districtId];
 }

@@ -73,6 +73,8 @@ export function districtCompletionDebug(state: GameState, districtId: DistrictId
 function districtCombatEnemyIds(districtId: DistrictId) {
   const zoneIds: Partial<Record<DistrictId, string[]>> = {
     neonRow: ["neon-row"],
+    helixWard: ["helix-ward"],
+    skylineCore: ["skyline-core"],
     rustYards: ["rust-yards"],
     underpassMarket: ["underpass-market"],
     blacknetQuarter: ["blacknet-quarter"],

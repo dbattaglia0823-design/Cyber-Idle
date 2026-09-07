@@ -41,8 +41,10 @@ export function startCombat(state: GameState, enemyId: string, now = Date.now())
 }
 
 export function canFightEnemy(state: GameState, enemy: Enemy) {
+  if (state.health.lifeState === "downed" || state.health.currentHp <= 0) return false;
   if (state.skills.combat.level < (enemy.requiredCombatLevel ?? 1)) return false;
   const districtId = enemyDistrict(enemy.id);
+  if (districtId && !state.districts[districtId]?.unlocked) return false;
   if (!districtId) return true;
   if (!enemy.behaviorTags?.includes("highThreat")) return true;
   return (state.districtThreat[districtId]?.level ?? 0) >= 35 || hasDistrictMasteryUnlock(state, districtId, "district-hardened-enemies");
@@ -234,6 +236,8 @@ function enemyDistrict(enemyId: string) {
   if (zone?.id === "rust-yards") return "rustYards";
   if (zone?.id === "underpass-market") return "underpassMarket";
   if (zone?.id === "blacknet-quarter") return "blacknetQuarter";
+  if (zone?.id === "helix-ward") return "helixWard";
+  if (zone?.id === "skyline-core") return "skylineCore";
   if (zone?.id === "glassline-district") return "glasslineDistrict";
   if (zone?.id === "redline-blocks") return "redlineBlocks";
   return null;

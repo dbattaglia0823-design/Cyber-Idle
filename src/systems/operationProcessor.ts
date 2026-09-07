@@ -18,13 +18,15 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { applyDamage, estimateIncomingDamage, maybeAutoHeal } from "./healthSystem";
 import { addDistrictMasteryXp, districtMasteryDropBonus, districtMasteryRewardBonus } from "./districtMasteryProcessor";
-import type { Boss, GameState, OperationDefinition, OperationRoute, OperationRouteId } from "../types";
+import { updateWorldUnlocks } from "./worldUnlocks";
+import type { Boss, Enemy, GameState, OperationDefinition, OperationRoute, OperationRouteId, RewardBundle } from "../types";
 
 export function getOperation(id: string) {
   return operations.find((operation) => operation.id === id);
 }
 
 export function canStartOperation(state: GameState, operation: OperationDefinition) {
+  if (state.health.lifeState === "downed" || state.health.currentHp <= 0) return false;
   if (!state.districts[operation.districtId]?.unlocked) return false;
   if (operation.id === "op-backstreet-sweep" && !state.operationLeads[operation.id] && !state.operationLogs[operation.id]?.firstClear) return false;
   if (operation.id === "op-backstreet-sweep" && state.skills.combat.level < 10) return false;
@@ -33,17 +35,17 @@ export function canStartOperation(state: GameState, operation: OperationDefiniti
   if (operation.id === "op-ghost-signal-dive" && state.skills.hacking.level < 60) return false;
   if (operation.id === "op-corporate-extraction" && (state.skills.hacking.level < 100 || state.skills.combat.level < 100)) return false;
   if (!operation.unlockRequirements.every((requirement) => requirementMet(state, requirement))) return false;
-  return Object.entries(operation.requiredItems ?? {}).every(([id, amount]) => (state.inventory[id] ?? 0) >= amount);
+  return Object.entries(operation.requiredItems ?? {}).every(([id, amount]) => ownedCount(state, id) >= amount);
 }
 
 export function operationRequirementDetails(state: GameState, operation: OperationDefinition) {
   const requirements = [
     ...operation.unlockRequirements,
-    ...(operation.id === "op-backstreet-sweep" ? ["Street Combat level 5", "Operation lead: Backstreet Sweep"] : []),
-    ...(operation.id === "op-junkyard-lockdown" ? ["Street Combat level 15"] : []),
+    ...(operation.id === "op-backstreet-sweep" ? ["Street Combat level 10", "Operation lead: Backstreet Sweep"] : []),
+    ...(operation.id === "op-junkyard-lockdown" ? ["Street Combat level 30"] : []),
     ...(operation.id === "op-contraband-raid" ? ["Reputation 150"] : []),
-    ...(operation.id === "op-ghost-signal-dive" ? ["Hacking level 25"] : []),
-    ...(operation.id === "op-corporate-extraction" ? ["Hacking level 35", "Street Combat level 30"] : []),
+    ...(operation.id === "op-ghost-signal-dive" ? ["Hacking level 60"] : []),
+    ...(operation.id === "op-corporate-extraction" ? ["Hacking level 100", "Street Combat level 100"] : []),
     ...Object.entries(operation.requiredItems ?? {}).map(([id, amount]) => `${amount} ${id}`),
   ];
   return [...new Set(requirements)].map((requirement) => ({
@@ -52,7 +54,7 @@ export function operationRequirementDetails(state: GameState, operation: Operati
   }));
 }
 
-export function operationRouteSuccessChance(state: GameState, operation: OperationDefinition, route?: OperationRoute) {
+export function operationLoadoutReadiness(state: GameState, operation: OperationDefinition, route?: OperationRoute) {
   const boss = bosses.find((entry) => entry.id === operation.bossId);
   if (!boss) return 0;
   const operationTags = operationMatchupTags(operation, boss, route);
@@ -63,16 +65,15 @@ export function operationRouteSuccessChance(state: GameState, operation: Operati
   const mechanicSuccess = (operation.mechanics ?? []).reduce((sum, mechanic) => sum + (mechanic.successModifier ?? 0), 0);
   const playerScore = stats.damage * 5 + stats.armor * 3 + stats.maxHp * 0.25;
   const operationScore = bossMatchup.effectiveHp * 0.45 + boss.damage * 6 + boss.armor * 8;
-  const modifier = 1 + scenario.damageBonus + (route?.successModifier ?? 0) + mechanicSuccess - threatPenalty;
-  const ratio = (playerScore * modifier) / Math.max(1, operationScore);
-  return Math.max(0.05, Math.min(0.95, 0.5 + (ratio - 1) * 0.8));
+  const modifier = 1 + scenario.damageBonus + (route?.successModifier ?? 0) + mechanicSuccess;
+  return Math.max(0, (playerScore * modifier) / Math.max(1, operationScore * (1 + threatPenalty)));
 }
 
 export function operationRequirementMet(state: GameState, operation: OperationDefinition, requirement: string) {
   const lower = requirement.toLowerCase();
   if (operation.id === "op-backstreet-sweep" && lower.includes("operation lead")) return Boolean(state.operationLeads[operation.id] || state.operationLogs[operation.id]?.firstClear);
   const itemMatch = requirement.match(/^(\d+)\s+(.+)$/);
-  if (itemMatch && operation.requiredItems?.[itemMatch[2]]) return (state.inventory[itemMatch[2]] ?? 0) >= Number(itemMatch[1]);
+  if (itemMatch && operation.requiredItems?.[itemMatch[2]]) return ownedCount(state, itemMatch[2]) >= Number(itemMatch[1]);
   return requirementMet(state, requirement);
 }
 
@@ -132,6 +133,7 @@ export function processOperation(state: GameState, now = Date.now()) {
   if (!operation) return { ...next, activeOperation: null };
   completeOperation(next, operation, next.activeOperation!.durationMs, next.activeOperation!.routeId);
   next.activeOperation = null;
+  updateWorldUnlocks(next);
   next.lastSavedAt = Date.now();
   return next;
 }
@@ -149,20 +151,20 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
   const mechanicSuccess = (operation.mechanics ?? []).reduce((sum, mechanic) => sum + (mechanic.successModifier ?? 0), 0);
   const phaseEffects = bossPhaseEffects(boss);
   const operationScore = bossMatchup.effectiveHp * 0.45 + boss.damage * 6 + boss.armor * 8;
-  const stageDamage = operation.stages.reduce((sum, stage) => {
-    return sum + stage.enemyIds.reduce((stageSum, enemyId) => {
-      const enemy = combatZones.flatMap((zone) => zone.enemies).find((entry) => entry.id === enemyId) ?? bosses.find((entry) => entry.id === enemyId);
-      return stageSum + (enemy ? estimateIncomingDamage(state, enemy, Math.max(2500, clearMs / Math.max(1, operation.stages.length))) : 0);
-    }, 0);
-  }, 0);
-  const bossDamage = estimateIncomingDamage(state, boss, clearMs);
-  const damageTaken = applyDamage(state, Math.max(1, Math.round((stageDamage + bossDamage) * (route?.id === "silentEntry" ? 0.8 : 1))), operation.name);
-  maybeAutoHeal(state, operation.name);
+  const damageBefore = state.healthStatistics.totalDamageTaken;
+  const highThreat = (state.districtThreat[operation.districtId]?.level ?? 0) >= 35;
+  const enemies = combatZones.flatMap(zone => zone.enemies);
+  for (const enemyId of operation.stages.flatMap(stage => stage.enemyIds)) {
+    const enemy = enemies.find(entry => entry.id === enemyId) ?? bosses.find(entry => entry.id === enemyId);
+    if (enemy && !resolveEncounter(state, enemy, operation, route)) break;
+  }
+  if (state.activeOperation && state.health.lifeState !== "downed") resolveEncounter(state, boss, operation, route);
+  const damageTaken = state.healthStatistics.totalDamageTaken - damageBefore;
   if (state.health.lifeState === "downed") {
     state.healthStatistics.deathsByOperation[operation.id] = (state.healthStatistics.deathsByOperation[operation.id] ?? 0) + 1;
   }
   const routeSuccess = route?.successModifier ?? 0;
-  const success = state.health.lifeState !== "downed" && playerScore * (1 + scenario.damageBonus + routeSuccess + mechanicSuccess) >= operationScore * (1 + threatPenalty);
+  const success = Boolean(state.activeOperation) && state.health.lifeState !== "downed" && playerScore * (1 + scenario.damageBonus + routeSuccess + mechanicSuccess) >= operationScore * (1 + threatPenalty);
   const firstClear = !state.operationLogs[operation.id]?.firstClear;
   const mechanicReward = (operation.mechanics ?? []).reduce((total, mechanic) => total * (mechanic.rewardMultiplier ?? 1), 1);
   const rewardMultiplier = (1 + threatBonus + districtMasteryRewardBonus(state, operation.districtId)) * bossMatchup.rewardMultiplier * (route?.rewardMultiplier ?? 1) * mechanicReward;
@@ -173,14 +175,13 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
     (operation.mechanics ?? []).reduce((sum, mechanic) => sum + (mechanic.rareDropModifier ?? 0), 0) +
     districtMasteryDropBonus(state, operation.districtId) +
     phaseEffects.rareDropModifier;
-  const rewards = calculateOperationRewards(state, {
-    ...operation.completionRewards,
-    ...(firstClear ? operation.firstClearRewards : operation.repeatClearRewards),
-  }, rewardMultiplier);
+  const rewards = calculateOperationRewards(state, mergeRewards(operation.completionRewards, firstClear ? operation.firstClearRewards : operation.repeatClearRewards), rewardMultiplier);
   const itemsGained: Record<string, number> = {};
 
   if (success) {
     applyRewards(state, rewards);
+    addItem(state, "boss-data-key", 1);
+    itemsGained["boss-data-key"] = 1;
     operation.rareDrops.forEach((drop) => {
       if (Math.random() <= calculateDropChance(drop.chance, state, operationTags, rareDropBonus)) {
         addItem(state, drop.id, drop.quantity);
@@ -222,7 +223,7 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
     changeLocalStanding(state, operation.districtId, firstClear ? 8 : 4, `${operation.name} cleared`);
     discoverDistrictContent(state, operation.districtId, `operation:${operation.id}`);
     addDistrictMasteryXp(state, operation.districtId, "operation", Math.max(40, Math.round(boss.xpReward * 0.8)));
-    if ((state.districtThreat[operation.districtId]?.level ?? 0) >= 35) {
+    if (highThreat) {
       state.highThreatOperationClears[operation.id] = (state.highThreatOperationClears[operation.id] ?? 0) + 1;
       state.endgameStatistics.highThreatClears += 1;
       state.achievements["first-high-threat-operation"] = true;
@@ -267,6 +268,33 @@ function completeOperation(state: GameState, operation: OperationDefinition, cle
   });
   applyRiskEvents(state);
   updateOperationAchievements(state);
+}
+
+function ownedCount(state: GameState, id: string) {
+  return id in state.resources ? state.resources[id as keyof GameState["resources"]] : state.inventory[id] ?? 0;
+}
+
+function mergeRewards(base: RewardBundle, bonus: RewardBundle): RewardBundle {
+  const result = { ...base };
+  for (const [id, amount] of Object.entries(bonus)) {
+    const key = id as keyof RewardBundle;
+    result[key] = (result[key] ?? 0) + (amount ?? 0);
+  }
+  return result;
+}
+
+function resolveEncounter(state: GameState, enemy: Enemy, operation: OperationDefinition, route?: OperationRoute) {
+  const matchup = combatEffectivenessForEnemy(state, enemy);
+  // Enemies retaliate only while they are alive. Armor applies to each hit,
+  // and auto-heal has the same opportunity to react as it does in street combat.
+  const hits = Math.max(0, Math.ceil(matchup.expectedKillMs / Math.max(600, enemy.attackSpeedMs)) - 1);
+  const rawDamage = Math.max(1, Math.round(enemy.damage * (1 + (enemy.threatScaling ?? 0) * 0.08) * (route?.id === "silentEntry" ? 0.8 : 1)));
+  maybeAutoHeal(state, operation.name);
+  for (let hit = 0; hit < hits && state.activeOperation && state.health.lifeState !== "downed"; hit += 1) {
+    applyDamage(state, rawDamage, enemy.name);
+    maybeAutoHeal(state, operation.name);
+  }
+  return Boolean(state.activeOperation) && state.health.lifeState !== "downed";
 }
 
 function recordOperation(state: GameState, operationId: string, clearMs: number, drops: Record<string, number>) {

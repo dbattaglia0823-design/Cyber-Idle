@@ -1,4 +1,5 @@
 import { startingResources } from "../data/resources";
+import { normalizeRpgState } from "./rpgState";
 import { createInitialState, normalizeLogEntries, SAVE_VERSION } from "./gameState";
 import { calculateMaxHP } from "./healthSystem";
 import type { GameState } from "../types";
@@ -87,6 +88,7 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     ...initial,
     ...saved,
     saveVersion: SAVE_VERSION,
+    rpg: normalizeRpgState(saved.rpg),
     startingPath: saved.startingPath ?? null,
     resources: { ...startingResources, ...saved.resources },
     neuralInstability: 0,
@@ -252,7 +254,23 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
   };
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
-  normalized.health.currentHp = Math.max(0, Math.min(maxHp, normalized.health.currentHp || maxHp));
-  if (!saved.health?.lifeState) normalized.health.lifeState = "alive";
+  normalized.health.currentHp = Math.max(0, Math.min(maxHp, Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp));
+  normalized.health.lifeState = normalized.health.currentHp <= 0 ? "downed" : "alive";
+  // Earlier operation drops stored currencies in the backpack. Merge them once.
+  for (const id of Object.keys(normalized.resources) as Array<keyof GameState["resources"]>) {
+    if ((normalized.inventory[id] ?? 0) > 0) {
+      normalized.resources[id] += normalized.inventory[id];
+      delete normalized.inventory[id];
+    }
+  }
+  // Old armor and leg implants shared IDs. Keep armor ownership and restore the
+  // separate implant whenever a save proves it was installed.
+  for (const id of ["neon-runner-legs", "skyline-apex-legs"]) {
+    if (normalized.equippedCyberware.legs === id) {
+      normalized.equippedCyberware.legs = `${id}-implant`;
+      normalized.inventory[`${id}-implant`] = Math.max(1, normalized.inventory[id] ?? 1);
+      normalized.discoveredItems[`${id}-implant`] = true;
+    }
+  }
   return normalized;
 }

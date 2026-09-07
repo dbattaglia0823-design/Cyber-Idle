@@ -1,4 +1,7 @@
 import type { CombatAffinity, CombatZone, Enemy, PlayerCombatStats } from "../types";
+import { districtLevelBands } from "./levelBands";
+import { trainingXpPerSecond } from "./progressionPacing";
+import { lateCombatZones } from "./lateCombat";
 
 export const baseCombatStats: PlayerCombatStats = {
   maxHp: 100,
@@ -140,7 +143,7 @@ const enemyProfiles: Record<string, Partial<Enemy>> = {
     weaknesses: [weak("ranked-brawl-break", "Blunt control, shotguns, and armor stop Redline overcommitment.", 1.15, { weaponClasses: ["bluntWeapons", "shotguns", "heavyWeapons"], weaponTags: ["boss", "armorPiercing"], damageTypes: ["blunt", "explosive"] })],
     resistances: [weak("pain-editor", "Pain editors blunt light blades.", 0.9, { weaponClasses: ["blades"], damageTypes: ["blade"] })],
     armorType: "streetArmor",
-    behaviorTags: ["street", "bounty", "gang", "highThreat"],
+    behaviorTags: ["street", "bounty", "gang"],
     preferredDistrict: "redlineBlocks",
     factionAlignment: "redlineSaints",
     threatScaling: 1.2,
@@ -832,10 +835,10 @@ const rawCombatZones: CombatZone[] = [
   },
 ];
 
-export const combatZones: CombatZone[] = rawCombatZones.map((zone) => ({
+export const combatZones: CombatZone[] = [...rawCombatZones.map((zone) => ({
   ...zone,
   enemies: zone.enemies.map((enemy, enemyIndex) => scaleEnemyForProgression({ ...enemy, ...enemyProfiles[enemy.id] }, rawCombatZones.findIndex((entry) => entry.id === zone.id), enemyIndex)),
-}));
+})), ...lateCombatZones];
 
 function scaleEnemyForProgression(enemy: Enemy, zoneIndex: number, enemyIndex: number): Enemy {
   const zoneStep = Math.max(0, zoneIndex);
@@ -843,12 +846,15 @@ function scaleEnemyForProgression(enemy: Enemy, zoneIndex: number, enemyIndex: n
   const hpMultiplier = 1.2 + zoneStep * 0.32 + rankStep * 0.2;
   const damageMultiplier = 1.15 + zoneStep * 0.22 + rankStep * 0.13;
   const rewardMultiplier = 1 + zoneStep * 0.16 + rankStep * 0.08;
+  const entryLevel = enemy.preferredDistrict ? districtLevelBands[enemy.preferredDistrict].entryLevel : 1;
+  const requiredCombatLevel = enemy.requiredCombatLevel ?? Math.min(150, entryLevel + enemyIndex * 4);
   return {
     ...enemy,
+    requiredCombatLevel,
     hp: Math.max(enemy.hp + rankStep * 8 + zoneStep * 18, Math.round(enemy.hp * hpMultiplier)),
     damage: Math.max(enemy.damage + rankStep * 2 + zoneStep * 3, Math.round(enemy.damage * damageMultiplier)),
     creditsReward: Math.max(1, Math.round(enemy.creditsReward * rewardMultiplier)),
-    xpReward: Math.max(1, Math.round(enemy.xpReward * rewardMultiplier)),
+    xpReward: Math.max(Math.round(trainingXpPerSecond(requiredCombatLevel) * 5), Math.round(enemy.xpReward * rewardMultiplier)),
     reputationReward: Math.max(enemy.reputationReward, Math.round(enemy.reputationReward * (1 + zoneStep * 0.08 + rankStep * 0.04))),
   };
 }

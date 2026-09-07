@@ -14,6 +14,7 @@ export function clearActiveActivityForSwitch(state: GameState, next: GameState, 
   next.activeJob = null;
   next.currentCombat = null;
   next.activeOperation = null;
+  next.rpg.active = null;
   if (stoppedName && stoppedName !== startedName) {
     pushCategorizedLog(next, "World", `Stopped ${stoppedName}. Started ${startedName}.`);
     emitSummaryPopup(next, `Started ${startedName}`, [`Stopped ${stoppedName}`], "story");
@@ -23,6 +24,7 @@ export function clearActiveActivityForSwitch(state: GameState, next: GameState, 
 }
 
 function activeActivityName(state: GameState) {
+  if (state.rpg?.active) return "field mission (progress reset)";
   if (state.activeAction) return skillActions.find((action) => action.id === state.activeAction?.actionId)?.name ?? "active action";
   if (state.activeCraft) return recipes.find((recipe) => recipe.id === state.activeCraft?.recipeId)?.name ?? "active craft";
   if (state.activeJob) return jobs.find((job) => job.id === state.activeJob?.jobId)?.name ?? "active contract";

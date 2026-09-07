@@ -61,6 +61,21 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyRipperdocEffects(state, modifiers);
   applyStreetLegend(state, modifiers);
   applyRiskState(state, modifiers);
+  if (state.rpg?.starterClaimed) {
+    modifiers.combatMaxHp += (state.rpg.attributes.body - 3) * 0.035 + (state.rpg.level - 1) * 0.025;
+    modifiers.combatDamage += (state.rpg.attributes.reflexes - 3) * 0.015;
+    modifiers.craftingCostReduction += (state.rpg.attributes.technical - 3) * 0.008;
+    modifiers.activeSources.push("Runner attributes");
+  }
+  Object.entries(state.prestigeProtocol.skillPrestiges).forEach(([skill, count]) => {
+    const id = skill as SkillId;
+    modifiers.skillXp[id] = (modifiers.skillXp[id] ?? 0) + (count ?? 0) * 0.1;
+  });
+  if (state.collectionRewardsClaimed[25]) modifiers.skillRewards += 0.02;
+  if (state.collectionRewardsClaimed[50]) modifiers.dropChance += 0.01;
+  if (state.collectionRewardsClaimed[75]) modifiers.creditsGained += 0.05;
+  if (state.collectionRewardsClaimed[90]) modifiers.simCacheEfficiency += 0.02;
+  if (state.collectionRewardsClaimed[100]) modifiers.skillRewards += 0.03;
 
   return modifiers;
 }

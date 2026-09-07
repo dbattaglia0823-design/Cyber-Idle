@@ -1,4 +1,7 @@
 import { bosses } from "../data/bosses";
+import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
+import { materialSupplyActions } from "../data/materialSupply";
+import { missionAvailable } from "./rpgSystem";
 import { combatZones } from "../data/combat";
 import { operations } from "../data/operations";
 import { recipes } from "../data/recipes";
@@ -10,7 +13,12 @@ import { percentDropTables } from "../data/percentDrops";
 import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { resourceSourceHint } from "../data/resourceTiers";
-import { actionAccessRequirementText, meetsActionAccessRequirement } from "./actionAccess";
+import { actionAccessRequirementText } from "./actionAccess";
+import { canStartSkillAction } from "./actionProcessing";
+import { canFightEnemy } from "./combatProcessing";
+import { canStartOperation } from "./operationProcessor";
+import { canAttemptJob } from "./jobProcessing";
+import { canUseVendor, vendorItemUnlocked, vendorPrice } from "./vendorSystem";
 import type { DistrictId, GameState } from "../types";
 
 export type ItemSourceType =
@@ -40,15 +48,31 @@ export interface ItemSourceEntry {
 
 export function getItemSources(itemId: string, state: GameState): ItemSourceEntry[] {
   const sources: ItemSourceEntry[] = [];
+  if (itemId === "rpg-weapon-0") sources.push({ type: "Contract reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Journal.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
+  allRpgMissions.forEach(mission => {
+    const supply = materialSupplyActions.find(action => action.districtReq === mission.district);
+    const weapon = !mission.sideGig && itemId === `rpg-weapon-${Math.min(7, mission.act + 1)}`;
+    if (weapon || supply?.itemRewards?.[itemId] || itemId === "basic-med-injector" || (mission.id === rpgMissions[7].id && itemId === "rpg-afterimage-os")) {
+      sources.push({ type: "Contract reward", name: mission.title, detail: "Guaranteed mission reward. Open Journal to accept this main job or local gig.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+    }
+  });
+  if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {
+    sources.push({ type: "Crafting recipe", name: itemId === "iconic-reflex-spine" ? "Legacy Reflex Core" : "Blacknet Processor", detail: "Assemble in Progress > Legacy. The bench lists the required skills, mastery and materials.", unlocked: state.streetLegend.rank >= (itemId === "iconic-reflex-spine" ? 20 : 30) });
+  }
+  if (itemId === "iconic-exec-os") sources.push({ type: "Operation reward", name: "City of Static campaign", detail: "Guaranteed for clearing all eight campaign operations shown in Progress.", districtId: "skylineCore", unlocked: state.districts.skylineCore.unlocked });
+  if (itemId === "boss-data-key") {
+    operations.forEach(operation => sources.push({ type: "Operation reward", name: operation.name, detail: "Guaranteed 1 Boss Data Key on every successful clear.", districtId: operation.districtId, unlocked: canStartOperation(state, operation) }));
+  }
 
   skillActions.forEach((action) => {
-    if ((action.rewards as Record<string, number>)[itemId]) {
+    const quantity = (action.rewards as Record<string, number>)[itemId] ?? action.itemRewards?.[itemId] ?? 0;
+    if (quantity > 0) {
       sources.push({
         type: "Skill action",
         name: action.name,
-        detail: `Rewards ${resourceName(itemId)} on completion.`,
+        detail: `Guaranteed ${quantity} ${resourceName(itemId)} per completion (before resource bonuses).`,
         districtId: action.districtReq,
-        unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
+        unlocked: canStartSkillAction(state, action),
         requirement: actionAccessRequirementText(state, action),
         goLabel: `Go to ${action.name}`,
       });
@@ -60,7 +84,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         detail: `${formatChance(drop.chance)} per completion.`,
         districtId: action.districtReq,
         chance: drop.chance,
-        unlocked: sourceDistrictUnlocked(state, action.districtReq) && meetsActionAccessRequirement(state, action),
+        unlocked: canStartSkillAction(state, action),
         requirement: actionAccessRequirementText(state, action),
         goLabel: `Go to ${action.name}`,
       });
@@ -76,7 +100,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
           detail: `${formatChance(drop.chance)} in ${zone.name}.`,
           districtId: enemy.preferredDistrict,
           chance: drop.chance,
-          unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
+          unlocked: canFightEnemy(state, enemy),
           goLabel: `Go to ${enemy.name}`,
         });
       });
@@ -87,7 +111,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
           detail: `${formatChance(drop.chancePercent / 100)} in ${zone.name}.`,
           districtId: enemy.preferredDistrict,
           chance: drop.chancePercent / 100,
-          unlocked: sourceDistrictUnlocked(state, enemy.preferredDistrict),
+          unlocked: canFightEnemy(state, enemy),
           requirement: drop.requirements?.join(", "),
           goLabel: `Go to ${enemy.name}`,
         });
@@ -97,7 +121,8 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
 
   bosses.forEach((boss) => {
     boss.drops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      sources.push({ type: "Boss drop", name: boss.name, detail: `${formatChance(drop.chance)} from boss drops.`, chance: drop.chance, unlocked: true, goLabel: `Go to ${boss.name}` });
+      const operation = operations.find(entry => entry.bossId === boss.id);
+      sources.push({ type: "Boss drop", name: boss.name, detail: `${formatChance(drop.chance)} from boss drops.`, districtId: operation?.districtId, chance: drop.chance, unlocked: Boolean(operation && canStartOperation(state, operation)), goLabel: `Go to ${boss.name}` });
     });
   });
 
@@ -108,7 +133,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         name: operation.name,
         detail: "Operation completion reward.",
         districtId: operation.districtId,
-        unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
+        unlocked: canStartOperation(state, operation),
         requirement: operation.unlockRequirements.join(", "),
         goLabel: `Go to ${operation.name}`,
       });
@@ -120,7 +145,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         detail: `Rare operation drop, ${formatChance(drop.chance)}.`,
         districtId: operation.districtId,
         chance: drop.chance,
-        unlocked: Boolean(state.districts[operation.districtId]?.unlocked),
+        unlocked: canStartOperation(state, operation),
         requirement: operation.unlockRequirements.join(", "),
         goLabel: `Go to ${operation.name}`,
       });
@@ -134,7 +159,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
         name: job.name,
         detail: job.rareReward === itemId ? "Rare fixer contract reward." : "Fixer contract reward.",
         districtId: job.districtId,
-        unlocked: Boolean(state.districts[job.districtId]?.unlocked),
+        unlocked: canAttemptJob(state, job),
         requirement: job.requirements.join(", "),
         goLabel: `Go to ${job.name}`,
       });
@@ -146,7 +171,8 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
       type: "Crafting recipe",
       name: recipe.name,
       detail: `Crafted with ${skillNames[recipe.requiredSkill]} level ${recipe.requiredLevel}.`,
-      unlocked: state.skills[recipe.requiredSkill].level >= recipe.requiredLevel && (!recipe.requiredBlueprint || state.unlockedBlueprints[recipe.requiredBlueprint]),
+      districtId: recipe.requiredDistrict,
+      unlocked: sourceDistrictUnlocked(state, recipe.requiredDistrict) && state.skills[recipe.requiredSkill].level >= recipe.requiredLevel && (!recipe.requiredBlueprint || state.unlockedBlueprints[recipe.requiredBlueprint]),
       requirement: recipe.requiredBlueprint ? `Blueprint: ${getItem(recipe.requiredBlueprint)?.name ?? recipe.requiredBlueprint}` : `${skillNames[recipe.requiredSkill]} level ${recipe.requiredLevel}`,
       goLabel: `Go to ${recipe.name}`,
     });
@@ -157,9 +183,9 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
       sources.push({
         type: "Vendor",
         name: vendor.name,
-        detail: `${entry.price} Credits. ${entry.sourceHint}`,
+        detail: `${vendorPrice(state, vendor, entry)} Credits. ${entry.sourceHint}`,
         districtId: vendor.districtId,
-        unlocked: Boolean(state.districts[vendor.districtId]?.unlocked),
+        unlocked: canUseVendor(state, vendor) && vendorItemUnlocked(state, entry),
         requirement: vendor.unlockRequirements.join(", "),
         goLabel: `Go to ${vendor.name}`,
       });
@@ -184,7 +210,7 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   const hint = resourceSourceHint(itemId) ?? item?.sourceHint;
   if (hint) sources.push({ type: "Item note", name: resourceName(itemId), detail: hint, unlocked: true });
   if (!sources.length) sources.push({ type: "Black Market", name: "Black Market", detail: "Watch vendors, contracts, and rare market listings.", unlocked: Boolean(state.districts.blacknetQuarter?.unlocked || state.districts.underpassMarket?.unlocked), goLabel: "Go to Black Market" });
-  return sources;
+  return sources.sort((a, b) => Number(a.type === "Item note") - Number(b.type === "Item note") || Number(b.unlocked) - Number(a.unlocked) || Number(Boolean(a.chance)) - Number(Boolean(b.chance)));
 }
 
 export function bestItemSources(itemId: string, state: GameState) {

@@ -1,4 +1,5 @@
 import { companions } from "../data/companions";
+import { createRpgState, cloneRpgState } from "./rpgState";
 import { districtEvents } from "../data/districtEvents";
 import { districts } from "../data/districts";
 import { factions } from "../data/factions";
@@ -9,11 +10,12 @@ import { weaponClasses } from "../data/weaponClasses";
 import { factionConflictDefaults, storyArcs } from "../data/storyArcs";
 import type { DistrictId, FactionId, GameState, GameLogEntry, LogCategory, StartingPathId } from "../types";
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 9;
 
 export function createInitialState(now = Date.now()): GameState {
   return {
     saveVersion: SAVE_VERSION,
+    rpg: createRpgState(),
     startingPath: null,
     resources: { ...startingResources },
     neuralInstability: 0,
@@ -217,6 +219,7 @@ export function createInitialState(now = Date.now()): GameState {
 export function cloneState(state: GameState): GameState {
   return {
     ...state,
+    rpg: cloneRpgState(state.rpg),
     resources: { ...state.resources },
     skills: Object.fromEntries(Object.entries(state.skills).map(([id, skill]) => [id, { ...skill }])) as GameState["skills"],
     actionMastery: Object.fromEntries(

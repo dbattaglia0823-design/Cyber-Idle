@@ -177,7 +177,8 @@ function compact(stats: ItemStats): ItemStats {
 }
 
 function addScrapCost(materials: Record<string, number>, extraScrap: number) {
-  return { ...materials, scrap: (materials.scrap ?? 0) + Math.ceil(extraScrap / 3) };
+  const scrap = (materials.scrap ?? 0) + Math.ceil(extraScrap / 3);
+  return { ...materials, ...(scrap > 0 ? { scrap } : {}) };
 }
 
 function slotDescription(slot: ArmorSlot) {

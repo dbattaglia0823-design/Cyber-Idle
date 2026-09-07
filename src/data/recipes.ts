@@ -2,8 +2,20 @@ import type { CraftingRecipe } from "../types";
 import { armorSpecs } from "./armor";
 import { cyberwareSpecs } from "./cyberware";
 import { weaponSpecs } from "./weapons";
+import { materialStage } from "./materialSupply";
+import { districtLevelBands } from "./levelBands";
+
+const recipeMaterialStage = { ...materialStage };
 
 export const recipes: CraftingRecipe[] = [
+  recipe("recipe-medical-gel", "Medical Gel", "Components", 1, { cyberwareParts: 1, credits: 8 }, "medical-gel", 2, 5000, 16, undefined, undefined, "medical"),
+  recipe("recipe-armor-plating", "Armor Plating", "Components", 1, { scrap: 12 }, "armorPlating", 1, 8000, 20),
+  recipe("recipe-fuel-cell", "Fuel Cell", "Components", 1, { scrap: 8, circuitBoards: 2 }, "fuelCell", 1, 10000, 24, undefined, undefined, "vehicleTuning"),
+  recipe("recipe-navigation-chip", "Navigation Chip", "Components", 1, { circuitBoards: 3, encryptedData: 4 }, "navigationChip", 1, 12000, 28, undefined, undefined, "vehicleTuning"),
+  recipe("recipe-engine-core", "Engine Core", "Components", 20, { vehicleParts: 8, circuitBoards: 4, scrap: 20 }, "engineCore", 1, 16000, 100, undefined, "rustYards", "vehicleTuning"),
+  recipe("recipe-smuggler-compartment", "Smuggler Compartment", "Components", 40, { vehicleParts: 10, armorPlating: 2, "smuggler-seal": 1 }, "smugglerCompartment", 1, 20000, 180, undefined, "underpassMarket", "vehicleTuning"),
+  recipe("recipe-prototype-drive-unit", "Prototype Drive Unit", "Components", 100, { engineCore: 2, navigationChip: 2, "executive-processor": 2 }, "prototypeDriveUnit", 1, 26000, 480, undefined, "glasslineDistrict", "vehicleTuning"),
+  ...blueprintRecipes(),
   recipe("recipe-circuit-bundle", "Circuit Bundle", "Components", 1, { scrap: 4, circuitBoards: 1 }, "circuit-bundle", 1, 4500, 12),
   recipe("recipe-neural-connector", "Neural Connector", "Components", 2, { circuitBoards: 2, encryptedData: 2 }, "neural-connector", 1, 6500, 20),
   recipe("recipe-cyberware-frame", "Cyberware Frame", "Components", 3, { scrap: 6, cyberwareParts: 2 }, "cyberware-frame", 1, 7000, 24),
@@ -35,7 +47,7 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-combat-stim", "Combat Stim", "Consumables", 4, { encryptedData: 1, "medical-gel": 1, cyberwareParts: 1 }, "combat-stim", 1, 7200, 26),
   recipe("recipe-neural-stabilizer", "Neural Stabilizer", "Consumables", 3, { encryptedData: 2, "neural-connector": 1 }, "neural-stabilizer", 1, 8000, 28),
   recipe("recipe-advanced-med-injector", "Advanced Med Injector", "Consumables", 8, { "medical-gel": 2, "neural-connector": 1, cyberwareParts: 2 }, "advanced-med-injector", 1, 12000, 44),
-  recipe("recipe-emergency-reboot-kit", "Emergency Reboot Kit", "Consumables", 16, { "medical-gel": 4, "prototype-neural-core": 1, "neural-connector": 2 }, "emergency-reboot-kit", 1, 24000, 95),
+  recipe("recipe-emergency-reboot-kit", "Emergency Reboot Kit", "Consumables", 16, { "medical-gel": 4, "precision-parts": 2, "neural-connector": 2 }, "emergency-reboot-kit", 1, 24000, 95),
   recipe("recipe-basic-sim-cache", "Basic Sim Cache", "Consumables", 4, { encryptedData: 3, circuitBoards: 1 }, "basic-sim-cache", 1, 10000, 32),
   recipe("recipe-precision-grip", "Precision Grip Actuators", "Cyberware", 5, { "cyberware-frame": 1, "neural-connector": 1, cyberwareParts: 6 }, "precision-grip-actuators", 1, 15000, 64, "bp-precision-grip"),
   recipe("recipe-stabilized-buffer", "Stabilized Neural Buffer", "Cyberware", 6, { "neural-connector": 2, encryptedData: 6, cyberwareParts: 4 }, "stabilized-neural-buffer", 1, 17000, 72, "bp-stabilized-buffer"),
@@ -92,6 +104,34 @@ export const recipes: CraftingRecipe[] = [
     ),
   ),
 ].sort(sortRecipes);
+
+// Older individual recipes used a 1–99 curve. Bring their component dependencies
+// forward together, so a recipe never advertises an unlock before its inputs.
+for (let pass = 0; pass < recipes.length; pass += 1) {
+  let changed = false;
+  for (const entry of recipes) {
+    const inputs = [...Object.keys(entry.inputCosts), ...(entry.requiredBlueprint ? [entry.requiredBlueprint] : [])];
+    const neededLevel = Math.max(entry.requiredLevel, entry.requiredDistrict ? districtLevelBands[entry.requiredDistrict].entryLevel : 1, ...inputs.map(id => recipeMaterialStage[id] ?? 1));
+    if (neededLevel > entry.requiredLevel) { entry.requiredLevel = neededLevel; changed = true; }
+    if (!(entry.outputItemId in materialStage)) recipeMaterialStage[entry.outputItemId] = entry.requiredLevel;
+  }
+  if (!changed) break;
+}
+recipes.sort(sortRecipes);
+
+function blueprintRecipes(): CraftingRecipe[] {
+  return [
+    ["bp-precision-grip", "Precision Grip Blueprint", 10],
+    ["bp-stabilized-buffer", "Stabilized Buffer Blueprint", 10],
+    ["bp-scavenger-rig", "Scavenger Rig Blueprint", 20],
+    ["bp-blacknet-tool", "Blacknet Tool Blueprint", 60],
+    ["neural-dampener-blueprint", "Neural Dampener Blueprint", 80],
+    ["bp-corporate-cyberware", "Corporate Cyberware Blueprint", 100],
+    ["bp-prototype-implant", "Prototype Implant Blueprint", 140],
+  ].map(([id, name, level]) => recipe(`recipe-decode-${id}`, String(name), "Components", Number(level),
+    { encryptedData: 8 + Number(level), "rare-blueprint-fragment": 2 + Math.floor(Number(level) / 40) },
+    String(id), 1, 15000, 50 + Number(level) * 2, undefined, undefined, "hacking"));
+}
 
 function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
   return a.requiredLevel - b.requiredLevel || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
