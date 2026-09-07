@@ -50,7 +50,8 @@ export function emitRewardPopupGroup(state: GameState, input: RewardPopupInput) 
     id: `reward-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title: input.title,
     category,
-    lines: lines.slice(0, 6),
+    lines,
+    completionCount: 1,
     createdAt: now,
     expiresAt: now + (input.durationMs ?? categoryDuration[category]),
   };
@@ -104,10 +105,16 @@ function buildRewardLines(input: RewardPopupInput): RewardPopupLine[] {
 function compactLines(lines: RewardPopupLine[]) {
   const merged = new Map<string, RewardPopupLine>();
   lines.forEach((entry) => {
-    const key = `${entry.category}:${entry.label.replace(/^[-+]\d+ /, "")}`;
+    const key = `${entry.category}:${entry.label.replace(/^[-+]\d+ /, "").replace(/ ×\d+$/, "")}`;
     const existing = merged.get(key);
     if (entry.amount === undefined) {
-      merged.set(`${key}:${merged.size}`, entry);
+      if (!existing) {
+        merged.set(key, { ...entry });
+        return;
+      }
+      const count = (existing.amount ?? 1) + 1;
+      existing.amount = count;
+      existing.label = `${existing.label.replace(/ ×\d+$/, "")} ×${count}`;
       return;
     }
     if (!existing || existing.amount === undefined) {
@@ -127,9 +134,10 @@ function prominentCategory(lines: RewardPopupLine[]): RewardPopupCategory {
 }
 
 function mergeRecentPopup(existing: RewardPopupGroup[], popup: RewardPopupGroup) {
-  const previous = existing.find((entry) => entry.title === popup.title && popup.createdAt - entry.createdAt < 600);
+  const previous = existing.find((entry) => entry.title === popup.title && entry.expiresAt > popup.createdAt && popup.createdAt - entry.createdAt < 15000);
   if (!previous) return [popup, ...existing.filter((entry) => entry.expiresAt > popup.createdAt)];
-  previous.lines = compactLines([...popup.lines, ...previous.lines]).slice(0, 6);
+  previous.lines = compactLines([...popup.lines, ...previous.lines]);
+  previous.completionCount = (previous.completionCount ?? 1) + 1;
   previous.category = prominentCategory(previous.lines);
   previous.expiresAt = Math.max(previous.expiresAt, popup.expiresAt);
   return [...existing];

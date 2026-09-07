@@ -33,63 +33,61 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
         <div>
           <p className="eyebrow">Metro Grid / Live Overlay</p>
           <h2>City Map</h2>
+          <p className="fine">Select a district to review access, threat, completion, and available work.</p>
         </div>
-        <span className="warning-badge">{cityDistrictOrder.filter((id) => state.districts[id]?.unlocked).length}/{cityDistrictOrder.length} open</span>
+        <div className="city-map-header-status">
+          <span><small>Network</small><b>{cityDistrictOrder.filter((id) => state.districts[id]?.unlocked).length}/{cityDistrictOrder.length} Open</b></span>
+          <span><small>Selected</small><b>{getDistrict(selectedDistrict)?.name}</b></span>
+          <span className={activeDistrictId ? "live" : ""}><small>Runner Signal</small><b>{activeDistrictId ? getDistrict(activeDistrictId)?.name : "Idle"}</b></span>
+        </div>
       </div>
 
-      <div className="city-image-stage">
-        <img className="city-map-art" src={mapImage} alt="Cyberpunk city district map" />
-        <svg className="city-map-overlay" viewBox="0 0 1122 1402" preserveAspectRatio="xMidYMid meet" aria-label="District selection overlay">
-          <defs>
-            <filter id="imageMapGlow" x="-35%" y="-35%" width="170%" height="170%">
-              <feGaussianBlur stdDeviation="5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          {sortedRegions.map((region) => {
-            const district = getDistrict(region.districtId);
-            const unlocked = Boolean(state.districts[region.districtId]?.unlocked);
-            const selected = selectedDistrict === region.districtId;
-            const active = activeDistrictId === region.districtId;
-            const threat = state.districtThreat[region.districtId]?.level ?? 0;
-            return (
-              <g
-                key={region.districtId}
-                className={`image-map-region ${unlocked ? "open" : "locked"} ${selected ? "selected" : ""} ${active ? "active" : ""} ${threat >= 75 ? "high-threat" : ""}`}
-                style={{ "--district-color": region.color, "--district-glow": region.glow } as CSSProperties}
-                role="button"
-                tabIndex={0}
-                aria-label={`${district?.name ?? region.districtId} ${unlocked ? "open" : "locked"}`}
-                onClick={() => selectDistrict(region.districtId)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    selectDistrict(region.districtId);
-                  }
-                }}
-              >
-                <path className="image-map-hit" d={region.path} />
-                <path className="image-map-outline" d={region.path} filter="url(#imageMapGlow)" />
-                {(active || threat >= 75) && <circle className="image-map-marker" cx={region.marker.x} cy={region.marker.y} r="10" />}
-              </g>
-            );
-          })}
-        </svg>
+      <div className="city-map-workspace">
+        <div className="city-image-stage">
+          <img className="city-map-art" src={mapImage} alt="Cyberpunk city district map" />
+          <svg className="city-map-overlay" viewBox="0 0 1122 1402" preserveAspectRatio="xMidYMid meet" aria-label="District selection overlay">
+            {sortedRegions.map((region) => {
+              const district = getDistrict(region.districtId);
+              const unlocked = Boolean(state.districts[region.districtId]?.unlocked);
+              const selected = selectedDistrict === region.districtId;
+              const active = activeDistrictId === region.districtId;
+              const threat = state.districtThreat[region.districtId]?.level ?? 0;
+              return (
+                <g
+                  key={region.districtId}
+                  className={`image-map-region ${unlocked ? "open" : "locked"} ${selected ? "selected" : ""} ${active ? "active" : ""} ${threat >= 75 ? "high-threat" : ""}`}
+                  style={{ "--district-color": region.color, "--district-glow": region.glow } as CSSProperties}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${district?.name ?? region.districtId} ${unlocked ? "open" : "locked"}`}
+                  onClick={() => selectDistrict(region.districtId)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      selectDistrict(region.districtId);
+                    }
+                  }}
+                >
+                  <path className="image-map-hit" d={region.path} />
+                  <circle className="image-map-marker" cx={region.marker.x} cy={region.marker.y} r={selected ? 15 : 10} />
+                </g>
+              );
+            })}
+          </svg>
+          <div className="map-stage-hint">Click a district boundary to inspect it</div>
+        </div>
 
+        <CityMapBottomDrawer
+          state={state}
+          districtId={selectedDistrict}
+          active={activeDistrictId === selectedDistrict}
+          activeActivityName={activeActivityName}
+          expanded={expanded}
+          onSelectDistrict={selectDistrict}
+          onToggleExpanded={() => setExpanded((value) => !value)}
+          onEnter={() => onOpenDistrict(selectedDistrict)}
+        />
       </div>
-
-      <CityMapBottomDrawer
-        state={state}
-        districtId={selectedDistrict}
-        active={activeDistrictId === selectedDistrict}
-        activeActivityName={activeActivityName}
-        expanded={expanded}
-        onToggleExpanded={() => setExpanded((value) => !value)}
-        onEnter={() => onOpenDistrict(selectedDistrict)}
-      />
     </section>
   );
 }
@@ -100,6 +98,7 @@ function CityMapBottomDrawer({
   active,
   activeActivityName,
   expanded,
+  onSelectDistrict,
   onToggleExpanded,
   onEnter,
 }: {
@@ -108,6 +107,7 @@ function CityMapBottomDrawer({
   active: boolean;
   activeActivityName?: string;
   expanded: boolean;
+  onSelectDistrict: (districtId: DistrictId) => void;
   onToggleExpanded: () => void;
   onEnter: () => void;
 }) {
@@ -125,7 +125,25 @@ function CityMapBottomDrawer({
 
   return (
     <aside className={`city-map-drawer ${expanded ? "expanded" : ""} ${unlocked ? "open" : "locked"}`}>
-      <button className="drawer-grip" aria-label={expanded ? "Collapse district details" : "Expand district details"} onClick={onToggleExpanded} />
+      <div className="district-switcher" aria-label="City districts">
+        {cityDistrictOrder.map((id) => {
+          const region = cityMapOverlayRegions.find((entry) => entry.districtId === id);
+          const isOpen = Boolean(state.districts[id]?.unlocked);
+          return (
+            <button
+              key={id}
+              className={`${id === districtId ? "selected" : ""} ${isOpen ? "open" : "locked"}`}
+              style={{ "--district-color": region?.color ?? "#3ee7ff" } as CSSProperties}
+              onClick={() => onSelectDistrict(id)}
+              title={`${getDistrict(id)?.name} — ${isOpen ? "Open" : "Locked"}`}
+            >
+              <i />
+              <span>{getDistrict(id)?.name}</span>
+              <small>{isOpen ? `${districtCompletionPercent(state, id)}%` : "LOCK"}</small>
+            </button>
+          );
+        })}
+      </div>
       <div className="drawer-primary">
         <div>
           <div className="drawer-title-row">
@@ -141,6 +159,17 @@ function CityMapBottomDrawer({
         <div className="drawer-actions">
           <button className="secondary-button" onClick={onToggleExpanded}>{expanded ? "Less" : unlocked ? "District Info" : "Requirements"}</button>
           <button className="primary-button" disabled={!unlocked} onClick={onEnter}>{unlocked ? "Enter District" : "Locked"}</button>
+        </div>
+      </div>
+
+      <div className="district-meter-grid">
+        <div>
+          <span><b>District Completion</b><strong>{completion}%</strong></span>
+          <i><b style={{ width: `${completion}%` }} /></i>
+        </div>
+        <div className={`threat-${threatTier(threat).toLowerCase()}`}>
+          <span><b>Threat Pressure</b><strong>{threat} / 100</strong></span>
+          <i><b style={{ width: `${Math.min(100, threat)}%` }} /></i>
         </div>
       </div>
 

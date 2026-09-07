@@ -7,6 +7,8 @@ import { changeLocalStanding, discoverDistrictContent } from "./districtProgress
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { factionRank } from "./modifiers";
 import { emitRewardPopupGroup } from "./rewardPopups";
+import { totalFactionReputation } from "./factionContacts";
+import { applyHealing, calculateMaxHP } from "./healthSystem";
 import type { GameState, ResourceId } from "../types";
 
 export function canUseRipperdocService(state: GameState, serviceId: string) {
@@ -22,6 +24,9 @@ export function useRipperdocService(state: GameState, serviceId: string) {
   Object.entries(adjustedServiceCost(next, service.cost)).forEach(([resource, amount]) => {
     next.resources[resource as ResourceId] -= amount ?? 0;
   });
+  const healed = service.healthRestorePercent
+    ? applyHealing(next, Math.ceil(calculateMaxHP(next) * service.healthRestorePercent), service.name)
+    : 0;
   if (service.serviceType === "treatment" && service.id.includes("emergency")) addItem(next, "medical-gel", 1);
   if (service.heatChange) next.resources.heat = Math.max(0, next.resources.heat + service.heatChange);
   if (service.temporaryEffect) {
@@ -51,7 +56,7 @@ export function useRipperdocService(state: GameState, serviceId: string) {
   if (service.ripperdocId === "helix-recovery-lab") next.achievements["unlock-helix-lab"] = true;
   discoverDistrictContent(next, service.districtId, `ripperdoc:${service.id}`);
   changeLocalStanding(next, service.districtId, 2, `${service.name} used`);
-  pushCategorizedLog(next, "World", `Ripperdoc service used: ${service.name}.`);
+  pushCategorizedLog(next, "World", `Ripperdoc service used: ${service.name}.${healed ? ` Restored ${healed} HP.` : ""}`);
   emitRewardPopupGroup(next, {
     title: service.name,
     items: {
@@ -59,7 +64,7 @@ export function useRipperdocService(state: GameState, serviceId: string) {
     },
     heat: service.heatChange,
     neuralInstability: 0,
-    story: service.temporaryEffect ? [service.temporaryEffect.description] : [],
+    story: [healed ? `Restored ${healed} HP` : null, service.temporaryEffect?.description].filter((entry): entry is string => Boolean(entry)),
   });
   return next;
 }
@@ -128,7 +133,7 @@ export function ripperdocBuyPrice(state: GameState, clinicId: string, itemId: st
   const item = getItem(itemId);
   if (!clinic || !item) return 0;
   const factionDiscount = clinic.factionDiscount ? Math.min(0.18, factionRank(state.factions[clinic.factionDiscount].reputation) * 0.015) : 0;
-  const fixerDiscount = Math.min(0.12, Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0) / 2000);
+  const fixerDiscount = Math.min(0.12, totalFactionReputation(state) / 2000);
   const basePrice = calculateRarityAdjustedShopBasePrice(item, item.sellValue * 4);
   return calculateVendorPrice(state, basePrice, clinic.districtId, clinic.priceModifier * (1 - factionDiscount - fixerDiscount));
 }

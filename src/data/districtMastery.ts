@@ -12,7 +12,7 @@ export const districtMasteryMilestones: DistrictMasteryMilestone[] = [
   { level: 5, name: "Street Familiarity", description: "+2% rewards from this district.", unlockKey: "district-reward-2", modifiers: { skillRewards: 0.02 } },
   { level: 10, name: "Return Contract", description: "Unlocks repeatable return contracts for this district.", unlockKey: "district-return-contracts" },
   { level: 15, name: "Hardened Variant", description: "High-threat enemy variants can appear in this district.", unlockKey: "district-hardened-enemies" },
-  { level: 20, name: "Route Intel", description: "Unlocks advanced operation route hooks.", unlockKey: "district-operation-routes" },
+  { level: 20, name: "Route Intel", description: "Unlocks advanced contract route hooks.", unlockKey: "district-contract-routes" },
   { level: 25, name: "Backroom Stock", description: "Unlocks district vendor, market, or Ripperdoc stock hooks.", unlockKey: "district-market-stock" },
   { level: 35, name: "Drop Memory", description: "+2% rare drop chance in this district.", unlockKey: "district-rare-drop-2", modifiers: { dropChance: 0.02 } },
   { level: 50, name: "High-Threat Access", description: "Unlocks late return content in this district.", unlockKey: "district-high-threat-content" },

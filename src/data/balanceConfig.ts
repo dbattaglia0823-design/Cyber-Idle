@@ -1,4 +1,5 @@
 import type { BlackMarketStrategy, ItemRarity, SkillId } from "../types";
+import { basePlayerAttackIntervalMs } from "./combatTiming";
 
 export const BALANCE_VERSION = 1;
 
@@ -6,7 +7,7 @@ export const balanceConfig = {
   levels: {
     skillsMax: 150,
     weaponClassMax: 99,
-    actionMasteryMax: 99,
+    actionMasteryMax: 150,
     factionRankMax: 10,
     fixerRankMax: 10,
     companionRankMax: 10,
@@ -14,7 +15,7 @@ export const balanceConfig = {
   xpCurves: {
     skill: { base: 42, exponent: 1.68, maxLevel: 150 },
     weaponClass: { base: 46, exponent: 1.78, maxLevel: 99 },
-    mastery: { base: 10, exponent: 1.35, maxLevel: 99 },
+    mastery: { base: 10, exponent: 1.35, maxLevel: 150 },
     districtMastery: { base: 95, exponent: 2.02, maxLevel: 99 },
     companion: { base: 40, exponent: 1.35, maxLevel: 10 },
     fixer: { base: 10, exponent: 1.2, maxLevel: 10 },
@@ -30,11 +31,12 @@ export const balanceConfig = {
     checkpoints: [10, 25, 50, 75, 95, 100],
   },
   combat: {
+    enemyXpMultiplier: 1.08,
     baseMaxHp: 100,
     hpPerCombatLevel: 4,
     baseDamage: 8,
     damagePerCombatLevel: 1.5,
-    baseAttackSpeedMs: 1600,
+    baseAttackSpeedMs: basePlayerAttackIntervalMs,
     minAttackSpeedMs: 600,
     baseArmor: 2,
     armorPerCombatLevels: 3,
@@ -51,17 +53,14 @@ export const balanceConfig = {
   enemyScaling: {
     threatRewardRatio: 0.35,
     armorPenetrationFloor: 0.78,
-    operationStageMs: 4500,
-    operationMechanicMs: 1200,
   },
   rewards: {
     globalDropChanceMultiplier: 0.62,
     jobRequirementRewardGrowth: 0.04,
-    operationRequirementRewardGrowth: 0.06,
     masteryDropLevel25: 0.01,
-    masteryDropLevel50: 0.02,
-    masteryDropLevel75: 0.035,
-    masteryDropLevel99: 0.06,
+    masteryDropLevel50: 0.05,
+    masteryDropLevel75: 0.065,
+    masteryDropLevel99: 0.09,
     toolDropBonus: 0.025,
     programDropBonus: 0.02,
     maxDropChance: 0.95,
@@ -94,8 +93,8 @@ export const balanceConfig = {
   economy: {
     vendorMinPrice: 1,
     sellMinValue: 1,
-    upgradeBaseCredits: 90,
-    upgradeLevelExponent: 1.85,
+    upgradeBaseCredits: 60,
+    upgradeLevelExponent: 1.55,
     vehicleUpgradeBaseCredits: 120,
     vehicleUpgradeLevelExponent: 1.65,
     ripperdocBuyMarkup: 4,
@@ -126,7 +125,7 @@ export const balanceConfig = {
     defaultSkillXp: 0.75,
     defaultMasteryXp: 0.75,
     defaultRewards: 0.75,
-    defaultRareDrops: 0.75,
+    defaultRareDrops: 0.5,
     defaultHeat: 1,
     defaultNeuralInstability: 1,
     maxLoops: 500,

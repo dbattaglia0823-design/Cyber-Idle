@@ -1,9 +1,10 @@
 import { fixers } from "../data/fixers";
 import { jobs } from "../data/jobs";
+import { fixerFactionRank } from "./factionContacts";
 import type { ContractType, Fixer, GameState, JobContract } from "../types";
 
 export function fixerTrustRank(state: GameState, fixerId: string) {
-  return Math.max(1, Math.min(10, Math.floor((state.fixerTrust[fixerId]?.trust ?? 0) / 10) + 1));
+  return fixerFactionRank(state, fixerId);
 }
 
 export function fixerContracts(fixerId: string) {
@@ -78,7 +79,7 @@ export function failureOutcomes(job: JobContract) {
     "Partial payout only",
     `Heat +${Math.max(1, Math.ceil(job.heatChange / 2))}`,
     "District threat may rise",
-    job.factionConflict ? "Rival faction reputation loss" : "Fixer trust stalls",
+    job.factionConflict ? "Rival faction reputation loss" : "Faction reputation gain is lost",
   ];
 }
 
@@ -86,7 +87,7 @@ export function fixerTrustRewards(fixer: Fixer) {
   return fixer.trustRewards ?? [
     { rank: 2, description: "Auto-repeat safe contracts begins appearing." },
     { rank: 5, description: "Rare blueprint leads and district introductions improve." },
-    { rank: 8, description: "Operation leads and market interventions unlock." },
+    { rank: 8, description: "Elite contracts and market interventions unlock." },
     { rank: 10, description: "Elite contracts, private buyers, and signature favors." },
   ];
 }
@@ -95,7 +96,6 @@ export function fixerUnlockSummary(fixer: Fixer) {
   return [
     ...(fixer.uniqueUnlocks ?? []),
     ...fixer.jobChains,
-    ...(fixer.operationLeads ?? []),
     ...(fixer.marketConnections ?? []),
     ...(fixer.ripperdocConnections ?? []),
   ];

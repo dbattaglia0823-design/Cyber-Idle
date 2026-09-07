@@ -5,16 +5,14 @@ import { addItem, discoverItem } from "./collectionSystem";
 import { calculateDropChance } from "./balanceFormulas";
 import type { GameState, PercentDropEntry, ResourceId } from "../types";
 
-export function processPercentDrops(state: GameState, sourceId: string, sourceTags: string[] = [], excludedItemIds: string[] = []) {
+export function processPercentDrops(state: GameState, sourceId: string, sourceTags: string[] = [], excludedItemIds: string[] = [], chanceMultiplier = 1) {
   const excluded = new Set(excludedItemIds);
   const table = (percentDropTables[sourceId] ?? []).filter((entry) => !excluded.has(entry.itemId));
   const gained: string[] = [];
   table.forEach((entry) => {
-    const chance = entry.affectedByDropModifiers || entry.affectedByScenarioModifiers
-      ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : []) * 100
-      : entry.chancePercent;
+    const chance = effectivePercentDropChance(state, entry, sourceTags) * 100;
     revealDropFromAttempts(state, sourceId, entry);
-    if (Math.random() * 100 > chance) return;
+    if (Math.random() * 100 > chance * Math.max(0, chanceMultiplier)) return;
     const quantity = randomQuantity(entry);
     if (isResource(entry.itemId)) state.resources[entry.itemId] += quantity;
     else addItem(state, entry.itemId, quantity);
@@ -24,6 +22,12 @@ export function processPercentDrops(state: GameState, sourceId: string, sourceTa
     if (getItem(entry.itemId)?.type === "WeaponAttachment") state.weaponStatistics.attachmentDropsFound += 1;
   });
   return gained;
+}
+
+export function effectivePercentDropChance(state: GameState, entry: PercentDropEntry, sourceTags: string[] = []) {
+  return entry.affectedByDropModifiers || entry.affectedByScenarioModifiers
+    ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : [])
+    : entry.chancePercent / 100;
 }
 
 export function dropRevealState(state: GameState, sourceId: string, entry: PercentDropEntry, kills: number) {

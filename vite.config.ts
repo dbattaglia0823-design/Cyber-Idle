@@ -3,6 +3,14 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    // Enemy portraits are large source assets. Adding a batch should not trigger
+    // dozens of full renderer refreshes; restart the dev server after an asset
+    // batch when newly imported portraits need to be picked up.
+    watch: {
+      ignored: ["**/src/assets/Enemies/**"],
+    },
+  },
   build: {
     rollupOptions: {
       output: {

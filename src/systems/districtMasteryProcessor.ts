@@ -3,13 +3,12 @@ import { xpForNextDistrictMastery } from "./formulas";
 import { pushCategorizedLog } from "./gameState";
 import type { DistrictId, GameState } from "../types";
 
-export type DistrictMasterySource = "action" | "combat" | "job" | "operation" | "craft" | "story" | "standing";
+export type DistrictMasterySource = "action" | "combat" | "job" | "craft" | "story" | "standing";
 
 const sourceMultipliers: Record<DistrictMasterySource, number> = {
   action: 1,
   combat: 1.1,
   job: 2.4,
-  operation: 8,
   craft: 0.8,
   story: 6,
   standing: 0.35,

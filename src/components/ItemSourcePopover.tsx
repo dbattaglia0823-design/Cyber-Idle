@@ -1,6 +1,6 @@
 import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
-import { bestItemSources, itemDisplayName } from "../systems/itemSourceLookup";
+import { bestItemSources, itemDisplayName, type ItemSourceEntry } from "../systems/itemSourceLookup";
 import type { ReactNode } from "react";
 import type { GameState, ResourceId } from "../types";
 
@@ -50,11 +50,13 @@ export function ItemSourcePopover({
   itemId,
   usedAmount,
   onClose,
+  onNavigate,
 }: {
   state: GameState;
   itemId: string;
   usedAmount: number;
   onClose: () => void;
+  onNavigate: (source: ItemSourceEntry) => void;
 }) {
   const item = getItem(itemId);
   const owned = itemId in resourceNames ? state.resources[itemId as ResourceId] ?? 0 : state.inventory[itemId] ?? 0;
@@ -85,7 +87,13 @@ export function ItemSourcePopover({
                 <span>{source.detail}</span>
                 {!source.unlocked && <em>{source.requirement || "Locked"}</em>}
               </div>
-              <button className="secondary-button" disabled={!source.unlocked || !source.goLabel}>{source.unlocked ? source.goLabel ?? "Known" : "Locked"}</button>
+              <button
+                className="secondary-button"
+                disabled={!source.unlocked || !source.goLabel || !source.destination}
+                onClick={() => onNavigate(source)}
+              >
+                {source.unlocked ? source.goLabel ?? "Known" : "Locked"}
+              </button>
             </article>
           ))}
         </div>

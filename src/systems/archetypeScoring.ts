@@ -1,4 +1,3 @@
-import { companions } from "../data/companions";
 import { getItem } from "../data/items";
 import { signatureBuilds } from "../data/signatureBuilds";
 import { vehicles } from "../data/vehicles";
@@ -34,7 +33,6 @@ export function archetypeScores(state: GameState): ArchetypeScore[] {
 
   Object.values(state.equippedCyberware).forEach((id) => applyItemScores(scores, id));
   Object.values(state.equippedGear).forEach((id) => applyItemScores(scores, id));
-  applyCompanionScores(state, scores);
   applyHousingScores(state, scores);
   applyFactionScores(state, scores);
   applyVehicleScores(state, scores);
@@ -78,16 +76,6 @@ function applyItemScores(scores: Record<ArchetypeId, number>, itemId?: string) {
   if (item.tags.some((tag) => ["cyberware", "medical", "prototype"].includes(tag))) scores.techie += 7;
   if (item.tags.some((tag) => ["speed"].includes(tag))) scores.ghost += 5;
   if ((item.instabilityLoad ?? 0) >= 3) scores.solo += 4;
-}
-
-function applyCompanionScores(state: GameState, scores: Record<ArchetypeId, number>) {
-  const companion = companions.find((entry) => entry.id === state.activeCompanion);
-  if (!companion) return;
-  if (companion.id === "mara-voss") scores.solo += 15;
-  if (companion.id === "nyra-vale") scores.netrunner += 15;
-  if (companion.id === "iris-kade") scores.techie += 15;
-  if (companion.id === "dex-riven") scores.outrider += 15;
-  if (companion.id === "sable-quinn") scores.fixer += 15;
 }
 
 function applyHousingScores(state: GameState, scores: Record<ArchetypeId, number>) {

@@ -3,14 +3,13 @@ import { districtEvents } from "../data/districtEvents";
 import { factions } from "../data/factions";
 import { housingOptions } from "../data/housing";
 import { jobs } from "../data/jobs";
-import { operations } from "../data/operations";
 import { ripperdocClinics } from "../data/ripperdocClinics";
 import { ripperdocServices } from "../data/ripperdocs";
 import { skillActions } from "../data/skills";
 import { storyArcs } from "../data/storyArcs";
 import { vehicles } from "../data/vehicles";
 import { vendors } from "../data/vendors";
-import { districtCombatZones, districtCompanions, districtFixers } from "./districtActivities";
+import { districtCombatZones, districtFixers } from "./districtActivities";
 import { meetsActionAccessRequirement } from "./actionAccess";
 import type { DistrictId, GameState } from "../types";
 
@@ -19,7 +18,6 @@ export type DistrictActivityCategory =
   | "actions"
   | "contracts"
   | "combat"
-  | "operations"
   | "crafting"
   | "ripperdoc"
   | "market"
@@ -33,7 +31,6 @@ export interface DistrictContentMap {
   contracts: string[];
   combatZones: string[];
   enemies: string[];
-  operations: string[];
   fixers: string[];
   vendors: string[];
   ripperdocServices: string[];
@@ -43,7 +40,6 @@ export interface DistrictContentMap {
   garage: string[];
   blacknet: string[];
   story: string[];
-  companions: string[];
   events: string[];
 }
 
@@ -68,19 +64,19 @@ export function districtContentMap(state: GameState, districtId: DistrictId): Di
     contracts: districtJobs.map((job) => job.id),
     combatZones: zoneList.map((zone) => zone.id),
     enemies: zoneList.flatMap((zone) => zone.enemies.map((enemy) => enemy.id)),
-    operations: operations.filter((operation) => operation.districtId === districtId).map((operation) => operation.id),
     fixers: districtFixers(districtId).map((fixer) => fixer.id),
     vendors: vendors.filter((vendor) => vendor.districtId === districtId).map((vendor) => vendor.id),
-    ripperdocServices: ripperdocServices.filter((service) => service.districtId === districtId).map((service) => service.id),
+    ripperdocServices: ripperdocServices
+      .filter((service) => service.districtId === districtId && (service.serviceType === "treatment" || service.serviceType === "stabilizer"))
+      .map((service) => service.id),
     ripperdocClinics: ripperdocClinics.filter((clinic) => clinic.districtId === districtId).map((clinic) => clinic.id),
     housing: housingOptions.filter((housing) => housing.districtId === districtId).map((housing) => housing.id),
     factions: localFactions.map((faction) => faction.id),
-    garage: vehicles.filter((vehicle) => vehicle.districtId === districtId).map((vehicle) => vehicle.id),
+    garage: vehicles.map((vehicle) => vehicle.id),
     blacknet: blacknetDistricts.includes(districtId)
       ? skillActions.filter((action) => action.districtReq === districtId && (action.skillId === "hacking" || action.tags?.includes("blacknet"))).map((action) => action.id)
       : [],
     story: storyArcs.filter((arc) => arc.districtId === districtId).map((arc) => arc.id),
-    companions: districtCompanions(districtId).map((companion) => companion.id),
     events: districtEvents.filter((event) => event.districtId === districtId).map((event) => event.id),
   };
 }
@@ -119,14 +115,6 @@ export function districtActivitySummaries(state: GameState, districtId: District
       warning: threat >= 75 ? "High threat rewards and risk" : undefined,
     },
     {
-      id: "operations",
-      label: "Operations",
-      summary: `${content.operations.length} boss chains`,
-      available: unlocked ? content.operations.length : 0,
-      locked: unlocked ? 0 : content.operations.length,
-      reward: "First clears, rare drops",
-    },
-    {
       id: "crafting",
       label: "Crafting",
       summary: `${content.actions.length ? "Local" : "Workshop"} fabrication bench`,
@@ -135,20 +123,12 @@ export function districtActivitySummaries(state: GameState, districtId: District
       reward: "Gear, cyberware, tools",
     },
     {
-      id: "ripperdoc",
-      label: "Ripperdoc",
-      summary: `${content.ripperdocClinics.length} clinics, ${content.ripperdocServices.length} services`,
-      available: unlocked ? content.ripperdocClinics.length + content.ripperdocServices.length : 0,
-      locked: unlocked ? 0 : content.ripperdocClinics.length + content.ripperdocServices.length,
-      reward: "Cyberware, recovery",
-    },
-    {
       id: "market",
       label: "Market",
-      summary: `${content.vendors.length} vendors${blacknetDistricts.includes(districtId) ? ", black market access" : ""}`,
-      available: unlocked ? content.vendors.length + (blacknetDistricts.includes(districtId) ? 1 : 0) : 0,
-      locked: unlocked ? 0 : content.vendors.length,
-      reward: "Items, parts, resale",
+      summary: `${content.vendors.length} vendors, ${content.ripperdocClinics.length} clinics${blacknetDistricts.includes(districtId) ? ", black market access" : ""}`,
+      available: unlocked ? content.vendors.length + content.ripperdocClinics.length + content.ripperdocServices.length + (blacknetDistricts.includes(districtId) ? 1 : 0) : 0,
+      locked: unlocked ? 0 : content.vendors.length + content.ripperdocClinics.length + content.ripperdocServices.length,
+      reward: "Items, cyberware, treatment",
       warning: heat >= 75 ? "Heat raises risk" : undefined,
     },
     {
@@ -161,8 +141,8 @@ export function districtActivitySummaries(state: GameState, districtId: District
     },
     {
       id: "garage",
-      label: "Garage",
-      summary: `${content.garage.length} vehicle services`,
+      label: "Cars",
+      summary: `${content.garage.length} vehicles in the citywide dealership`,
       available: unlocked ? content.garage.length : 0,
       locked: unlocked ? 0 : content.garage.length,
       reward: "Vehicles, tuning",
@@ -190,5 +170,6 @@ export function districtActivitySummaries(state: GameState, districtId: District
 
 function categoryAlwaysVisible(districtId: DistrictId, category: DistrictActivityCategory) {
   if (category === "blacknet") return blacknetDistricts.includes(districtId);
+  if (category === "garage") return true;
   return false;
 }

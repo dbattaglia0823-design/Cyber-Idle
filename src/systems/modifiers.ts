@@ -1,14 +1,16 @@
-import { companions } from "../data/companions";
 import { housingOptions } from "../data/housing";
 import { getItem } from "../data/items";
 import { vehicles } from "../data/vehicles";
 import { startingPaths } from "../data/startingPaths";
 import { balanceConfig } from "../data/balanceConfig";
-import { cyberwareLoad, effectiveNeuralInstability } from "./itemFormulas";
+import { cyberwareLoad, effectiveNeuralInstability, scaledModifiers } from "./itemFormulas";
 import { heatTier, neuralInstabilityTierName } from "./riskEvents";
 import { masteryPoolBonus } from "./masteryPool";
 import { applyPerkModifiers } from "./perkSystem";
 import { streetLegendMilestones } from "../data/streetLegendData";
+import { totalFactionReputation } from "./factionContacts";
+import { activeDistrictDropAmplifier } from "../data/dropRateAmplifiers";
+import { activeCraftingSpeedUpgrade, activeDoubleCraftUpgrade } from "../data/craftingEnhancements";
 import type { ActiveModifiers, GameState, RewardBundle, SkillId } from "../types";
 
 export function getActiveModifiers(state: GameState): ActiveModifiers {
@@ -38,6 +40,8 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
     offlineProgressCapHours: 12,
     fixerTrustGain: 0,
     masteryXpGain: 0,
+    craftingSpeed: 0,
+    doubleCraftChance: 0,
     craftingCostReduction: 0,
     upgradeCostReduction: 0,
     vehicleUpgradeCostReduction: 0,
@@ -54,12 +58,13 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   applyHousing(state, modifiers);
   applyFactions(state, modifiers);
   applyMasteryPools(state, modifiers);
-  applyFixerTrust(state, modifiers);
-  applyCompanion(state, modifiers);
+  applyFactionNetwork(state, modifiers);
   applyEquipment(state, modifiers);
   applyVehicle(state, modifiers);
   applyRipperdocEffects(state, modifiers);
   applyStreetLegend(state, modifiers);
+  applyDistrictDropAmplifier(state, modifiers);
+  applyCraftingEnhancements(state, modifiers);
   applyRiskState(state, modifiers);
   if (state.rpg?.starterClaimed) {
     modifiers.combatMaxHp += (state.rpg.attributes.body - 3) * 0.035 + (state.rpg.level - 1) * 0.025;
@@ -78,6 +83,26 @@ export function getActiveModifiers(state: GameState): ActiveModifiers {
   if (state.collectionRewardsClaimed[100]) modifiers.skillRewards += 0.03;
 
   return modifiers;
+}
+
+function applyCraftingEnhancements(state: GameState, modifiers: ActiveModifiers) {
+  const speedUpgrade = activeCraftingSpeedUpgrade(state);
+  if (speedUpgrade) {
+    modifiers.craftingSpeed += speedUpgrade.bonus;
+    modifiers.activeSources.push(`${speedUpgrade.name} +${Math.round(speedUpgrade.bonus * 100)}% crafting speed`);
+  }
+  const doubleUpgrade = activeDoubleCraftUpgrade(state);
+  if (doubleUpgrade) {
+    modifiers.doubleCraftChance += doubleUpgrade.bonus;
+    modifiers.activeSources.push(`${doubleUpgrade.name} ${Math.round(doubleUpgrade.bonus * 100)}% double craft`);
+  }
+}
+
+function applyDistrictDropAmplifier(state: GameState, modifiers: ActiveModifiers) {
+  const amplifier = activeDistrictDropAmplifier(state);
+  if (!amplifier) return;
+  modifiers.dropChance += amplifier.dropRateBonus;
+  modifiers.activeSources.push(`${amplifier.name} +${Math.round(amplifier.dropRateBonus * 100)}% drops`);
 }
 
 function applyStreetLegend(state: GameState, modifiers: ActiveModifiers) {
@@ -146,7 +171,9 @@ export function applyNeuralModifier(state: GameState, amount: number, tags: stri
 
 export function adjustedDurationMs(state: GameState, durationMs: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
-  const speed = modifiers.actionSpeed + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
+  const speed = modifiers.actionSpeed
+    + (tags.includes("crafting") ? modifiers.craftingSpeed : 0)
+    + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
   return Math.max(250, Math.round(durationMs * Math.max(0.05, 1 - speed)));
 }
 
@@ -201,7 +228,7 @@ function applyHousing(state: GameState, modifiers: ActiveModifiers) {
   modifiers.offlineProgressCapHours += housing.offlineCapBonusHours;
   modifiers.heatDecay += housing.heatDecayBonus / 100;
   modifiers.neuralInstabilityRecovery += housing.neuralRecoveryBonus / 100;
-  modifiers.actionSpeed += 0.02;
+  modifiers.actionSpeed += 0.01;
   if (housing.passiveModifiers) mergeModifiers(modifiers, housing.passiveModifiers);
 }
 
@@ -225,38 +252,10 @@ function applyFactions(state: GameState, modifiers: ActiveModifiers) {
   if (helix >= 10) modifiers.neuralInstabilityRecovery += 0.05;
 }
 
-function applyFixerTrust(state: GameState, modifiers: ActiveModifiers) {
-  const totalTrust = Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0);
-  if (totalTrust >= 25) modifiers.jobRewards += 0.02;
-  if (totalTrust >= 75) modifiers.jobSuccessChance += 0.03;
-}
-
-function applyCompanion(state: GameState, modifiers: ActiveModifiers) {
-  const companion = companions.find((entry) => entry.id === state.activeCompanion);
-  const companionState = state.activeCompanion ? state.companions[state.activeCompanion] : null;
-  if (!companion || !companionState?.unlocked) return;
-  const scale = Math.min(0.1, companionState.relationship / 1000);
-  modifiers.activeSources.push(companion.name);
-  if (companion.id === "nyra-vale") {
-    modifiers.actionSpeed += scale;
-    modifiers.heatGain -= scale;
-  }
-  if (companion.id === "dex-riven") {
-    modifiers.actionSpeed += scale;
-    modifiers.skillRewards += scale;
-  }
-  if (companion.id === "mara-voss") {
-    modifiers.combatDamage += scale;
-    modifiers.combatXp += scale;
-  }
-  if (companion.id === "iris-kade") {
-    modifiers.neuralInstabilityGain -= scale;
-    modifiers.skillXp.cyberware = (modifiers.skillXp.cyberware ?? 0) + scale;
-  }
-  if (companion.id === "sable-quinn") {
-    modifiers.jobRewards += scale;
-    modifiers.fixerTrustGain += scale;
-  }
+function applyFactionNetwork(state: GameState, modifiers: ActiveModifiers) {
+  const totalReputation = totalFactionReputation(state);
+  if (totalReputation >= 25) modifiers.jobRewards += 0.02;
+  if (totalReputation >= 75) modifiers.jobSuccessChance += 0.03;
 }
 
 function applyRiskState(state: GameState, modifiers: ActiveModifiers) {
@@ -279,38 +278,36 @@ function applyRiskState(state: GameState, modifiers: ActiveModifiers) {
 }
 
 function applyEquipment(state: GameState, modifiers: ActiveModifiers) {
-  Object.values(state.equippedCyberware).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
-  Object.values(state.equippedGear).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  Object.values(state.equippedCyberware).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
+  Object.values(state.equippedGear).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
   const weaponLoadout = state.weaponLoadouts[state.equippedGear.weapon ?? ""];
-  Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
-  (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
+  (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(state, modifiers, itemId));
   if (cyberwareLoad(state) > 0) modifiers.activeSources.push(`Cyberware load +${cyberwareLoad(state)} NI`);
 }
 
 function applyVehicle(state: GameState, modifiers: ActiveModifiers) {
-  const fleetSpeed = vehicles
-    .filter((vehicle) => state.ownedVehicles[vehicle.id])
-    .reduce((sum, vehicle) => sum + vehicleFleetSpeedBonus(vehicle), 0);
-  if (fleetSpeed > 0) {
-    modifiers.actionSpeed += fleetSpeed;
-    modifiers.activeSources.push(`Vehicle fleet +${Math.round(fleetSpeed * 1000) / 10}% speed`);
-  }
   const vehicle = vehicles.find((entry) => entry.id === state.activeVehicle);
-  if (!vehicle) return;
-  const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-  modifiers.actionSpeed += 0.02 + vehicle.stats.jobEfficiency / 100 + level * 0.003;
-  modifiers.heatGain -= vehicle.stats.heatReduction / 100 + level * 0.002;
-  modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + level * 0.002;
-  modifiers.offlineProgressCapHours += Math.floor(vehicle.stats.storage / 20);
+  if (!vehicle || !state.ownedVehicles[vehicle.id]) return;
+  const bodyLevel = activeVehiclePartLevel(state, vehicle.id, "body");
+  const engineLevel = activeVehiclePartLevel(state, vehicle.id, "engine");
+  const cargoLevel = activeVehiclePartLevel(state, vehicle.id, "cargo");
+  const electronicsLevel = activeVehiclePartLevel(state, vehicle.id, "electronics");
+  modifiers.actionSpeed += vehicle.stats.speed / 100 + engineLevel * 0.01;
+  modifiers.combatDefense += bodyLevel * 0.02;
+  modifiers.heatGain -= vehicle.stats.heatReduction / 100 + electronicsLevel * 0.01;
+  modifiers.jobSuccessChance += vehicle.stats.jobEfficiency / 100 + electronicsLevel * 0.01;
+  modifiers.jobRewards += vehicle.stats.smugglingRewardBonus / 100 + cargoLevel * 0.015;
+  modifiers.offlineProgressCapHours += Math.floor((vehicle.stats.storage + cargoLevel * 4) / 20);
   mergeModifiers(modifiers, vehicle.passiveModifiers);
   modifiers.activeSources.push(vehicle.name);
 }
 
-function mergeItemModifiers(modifiers: ActiveModifiers, itemId?: string) {
+function mergeItemModifiers(state: GameState, modifiers: ActiveModifiers, itemId?: string) {
   if (!itemId) return;
   const item = getItem(itemId);
   if (!item?.modifiers) return;
-  mergeModifiers(modifiers, item.modifiers);
+  mergeModifiers(modifiers, scaledModifiers(state, itemId));
   modifiers.activeSources.push(item.name);
 }
 
@@ -343,6 +340,8 @@ function mergeModifiers(modifiers: ActiveModifiers, itemMods: Partial<ActiveModi
     "shopPrices",
     "fixerTrustGain",
     "masteryXpGain",
+    "craftingSpeed",
+    "doubleCraftChance",
     "craftingCostReduction",
     "upgradeCostReduction",
     "vehicleUpgradeCostReduction",
@@ -364,16 +363,11 @@ function vehicleSpeedBonus(state: GameState) {
   return state.startingPath === "outrider" ? 0.1 : 0;
 }
 
-function vehicleFleetSpeedBonus(vehicle: (typeof vehicles)[number]) {
-  const rarityBonus = {
-    Common: 0.001,
-    Uncommon: 0.0015,
-    Rare: 0.0025,
-    Epic: 0.0035,
-    Legendary: 0.005,
-    Prototype: 0.006,
-    Relic: 0.008,
-  }[vehicle.rarity] ?? 0.001;
-  const priceBonus = (vehicle.cost.credits ?? 0) / 2_000_000;
-  return rarityBonus + priceBonus;
+function activeVehiclePartLevel(state: GameState, vehicleId: string, partId: "body" | "engine" | "cargo" | "electronics") {
+  const explicit = state.vehicleUpgradeLevels[`${vehicleId}:${partId}`];
+  if (explicit !== undefined) return explicit;
+  const parts = ["body", "engine", "cargo", "electronics"] as const;
+  const legacyTotal = state.vehicleUpgradeLevels[vehicleId] ?? 0;
+  const index = parts.indexOf(partId);
+  return Math.min(5, Math.floor(legacyTotal / parts.length) + (index < legacyTotal % parts.length ? 1 : 0));
 }

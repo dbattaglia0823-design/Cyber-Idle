@@ -2,13 +2,14 @@ import { balanceConfig } from "../data/balanceConfig";
 import { getItem } from "../data/items";
 import { districtThreatRewardBonus } from "./districtThreat";
 import { playerCombatStats } from "./formulas";
+import { calculateHitChance, enemyDodgeChance } from "./balanceFormulas";
 import { effectiveNeuralInstability } from "./itemFormulas";
 import { scenarioBonusForTags } from "./scenarioModifiers";
 import { equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import type { CombatAffinity, CombatMatchupRating, DamageType, Enemy, EnemyDifficultyTier, GameState, ItemDefinition } from "../types";
 
 const difficultyOrder: EnemyDifficultyTier[] = ["Common", "Hardened", "Elite", "Mini-Boss", "Boss", "Apex"];
-const difficultyStats: Record<EnemyDifficultyTier, { hp: number; damage: number; rewards: number; heat: number; drop: number }> = {
+export const combatDifficultyStats: Record<EnemyDifficultyTier, { hp: number; damage: number; rewards: number; heat: number; drop: number }> = {
   Common: { hp: 1, damage: 1, rewards: 1, heat: 1, drop: 0 },
   Hardened: { hp: 1.14, damage: 1.08, rewards: 1.08, heat: 1.08, drop: 0.01 },
   Elite: { hp: 1.32, damage: 1.18, rewards: 1.18, heat: 1.16, drop: 0.02 },
@@ -52,7 +53,7 @@ export function combatEffectivenessForEnemy(state: GameState, enemy: Enemy, extr
   const tags = combatTagsForEnemy(enemy, extraTags);
   const scenario = scenarioBonusForTags(state, tags);
   const difficulty = scaledDifficulty(state, enemy);
-  const difficultyBonus = difficultyStats[difficulty];
+  const difficultyBonus = combatDifficultyStats[difficulty];
   let damageMultiplier = 1 + scenario.damageBonus;
   let rewardMultiplier = difficultyBonus.rewards;
   let dropChance = scenario.dropChance + difficultyBonus.drop;
@@ -106,7 +107,9 @@ export function combatEffectivenessForEnemy(state: GameState, enemy: Enemy, extr
   const classBonus = loadout.weaponClass ? weaponClassBonus(state, loadout.weaponClass) : { dropChance: 0 };
   const armorReduction = enemy.armor ? Math.max(balanceConfig.enemyScaling.armorPenetrationFloor, 1 - (loadout.armorPenetration / Math.max(12, enemy.armor * 5))) : 1;
   const effectiveHp = Math.max(1, Math.round(enemy.hp * difficultyBonus.hp * armorReduction / Math.max(0.25, damageMultiplier)));
-  const expectedKillMs = Math.max(600, Math.ceil(effectiveHp / Math.max(1, stats.damage)) * stats.attackSpeedMs);
+  const hitChance = calculateHitChance(stats.accuracy, enemyDodgeChance(enemy));
+  const averageDamage = stats.damage * hitChance * (1 + stats.critChance * (stats.critDamage - 1));
+  const expectedKillMs = Math.max(600, Math.ceil(effectiveHp / Math.max(1, averageDamage)) * stats.attackSpeedMs);
   dropChance += classBonus.dropChance;
 
   return {
@@ -124,7 +127,7 @@ export function combatEffectivenessForEnemy(state: GameState, enemy: Enemy, extr
   };
 }
 
-function scaledDifficulty(state: GameState, enemy: Enemy): EnemyDifficultyTier {
+export function scaledDifficulty(state: GameState, enemy: Enemy): EnemyDifficultyTier {
   const baseIndex = difficultyOrder.indexOf(enemy.difficulty ?? "Common");
   const districtThreat = enemy.preferredDistrict ? state.districtThreat[enemy.preferredDistrict]?.level ?? 0 : 0;
   const threatStep = districtThreat >= 90 ? 2 : districtThreat >= 65 ? 1 : 0;
@@ -145,27 +148,33 @@ function equippedLoadout(state: GameState) {
   const attachments = Object.values(loadout?.attachments ?? {}).map((id) => (id ? getItem(id) : undefined)).filter(Boolean) as ItemDefinition[];
   const mods = (loadout?.mods ?? []).map(getItem).filter(Boolean) as ItemDefinition[];
   const cyberware = Object.values(state.equippedCyberware).map((id) => (id ? getItem(id) : undefined)).filter(Boolean) as ItemDefinition[];
+  const armorPenetration = (weapon?.stats?.armorPenetration ?? 0) + attachments.reduce((sum, item) => sum + (item.stats?.armorPenetration ?? 0), 0) + mods.reduce((sum, item) => sum + (item.stats?.armorPenetration ?? 0), 0);
+  const tags = [...(weapon?.tags ?? ["unarmed", "melee", "bluntWeapons", "nonlethal"]), ...attachments.flatMap((item) => item.tags), ...mods.flatMap((item) => item.tags)];
+  if (armorPenetration >= 12 && !tags.includes("armorPiercing")) tags.push("armorPiercing");
+  const damageTypes = weaponDamageTypes(weapon);
+  if (armorPenetration >= 12 && !damageTypes.includes("tech")) damageTypes.push("tech");
   return {
     weaponClass: equippedWeaponClass(state),
-    tags: [...(weapon?.tags ?? ["unarmed", "melee", "bluntWeapons", "nonlethal"]), ...attachments.flatMap((item) => item.tags), ...mods.flatMap((item) => item.tags)],
+    tags,
     attachmentTags: attachments.flatMap((item) => item.tags),
     modTags: mods.flatMap((item) => item.tags),
     cyberwareTags: cyberware.flatMap((item) => item.tags),
-    damageTypes: weaponDamageTypes(weapon),
-    armorPenetration: (weapon?.stats?.armorPenetration ?? 0) + attachments.reduce((sum, item) => sum + (item.stats?.armorPenetration ?? 0), 0) + mods.reduce((sum, item) => sum + (item.stats?.armorPenetration ?? 0), 0),
+    damageTypes,
+    armorPenetration,
   };
 }
 
 function affinityMatches(affinity: CombatAffinity, loadout: ReturnType<typeof equippedLoadout>, scenarioTags: string[]) {
-  return Boolean(
-    affinity.weaponClasses?.some((id) => id === loadout.weaponClass) ||
-      affinity.weaponTags?.some((tag) => loadout.tags.includes(tag)) ||
-      affinity.damageTypes?.some((type) => loadout.damageTypes.includes(type)) ||
-      affinity.attachmentTags?.some((tag) => loadout.attachmentTags.includes(tag)) ||
-      affinity.modTags?.some((tag) => loadout.modTags.includes(tag)) ||
-      affinity.cyberwareTags?.some((tag) => loadout.cyberwareTags.includes(tag)) ||
-      affinity.scenarioTags?.some((tag) => scenarioTags.includes(tag)),
-  );
+  const groups = [
+    affinity.weaponClasses && affinity.weaponClasses.some((id) => id === loadout.weaponClass),
+    affinity.weaponTags && affinity.weaponTags.some((tag) => loadout.tags.includes(tag)),
+    affinity.damageTypes && affinity.damageTypes.some((type) => loadout.damageTypes.includes(type)),
+    affinity.attachmentTags && affinity.attachmentTags.some((tag) => loadout.attachmentTags.includes(tag)),
+    affinity.modTags && affinity.modTags.some((tag) => loadout.modTags.includes(tag)),
+    affinity.cyberwareTags && affinity.cyberwareTags.some((tag) => loadout.cyberwareTags.includes(tag)),
+    affinity.scenarioTags && affinity.scenarioTags.some((tag) => scenarioTags.includes(tag)),
+  ].filter((match): match is boolean => match !== undefined);
+  return affinity.matchMode === "allGroups" ? groups.length > 0 && groups.every(Boolean) : groups.some(Boolean);
 }
 
 function weaponDamageTypes(weapon?: ItemDefinition): DamageType[] {

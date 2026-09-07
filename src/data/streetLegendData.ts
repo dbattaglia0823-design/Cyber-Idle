@@ -14,7 +14,7 @@ export const streetLegendMilestones: StreetLegendMilestone[] = [
   { rank: 10, name: "City Reputation", description: "+1% global resource rewards.", unlockKey: "global-rewards-1", modifiers: { skillRewards: 0.01 } },
   { rank: 15, name: "Challenge Board", description: "Unlocks Challenge Contracts.", unlockKey: "challenge-contracts" },
   { rank: 20, name: "Simulation Memory", description: "+2% Sim Cache efficiency.", unlockKey: "sim-cache-2", modifiers: { simCacheEfficiency: 0.02 } },
-  { rank: 25, name: "Lockdown Access", description: "Unlocks High-Threat Operations.", unlockKey: "high-threat-operations" },
+  { rank: 25, name: "Lockdown Access", description: "Unlocks high-threat combat targets.", unlockKey: "high-threat-combat" },
   { rank: 30, name: "Legacy Bench", description: "Unlocks Legacy Crafting goals.", unlockKey: "legacy-crafting" },
   { rank: 40, name: "Blueprint Hunter", description: "Unlocks Legendary Blueprint tracking.", unlockKey: "legendary-blueprint-tracking", modifiers: { dropChance: 0.005 } },
   { rank: 50, name: "Prestige Protocol", description: "Unlocks optional skill prestige; reaching skill level 150 also opens it.", unlockKey: "prestige-protocol" },
