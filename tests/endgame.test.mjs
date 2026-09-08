@@ -1,3 +1,4 @@
+import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/systems/gameState.ts';
@@ -19,7 +20,7 @@ test('later story chapters unlock in their districts and complete with real oper
     let state = updateStoryProgress(createInitialState());
     assert.equal(state.storyArcs[arc.id].status, 'locked', arc.id);
     state.skills.scavenging.level = 150;
-    updateWorldUnlocks(state);
+    openStoryThroughSkillBand(state);
     state = updateStoryProgress(state);
     assert.notEqual(state.storyArcs[arc.id].status, 'locked', arc.id);
     for (const step of arc.steps) {
@@ -87,7 +88,7 @@ test('prestige is optional, grants XP and preserves districts, items, story and 
   state.skills.scavenging.level=150;
   state.prestigeProtocol.unlocked=true;
   state.inventory['street-knife']=1; state.storyFlags['test-story']=true;
-  updateWorldUnlocks(state); syncStreetLegend(state);
+  openStoryThroughSkillBand(state); syncStreetLegend(state);
   const legend=state.streetLegend.totalXp;
   // Eligibility is normally a rank-50 unlock. Set it explicitly for this isolated reset test.
   state.prestigeProtocol.unlocked=true;

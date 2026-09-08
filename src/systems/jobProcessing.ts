@@ -148,11 +148,7 @@ const skillRequirementNames: Record<SkillId, string> = {
   hacking: "Hacking",
   cyberware: "Cyberware Engineering",
   combat: "Street Combat",
-  vehicleTuning: "Vehicle Tuning",
-  blackMarket: "Black Market",
-  medical: "Medical Knowledge",
-  streetcraft: "Streetcraft",
-};
+  vehicleTuning: "Vehicle Tuning",  medical: "Medical Knowledge",};
 
 const districtRequirementNames: Record<DistrictId, string> = {
   neonRow: "Neon Row",

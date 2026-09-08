@@ -1,3 +1,4 @@
+import { rpgMissions } from "../data/rpgCampaign";
 import { useState } from "react";
 import { ArrowRight, Boxes, Check, Crosshair, LockKeyhole, Radio, Wrench, Zap } from "lucide-react";
 import { districts } from "../data/districts";
@@ -25,7 +26,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
   const highest = Math.max(...Object.values(state.skills).map(skill => skill.level));
   const target = next ? districtLevelBands[next.id].entryLevel : 150;
   const previous = next ? Math.max(1, ...ordered.filter(d => state.districts[d.id]?.unlocked).map(d => districtLevelBands[d.id].entryLevel)) : 140;
-  const percent = Math.min(100, Math.max(0, (highest - previous) / Math.max(1, target - previous) * 100));
+  const percent = rpgMissions.filter(m => state.rpg.completed[m.id]).length / rpgMissions.length * 100;
   const supply = [...materialSupplyActions].reverse().find(action => canStartSkillAction(state, action));
   const xpRate = (action: typeof skillActions[number]) => actionXpRewardWithMastery(state, action) * 60000 / adjustedActionDurationMs(state, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   const training = skillActions.filter(action => action.skillId === trainingSkill && canStartSkillAction(state, action))
@@ -40,16 +41,16 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
     ?? recipes.find(recipe => recipe.id === "recipe-basic-med-injector")!;
   const costs = Object.entries(adjustCraftingCosts(state, craft));
   const ready = canCraft(state, craft);
-  const campaign = campaignProgress(state);
+  const campaign = { cleared: rpgMissions.filter(m => state.rpg.completed[m.id]).length, total: rpgMissions.length };
   return <section className="runner-guide" aria-label="Progression guide">
     <div className="runner-guide-hero">
       <div className="runner-guide-intro">
         <span className="runner-guide-kicker"><Radio size={14} /> RUNNER NETWORK / NEXT OBJECTIVE</span>
         <h2>{next ? `Open ${next.name}` : "Own your place in the city"}</h2>
-        <p>{next ? `Complete Main missions to open districts, or reach level ${target} in any training skill. Gather components and prepare for local operations.` : "Complete the eight district operations, assemble iconic gear, and begin your prestige runs."}</p>
-        <div className="runner-guide-stats"><span><Zap size={14} /> Highest skill <b>{highest}</b></span><span><Crosshair size={14} /> Campaign <b>{campaign.cleared}/{campaign.total}</b></span></div>
+        <p>{next ? "Complete main jobs to open districts. Replay local gigs for credits and Heat relief; train skills for equipment and tougher operations." : "Complete the eight district operations, assemble iconic gear, and begin your prestige runs."}</p>
+        <div className="runner-guide-stats"><span><Zap size={14} /> Highest skill <b>{highest}</b></span><span><Crosshair size={14} /> Main jobs <b>{campaign.cleared}/{campaign.total}</b></span></div>
       </div>
-      <div className="runner-guide-meter" role="progressbar" aria-label="Next district level progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}>
+      <div className="runner-guide-meter" role="progressbar" aria-label="Main story progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}>
         <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="51" /><circle cx="60" cy="60" r="51" pathLength="100" strokeDasharray={`${percent} 100`} /></svg>
         <div><strong>{unlocked}<small>/ 8</small></strong><span>DISTRICTS OPEN</span></div>
       </div>
@@ -57,7 +58,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
     <nav className="runner-route" aria-label="District progression">
       {ordered.map((district, index) => {
         const open = state.districts[district.id]?.unlocked;
-        return <button key={district.id} className={`${open ? "is-open" : ""} ${next?.id === district.id ? "is-next" : ""}`} disabled={!open} onClick={() => onOpenDistrict(district.id)} title={open ? `Explore ${district.name}` : `Any main skill level ${districtLevelBands[district.id].entryLevel}`}>
+        return <button key={district.id} className={`${open ? "is-open" : ""} ${next?.id === district.id ? "is-next" : ""}`} disabled={!open} onClick={() => onOpenDistrict(district.id)} title={open ? `Explore ${district.name}` : district.unlockRequirements.join(", ")}>
           <span className="runner-route-node">{open ? <Check size={13} /> : <LockKeyhole size={12} />}</span>
           <span><small>0{index + 1} / LV {districtLevelBands[district.id].entryLevel}</small><strong>{district.name}</strong></span>
         </button>;
@@ -66,7 +67,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
     <div className="runner-guide-cards">
       <article><div className="runner-guide-card-label"><Boxes size={18} /><span>01 / GATHER</span><em>Guaranteed</em></div>
         <h3>{supply?.name ?? "Resupply your workshop"}</h3>
-        <p>{supply ? `${Object.keys(supply.itemRewards ?? {}).length} component types every cycle. No rare-drop luck needed.` : "Train Scavenging in Neon Row to build your material reserves."}</p>
+        <p>{supply ? `${Object.keys(supply.itemRewards ?? {}).length} component types per cycle. Check the listed processing costs.` : "Train Scavenging in Neon Row to build your material reserves."}</p>
         <div className="runner-guide-tags">{supply && Object.entries(supply.rewards).map(([id, amount]) => <span key={id}>{amount! < 0 ? "Uses " : "+"}{Math.abs(amount!)} {getItem(id)?.name ?? id}</span>)}</div>
         <button disabled={!supply || state.activeAction?.actionId === supply.id} onClick={() => supply && onStartSkill(supply.id)}>{state.activeAction?.actionId === supply?.id ? "Gathering…" : "Gather components"}<ArrowRight size={15} /></button>
       </article>

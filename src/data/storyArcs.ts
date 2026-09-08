@@ -111,8 +111,8 @@ export const storyArcs: StoryArcDefinition[] = [
       {
         id: "neon-help-locals",
         title: "Read The Block",
-        description: "Get enough local trust to know who is squeezing the alleys.",
-        objective: { type: "completeSkillAction", target: "street-read-rumors", requiredCount: 2, districtId: "neonRow" },
+        description: "Complete two local extractions to earn the trust of the neighborhood.",
+        objective: { type: "completeLocalGig", target: "gig-dead-drop", requiredCount: 2, districtId: "neonRow" },
         rewards: { reputation: 2 },
         nextStepIds: ["neon-clean-pressure"],
       },

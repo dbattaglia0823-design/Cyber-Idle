@@ -1,3 +1,4 @@
+import { rpgMissions } from "./rpgCampaign";
 import type { DistrictId, GameState, SkillId } from "../types";
 
 export const MAX_MAIN_SKILL_LEVEL = 150;
@@ -16,7 +17,7 @@ export const districtLevelBands: Record<DistrictId, DistrictLevelBand> = {
     min: 1,
     max: 20,
     entryLevel: 1,
-    recommendedSkills: { scavenging: 1, hacking: 1, cyberware: 1, medical: 1, streetcraft: 1, combat: 1 },
+    recommendedSkills: { scavenging: 1, hacking: 1, cyberware: 1, medical: 1, combat: 1 },
   },
   rustYards: {
     min: 20,
@@ -28,13 +29,13 @@ export const districtLevelBands: Record<DistrictId, DistrictLevelBand> = {
     min: 41,
     max: 60,
     entryLevel: 40,
-    recommendedSkills: { blackMarket: 40, streetcraft: 40, hacking: 40 },
+    recommendedSkills: { hacking: 40 },
   },
   blacknetQuarter: {
     min: 61,
     max: 80,
     entryLevel: 60,
-    recommendedSkills: { hacking: 60, blackMarket: 60, vehicleTuning: 60 },
+    recommendedSkills: { hacking: 60, vehicleTuning: 60 },
   },
   helixWard: {
     min: 81,
@@ -52,13 +53,13 @@ export const districtLevelBands: Record<DistrictId, DistrictLevelBand> = {
     min: 121,
     max: 140,
     entryLevel: 120,
-    recommendedSkills: { combat: 120, streetcraft: 120, hacking: 120 },
+    recommendedSkills: { combat: 120, hacking: 120 },
   },
   skylineCore: {
     min: 141,
     max: 150,
     entryLevel: 140,
-    recommendedSkills: { hacking: 140, cyberware: 140, vehicleTuning: 140, blackMarket: 140, combat: 140 },
+    recommendedSkills: { hacking: 140, cyberware: 140, vehicleTuning: 140, combat: 140 },
   },
 };
 
@@ -68,8 +69,8 @@ export function districtLevelBandLabel(districtId: DistrictId) {
 }
 
 export function districtEntryRequirementText(districtId: DistrictId) {
-  const band = districtLevelBands[districtId];
-  return band.entryLevel <= 1 ? "Available at start" : `Any main skill level ${band.entryLevel}`;
+  const index = rpgMissions.findIndex(mission => mission.district === districtId);
+  return index <= 0 ? "Available at start" : "Complete main job: " + rpgMissions[index - 1].title;
 }
 
 export function hasAnyMainSkillLevel(state: GameState, level: number) {

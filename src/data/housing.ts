@@ -101,7 +101,7 @@ function makeExpandedHousing(): HousingOption[] {
   return [
   // ===== NEON ROW =====
   house("neon-rooftop-den", "Rooftop Den", "neonRow", 2800, ["Clear Neon Rooftop Chase"], ["Combat staging", "Low Heat routes"], 120, 4, 4, 2),
-  house("neon-sleeper-pod", "Sleeper Pod Stack", "neonRow", 320, ["Streetcraft level 2"], ["Cheap heat decay", "Starter stash"], 35, 1, 2, 0),
+  house("neon-sleeper-pod", "Sleeper Pod Stack", "neonRow", 320, ["Reputation 5"], ["Cheap heat decay", "Starter stash"], 35, 1, 2, 0),
   house("neon-signmaker-loft", "Signmaker Loft", "neonRow", 780, ["Neon Row standing 10"], ["Scavenging prep", "Better offline cap"], 55, 2, 2, 1),
   house("neon-backroom-safehouse", "Backroom Safehouse", "neonRow", 1600, ["Sable Quinn trust 25"], ["Starter fixer safety", "Heat recovery"], 90, 3, 4, 1),
 

@@ -217,10 +217,7 @@ function updateSkillActionStats(state: GameState, action: SkillAction, rareDrops
     state.marketStatistics.medicalTreatments += 1;
     if ((action.neuralInstabilityChange ?? 0) < 0) state.achievements["medical-ni-reduction"] = true;
   }
-  if (action.skillId === "streetcraft") {
-    state.marketStatistics.streetcraftFavors += 1;
-    if ((action.heatChange ?? 0) < 0) state.achievements["streetcraft-heat-resolution"] = true;
-  }
+
   if (traced) state.achievements[`trace-${action.id}`] = true;
   [25, 50, 100, 150].forEach((level) => {
     if (state.skills[action.skillId].level >= level) state.achievements[`${action.skillId}-level-${level}`] = true;

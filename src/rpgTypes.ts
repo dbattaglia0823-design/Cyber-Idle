@@ -1,7 +1,9 @@
 export type AttributeId = "body" | "reflexes" | "intelligence" | "technical" | "cool";
 export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
 export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock";
+export type GigRisk = "standard" | "dangerous" | "elite";
 export interface RpgEncounter {
+  gigRisk?: GigRisk;
   missionId: string;
   phase: "briefing" | "combat" | "decision" | "failed";
   approach: MissionApproach | null;

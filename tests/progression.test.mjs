@@ -1,3 +1,4 @@
+import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { report, problems, sources, rewardProblems, craftingRewardProblems } from '../scripts/audit-progression.mjs';
@@ -35,13 +36,13 @@ test('all content references, item IDs, recipe IDs and ingredient stages are val
 test('every district supplies its equipment materials at entry, even without rare drops', () => {
   for (const action of materialSupplyActions) {
     let state = createInitialState(1000);
-    state.skills.scavenging.level = districtLevelBands[action.districtReq].entryLevel;
-    state.resources.scrap = 100;
-    updateWorldUnlocks(state);
+    state.skills[action.skillId].level = districtLevelBands[action.districtReq].entryLevel;
+    for (const key of Object.keys(state.resources)) state.resources[key] = 100;
+    openStoryThroughSkillBand(state);
     state = startSkillAction(state, action.id, 1000);
     assert.ok(state.activeAction, action.id);
     state = processActionCompletion(state, 1000 + state.activeAction.durationMs);
-    for (const id of districtSpecificMaterials[action.districtReq]) {
+    for (const id of Object.keys(action.itemRewards ?? {})) {
       assert.ok((state.resources[id] ?? state.inventory[id] ?? 0) >= 1, `${action.id}: ${id}`);
     }
   }
@@ -50,7 +51,7 @@ test('every district supplies its equipment materials at entry, even without rar
 for (const path of ['streetborn', 'outrider', 'corporateDefector']) test(`${path} can gather, craft starter gear and medicine from a new save`, () => {
   let state = chooseStartingPath(createInitialState(1000), path);
   let now = 1000;
-  for (const [action, loops] of [['supply-neonRow', 12], ['scav-alley-scrap-run', 15], ['cyber-strip-implant', 5], ['hack-public-terminal', 4]]) {
+  for (const [action, loops] of [['scav-alley-scrap-run', 40], ['scav-recover-circuit-boards', 12], ['supply-neonRow', 8], ['cyber-strip-implant', 5], ['hack-public-terminal', 4]]) {
     state = startSkillAction(state, action, now);
     assert.ok(state.activeAction, action);
     for (let i=0; i<loops; i++) {
@@ -75,7 +76,7 @@ test('source guide never lists consuming an ingredient as a source', () => {
   const state = createInitialState();
   const sources = getItemSources('scrap', state);
   assert.ok(!sources.some(s => s.name === 'Strip Damaged Implant'));
-  assert.equal(getItemSources('redline-wire', state)[0].name, 'Strip Street Electronics');
+  assert.equal(getItemSources('redline-wire', state)[0].name, 'Recover Street Wire and Lenses');
   assert.ok(!getItemSources('legendary-chrome-matrix',state).some(s => s.type !== 'Item note' && s.unlocked));
 });
 
@@ -93,9 +94,9 @@ test('resource drops and crafted vehicle components use the resource wallet', ()
 test('districts stay unlocked after a skill reset and mastery respects its cap', () => {
   const state = createInitialState();
   state.skills.scavenging.level = 150;
-  updateWorldUnlocks(state);
+  openStoryThroughSkillBand(state);
   state.skills.scavenging.level = 1;
-  updateWorldUnlocks(state);
+  openStoryThroughSkillBand(state);
   assert.ok(Object.values(state.districts).every(d=>d.unlocked));
   addMasteryXp(state,'supply-neonRow',1e9);
   assert.deepEqual(state.actionMastery['supply-neonRow'],{level:99,xp:0});
@@ -108,7 +109,7 @@ test('skill loot stays within district material tiers and crafting XP follows un
   assert.deepEqual(rewardProblems, []);
   assert.deepEqual(craftingRewardProblems, []);
   for (const recipe of recipes) {
-    if (['Weapons', 'Armor', 'Attachments', 'Weapon Mods', 'Upgrade Parts'].includes(recipe.category)) assert.equal(recipe.requiredSkill, 'streetcraft', recipe.id);
+    if (['Weapons', 'Armor', 'Attachments', 'Weapon Mods', 'Upgrade Parts'].includes(recipe.category)) assert.equal(recipe.requiredSkill, 'cyberware', recipe.id);
     if (recipe.category === 'Consumables' && recipe.outputItemId !== 'basic-sim-cache') assert.equal(recipe.requiredSkill, 'medical', recipe.id);
   }
 });
@@ -121,13 +122,13 @@ test('legacy early equipment has timely recipes without late district ingredient
   }
 });
 
-test('weapon crafting awards Streetcraft XP instead of Cyberware XP', () => {
+test('weapon crafting awards Engineering XP instead of Combat XP', () => {
   let state = chooseStartingPath(createInitialState(1000), 'streetborn');
   state.resources.scrap = 50;
-  const oldStreet = state.skills.streetcraft.xp, oldCyber = state.skills.cyberware.xp;
+  const oldStreet = state.skills.cyberware.xp, oldCyber = state.skills.combat.xp;
   state = startCraft(state, 'recipe-street-knife', 1000);
   assert.ok(state.activeCraft);
   state = processCrafting(state, 1000 + state.activeCraft.durationMs);
-  assert.ok(state.skills.streetcraft.xp > oldStreet);
-  assert.equal(state.skills.cyberware.xp, oldCyber);
+  assert.ok(state.skills.cyberware.xp > oldStreet);
+  assert.equal(state.skills.combat.xp, oldCyber);
 });

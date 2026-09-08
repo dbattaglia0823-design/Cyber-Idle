@@ -108,7 +108,7 @@ export const rpgSideGigs: RpgMission[] = cases.map(entry => ({
   briefing: `${entry.fixer}: "A local contact needs an extraction from ${entry.location.split(" / ")[1]}. Clear their pursuer and get them to a safe pickup. The field kit is on me."`,
   objective: "Clear the pursuit and extract your contact.", enemies: [entry.enemies[0]],
   reveal: "Your contact reaches the pickup. The fixer confirms the transfer. The district has one less missing-person report tonight.",
-  reward: 150 + entry.act * 100, xp: 180 + entry.act * 50,
-  choices: [{ id: "extract", label: "Confirm safe extraction", detail: "+4 reputation. Collect payment and field supplies. This gig can be replayed.", response: "Another name crossed off the missing list. Your fixer leaves the channel open for the next call.", reputation: 4, bonusCredits: 0 }],
+  reward: 250 + entry.act * 150, xp: 180 + entry.act * 50,
+  choices: [{ id: "extract", label: "Confirm safe extraction", detail: "+4 reputation. Collect payment, field supplies, and reduce Heat by 15. This gig can be replayed.", response: "Another name crossed off the missing list. Your fixer leaves the channel open for the next call.", reputation: 4, bonusCredits: 0 }],
 }));
 export const allRpgMissions = [...rpgMissions, ...rpgSideGigs];

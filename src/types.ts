@@ -14,7 +14,7 @@ export type ResourceId =
   | "smugglerCompartment"
   | "prototypeDriveUnit";
 
-export type SkillId = "scavenging" | "hacking" | "cyberware" | "vehicleTuning" | "blackMarket" | "medical" | "streetcraft" | "combat";
+export type SkillId = "scavenging" | "hacking" | "cyberware" | "vehicleTuning" | "medical" | "combat";
 export type StartingPathId = "outrider" | "streetborn" | "corporateDefector";
 export type ArchetypeId = "solo" | "netrunner" | "techie" | "outrider" | "fixer" | "ghost";
 export type PerkTreeId = ArchetypeId | "core";
@@ -145,6 +145,7 @@ export type StoryCategory =
   | "Vehicle Chain"
   | "Neural Instability Arc";
 export type StoryObjectiveType =
+  | "completeLocalGig"
   | "completeSkillAction"
   | "reachSkillLevel"
   | "killEnemy"

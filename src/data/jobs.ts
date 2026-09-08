@@ -247,12 +247,12 @@ export const jobs: JobContract[] = [
 function makeExpandedJobs(): JobContract[] {
   return [
   // ===== NEON ROW =====
-  contract("job-neon-food-cart-shield", "Food Cart Shield", "neonRow", 1, "streetcraft", "Protection", ["job", "protection", "street"], { credits: 65, reputation: 2 }),
+  contract("job-neon-food-cart-shield", "Food Cart Shield", "neonRow", 1, "combat", "Protection", ["job", "protection", "street"], { credits: 65, reputation: 2 }),
   contract("job-neon-sign-bridge-cache", "Sign Bridge Cache", "neonRow", 10, "scavenging", "Vehicle Recovery", ["job", "scavenging", "street"], { credits: 110, scrap: 8, circuitBoards: 2 }),
   returnContract("job-return-neon-street-coils", "Recover Street Coils", "neonRow", 10, "scavenging", { credits: 260, scrap: 30, reputation: 7 }, "street-coil"),
   returnContract("job-return-neon-hardened-clear", "Hardened Street Clear", "neonRow", 15, "combat", { credits: 420, reputation: 12, cyberwareParts: 4 }, "urban-reflex-chip"),
   contract("job-neon-crew-blackmail", "Crew Blackmail Packet", "neonRow", 20, "hacking", "Data Theft", ["job", "hacking", "blackmarket"], { credits: 190, encryptedData: 6, reputation: 5 }, "data-job-pass"),
-  returnContract("job-return-neon-cache-loop", "Alley Cache Loop", "neonRow", 20, "streetcraft", { credits: 620, circuitBoards: 10, reputation: 16 }, "neon-circuit-fragment"),
+  returnContract("job-return-neon-cache-loop", "Alley Cache Loop", "neonRow", 20, "combat", { credits: 620, circuitBoards: 10, reputation: 16 }, "neon-circuit-fragment"),
 
   // ===== RUST YARDS =====
   returnContract("job-return-rust-servo-order", "Servo Order", "rustYards", 15, "scavenging", { credits: 360, vehicleParts: 16, scrap: 25 }, "salvaged-servo"),
@@ -261,11 +261,11 @@ function makeExpandedJobs(): JobContract[] {
   contract("job-rust-convoy-ghost", "Convoy Ghost", "rustYards", 40, "vehicleTuning", "Smuggling", ["job", "vehicle", "smuggling"], { credits: 330, vehicleParts: 14, reputation: 6 }, "smugglerCompartment"),
 
   // ===== UNDERPASS MARKET =====
-  returnContract("job-return-underpass-ledger-debt", "Ledger Debt Loop", "underpassMarket", 15, "blackMarket", { credits: 480, encryptedData: 12, reputation: 10 }, "black-ledger-shard"),
-  contract("job-underpass-buyer-screen", "Buyer Screen", "underpassMarket", 40, "blackMarket", "Cleanup", ["job", "blackmarket", "social"], { credits: 165, reputation: 4 }),
-  contract("job-underpass-stall-sabotage", "Stall Sabotage", "underpassMarket", 50, "streetcraft", "Sabotage", ["job", "illegal", "sabotage"], { credits: 250, scrap: 10, reputation: 6 }, "market-pass"),
+  returnContract("job-return-underpass-ledger-debt", "Ledger Debt Loop", "underpassMarket", 15, "hacking", { credits: 480, encryptedData: 12, reputation: 10 }, "black-ledger-shard"),
+  contract("job-underpass-buyer-screen", "Buyer Screen", "underpassMarket", 40, "hacking", "Cleanup", ["job", "blackmarket", "social"], { credits: 165, reputation: 4 }),
+  contract("job-underpass-stall-sabotage", "Stall Sabotage", "underpassMarket", 50, "combat", "Sabotage", ["job", "illegal", "sabotage"], { credits: 250, scrap: 10, reputation: 6 }, "market-pass"),
   contract("job-underpass-cold-courier", "Cold Courier", "underpassMarket", 60, "vehicleTuning", "Smuggling", ["job", "smuggling", "medical"], { credits: 420, cyberwareParts: 3, reputation: 8 }, "private-buyer-contact"),
-  contract("job-underpass-private-bid", "Private Bid", "underpassMarket", 60, "blackMarket", "Smuggling", ["job", "blackmarket", "rare"], { credits: 720, encryptedData: 10, reputation: 10 }, "rare-listing-permit"),
+  contract("job-underpass-private-bid", "Private Bid", "underpassMarket", 60, "hacking", "Smuggling", ["job", "blackmarket", "rare"], { credits: 720, encryptedData: 10, reputation: 10 }, "rare-listing-permit"),
 
   // ===== BLACKNET QUARTER =====
   contract("job-blacknet-packet-launder", "Packet Launder", "blacknetQuarter", 60, "hacking", "Data Theft", ["job", "hacking", "blacknet"], { credits: 360, encryptedData: 24, reputation: 6 }),
@@ -277,7 +277,7 @@ function makeExpandedJobs(): JobContract[] {
   contract("job-helix-night-triage", "Night Triage", "helixWard", 80, "medical", "Cleanup", ["job", "medical", "safe"], { credits: 110, cyberwareParts: 2, reputation: 3 }),
   contract("job-helix-stabilizer-ledger", "Stabilizer Ledger", "helixWard", 90, "medical", "Cyberware Recovery", ["job", "medical", "helix"], { credits: 220, cyberwareParts: 5, reputation: 6 }, "advanced-stabilizer"),
   contract("job-helix-prototype-consent", "Prototype Consent", "helixWard", 100, "cyberware", "Corporate Espionage", ["job", "medical", "prototype"], { credits: 680, cyberwareParts: 14, reputation: 12 }, "neural-dampener-blueprint"),
-  contract("job-helix-quiet-transfer", "Quiet Transfer", "helixWard", 100, "streetcraft", "Extraction", ["job", "medical", "corporate"], { credits: 420, cyberwareParts: 4, reputation: 8 }, "medical-access-pass"),
+  contract("job-helix-quiet-transfer", "Quiet Transfer", "helixWard", 100, "combat", "Extraction", ["job", "medical", "corporate"], { credits: 420, cyberwareParts: 4, reputation: 8 }, "medical-access-pass"),
 
   // ===== GLASSLINE DISTRICT =====
   contract("job-glassline-badge-clone", "Badge Clone", "glasslineDistrict", 100, "hacking", "Corporate Espionage", ["job", "corporate", "hacking"], { credits: 360, encryptedData: 10 }),
@@ -286,7 +286,7 @@ function makeExpandedJobs(): JobContract[] {
 
   // ===== REDLINE BLOCKS =====
   contract("job-redline-board-runner", "Board Runner", "redlineBlocks", 120, "combat", "Bounty", ["job", "bounty", "combat"], { credits: 190, reputation: 7 }),
-  contract("job-redline-arena-fix", "Arena Fix", "redlineBlocks", 130, "streetcraft", "Protection", ["job", "combat", "street"], { credits: 360, reputation: 10, cyberwareParts: 4 }, "servo-knuckles"),
+  contract("job-redline-arena-fix", "Arena Fix", "redlineBlocks", 130, "combat", "Protection", ["job", "combat", "street"], { credits: 360, reputation: 10, cyberwareParts: 4 }, "servo-knuckles"),
   contract("job-redline-blood-price", "Blood Price", "redlineBlocks", 140, "combat", "Bounty", ["job", "bounty", "elite"], { credits: 980, reputation: 24, cyberwareParts: 12 }, "boss-data-key"),
   contract("job-redline-crew-break", "Crew Break", "redlineBlocks", 140, "combat", "Sabotage", ["job", "bounty", "gang"], { credits: 620, reputation: 16 }, "faction-authorization"),
 
@@ -401,11 +401,7 @@ function skillName(skill: SkillId) {
     hacking: "Hacking",
     cyberware: "Cyberware Engineering",
     combat: "Street Combat",
-    vehicleTuning: "Vehicle Tuning",
-    blackMarket: "Black Market",
-    medical: "Medical Knowledge",
-    streetcraft: "Streetcraft",
-  }[skill];
+    vehicleTuning: "Vehicle Tuning",    medical: "Medical Knowledge",  }[skill];
 }
 
 function districtName(districtId: DistrictId) {

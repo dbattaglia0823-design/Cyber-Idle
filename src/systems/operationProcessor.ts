@@ -79,7 +79,7 @@ export function operationRequirementMet(state: GameState, operation: OperationDe
 
 function requirementMet(state: GameState, requirement: string) {
   const lower = requirement.toLowerCase();
-  const levelMatch = lower.match(/(street combat|combat|hacking|scavenging|cyberware engineering|vehicle tuning|black market|medical knowledge|medical|streetcraft)\s+level\s+(\d+)/);
+  const levelMatch = lower.match(/(street combat|combat|hacking|scavenging|cyberware engineering|engineering|vehicle tuning|medical knowledge|medical)\s+level\s+(\d+)/);
   if (levelMatch) {
     const skill = skillIdFromRequirement(levelMatch[1]);
     return skill ? state.skills[skill].level >= Number(levelMatch[2]) : true;
@@ -95,11 +95,9 @@ function requirementMet(state: GameState, requirement: string) {
 function skillIdFromRequirement(label: string): keyof GameState["skills"] | null {
   if (label.includes("hacking")) return "hacking";
   if (label.includes("scavenging")) return "scavenging";
-  if (label.includes("cyberware")) return "cyberware";
+  if ((label.includes("cyberware") || label.includes("engineering"))) return "cyberware";
   if (label.includes("vehicle")) return "vehicleTuning";
-  if (label.includes("black market")) return "blackMarket";
   if (label.includes("medical")) return "medical";
-  if (label.includes("streetcraft")) return "streetcraft";
   if (label.includes("combat")) return "combat";
   return null;
 }

@@ -1,3 +1,4 @@
+import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/systems/gameState.ts';
@@ -62,14 +63,15 @@ test('offline supply work matches online resources, discoveries, XP and item dro
   const originalRandom=Math.random;
   Math.random=()=>0.5;
   try {
-    const start=startSkillAction(createInitialState(1000),'supply-neonRow',1000);
+    const supplied=createInitialState(1000); supplied.resources.scrap=1e8; supplied.resources.circuitBoards=1e8;
+    const start=startSkillAction(supplied,'supply-neonRow',1000);
     const online=processActionCompletion(start,121000);
     const offline=applyOfflineProgress(start,121000);
     assert.deepEqual(offline.resources,online.resources);
     assert.deepEqual(offline.inventory,online.inventory);
     assert.deepEqual(offline.skills,online.skills);
     assert.deepEqual(offline.actionMastery,online.actionMastery);
-    assert.ok(offline.offlineRecap.itemsGained['redline-wire']>0);
+    assert.ok(offline.offlineRecap.itemsGained['street-coil']>0);
     assert.ok(offline.manualDiscovery.skillActions['supply-neonRow']);
   } finally { Math.random=originalRandom; }
 });
@@ -93,7 +95,8 @@ test('offline crafting and actions stop at real material limits', () => {
 test('offline cap discards excess time and does not leave a live replay backlog', () => {
   const originalRandom=Math.random; Math.random=()=>0.5;
   try {
-    const start=startSkillAction(createInitialState(1000),'supply-neonRow',1000);
+    const supplied=createInitialState(1000); supplied.resources.scrap=1e8; supplied.resources.circuitBoards=1e8;
+    const start=startSkillAction(supplied,'supply-neonRow',1000);
     const finish=1000+OFFLINE_CAP_MS*2;
     const result=applyOfflineProgress(start,finish);
     assert.equal(result.offlineRecap.timeAwayMs,OFFLINE_CAP_MS);
@@ -121,10 +124,11 @@ test('simulation caches pay full inputs, award supplies and reject invalid count
   assert.equal(state.simulationRecap.completions,3);
   assert.equal(state.resources.scrap,0);
   state=createInitialState(1000); state.inventory['basic-sim-cache']=1;
+  state.resources.scrap=1000; state.resources.circuitBoards=1000;
   state=startSkillAction(state,'supply-neonRow',1000); state.manualDiscovery.skillActions['supply-neonRow']=true;
   assert.equal(runBasicSimCache(state,NaN),state);
   state=runBasicSimCache(state,1);
-  assert.ok(state.inventory['redline-wire']>0);
+  assert.ok(state.inventory['street-coil']>0);
 });
 
 for (const operation of operations) test(`${operation.name} is clearable with equipment from its progression stage`, () => {
@@ -133,7 +137,7 @@ for (const operation of operations) test(`${operation.name} is clearable with eq
   const level=Math.min(150,minimum+10);
   state.rpg.level = Math.min(30, 1 + Math.ceil((level - 1) / 5));
   for(const skill of Object.values(state.skills)) skill.level=level;
-  updateWorldUnlocks(state);
+  openStoryThroughSkillBand(state);
   state.resources.reputation=1000; state.operationLeads[operation.id]=true;
   for (const [id,n] of Object.entries(operation.requiredItems??{})) state.inventory[id]=n;
   const available=spec=>spec.requiredLevel<=level && state.districts[spec.districtId].unlocked;

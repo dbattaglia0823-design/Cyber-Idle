@@ -1,3 +1,4 @@
+import { rpgMissions } from "../data/rpgCampaign";
 import { ChevronRight, LockKeyhole } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import mapImage from "../assets/maps/Map.png";
@@ -203,7 +204,7 @@ function requirementHint(state: GameState, requirement: string) {
     const best = Math.max(...Object.values(state.skills).map((skill) => skill.level));
     return `Any main skill ${best}/${target}`;
   }
-  const skillMatch = requirement.match(/^(Scavenging|Hacking|Cyberware Engineering|Street Combat|Vehicle Tuning|Black Market Trading|Medical Knowledge|Streetcraft) level (\d+)/i);
+  const skillMatch = requirement.match(/^(Scavenging|Hacking|Cyberware Engineering|Engineering|Street Combat|Vehicle Tuning|Medical Knowledge) level (\d+)/i);
   if (skillMatch) {
     const [, label, target] = skillMatch;
     const skillId = (Object.entries(skillNames).find(([, name]) => name.toLowerCase() === label.toLowerCase())?.[0] ?? null) as SkillId | null;
@@ -216,9 +217,10 @@ function requirementHint(state: GameState, requirement: string) {
 
 function requirementMet(state: GameState, requirement: string) {
   const normalized = requirement.replace(/^or\s+/i, "");
+  if (normalized.startsWith("Complete main job:")) return rpgMissions.some(m => normalized.endsWith(m.title) && Boolean(state.rpg.completed[m.id]));
   const anySkillMatch = normalized.match(/^Any main skill level (\d+)/i);
   if (anySkillMatch) return hasAnyMainSkillLevel(state, Number(anySkillMatch[1]));
-  const skillMatch = normalized.match(/^(Scavenging|Hacking|Cyberware Engineering|Street Combat|Vehicle Tuning|Black Market Trading|Medical Knowledge|Streetcraft) level (\d+)/i);
+  const skillMatch = normalized.match(/^(Scavenging|Hacking|Cyberware Engineering|Engineering|Street Combat|Vehicle Tuning|Medical Knowledge) level (\d+)/i);
   if (skillMatch) {
     const [, label, target] = skillMatch;
     const skillId = (Object.entries(skillNames).find(([, name]) => name.toLowerCase() === label.toLowerCase())?.[0] ?? null) as SkillId | null;

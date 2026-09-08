@@ -1,3 +1,4 @@
+import { skillActions } from "../data/skills";
 import { grantStarterQuickhacks } from "./quickhackSystem";
 import { spentPerkPoints } from "./perkSystem";
 import { startingResources } from "../data/resources";
@@ -254,6 +255,21 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     offlineRecap: saved.offlineRecap ?? null,
     lastSavedAt: saved.lastSavedAt ?? Date.now(),
   };
+  // Retired skills transfer to active disciplines once; remove old keys so
+  // level totals, unlocks and modifiers cannot continue counting them.
+  const legacy = saved.skills as Record<string, { level: number; xp: number }> | undefined;
+  const skillMap = normalized.skills as Record<string, { level: number; xp: number }>;
+  const pools = normalized.masteryPool as Record<string, { xp: number; spent: number }>;
+  for (const [retired, target] of [["blackMarket", "hacking"], ["streetcraft", "cyberware"]]) {
+    const old = legacy?.[retired];
+    if (old && Number.isFinite(old.level)) {
+      if (old.level > skillMap[target].level || (old.level === skillMap[target].level && old.xp > skillMap[target].xp)) skillMap[target] = { level: Math.min(150, Math.max(1, old.level)), xp: Number.isFinite(old.xp) ? Math.max(0, old.xp) : 0 };
+    }
+    const oldPool = (saved.masteryPool as Record<string, { xp: number; spent: number }> | undefined)?.[retired];
+    if (oldPool) { pools[target].xp += Number.isFinite(oldPool.xp) ? Math.max(0, oldPool.xp) : 0; pools[target].spent += Number.isFinite(oldPool.spent) ? Math.max(0, oldPool.spent) : 0; }
+    delete skillMap[retired]; delete pools[retired];
+  }
+  if (normalized.activeAction && !skillActions.some(action => action.id === normalized.activeAction!.actionId)) normalized.activeAction = null;
   // Transfer legacy character investment once, before recalculating health.
   if (!saved.rpg?.attributeProgressionVersion) {
     const runnerLevel = Math.min(30, Math.max(normalized.rpg.level, 1 + Math.ceil((normalized.skills.combat.level - 1) / 5)));

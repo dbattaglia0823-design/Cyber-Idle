@@ -201,7 +201,7 @@ export function calculateBlackMarketListingValue(state: GameState, itemId: strin
   const config = balanceConfig.blackMarket.strategy[strategy];
   const ghostRank = factionRank(state.factions.ghostMarket.reputation);
   const heatPremium = state.resources.heat >= 75 ? 0.12 : state.resources.heat >= 50 ? 0.06 : 0;
-  const tradingBonus = Math.min(0.18, (state.skills.blackMarket?.level ?? 1) * 0.003);
+  const tradingBonus = Math.min(0.18, Math.max(0, state.resources.reputation / 4) * 0.003);
   const stealthDiscount = Math.max(0, -getActiveModifiers(state).heatGain);
   return Math.round(item.sellValue * config.price * (1 + ghostRank * 0.015 + heatPremium + tradingBonus + stealthDiscount));
 }
@@ -210,7 +210,7 @@ export function calculateBlackMarketRisk(state: GameState, strategy: BlackMarket
   const config = balanceConfig.blackMarket.strategy[strategy];
   const heatScale = state.resources.heat / balanceConfig.blackMarket.heatRiskDivisor;
   const ghostReduction = factionRank(state.factions.ghostMarket.reputation) * 0.008;
-  const tradingReduction = Math.min(0.08, (state.skills.blackMarket?.level ?? 1) * 0.0015);
+  const tradingReduction = Math.min(0.08, Math.max(0, state.resources.reputation / 4) * 0.0015);
   const heatRisk = Math.max(0.01, config.risk * (0.04 + heatScale) - ghostReduction - tradingReduction + getActiveModifiers(state).heatGain);
   const buyerRisk = Math.max(0.02, 0.16 * config.risk - Object.values(state.fixerTrust).reduce((sum, fixer) => sum + fixer.trust, 0) / 2000);
   const saleChance = clampPercent(config.chance + ghostReduction + tradingReduction - calculateHeatEffects(state.resources.heat).blackMarketRisk * 0.35, 0.08, 0.97);
@@ -257,7 +257,7 @@ export function calculateRarityAdjustedShopBasePrice(item: ItemDefinition | unde
 }
 
 export function calculateSellValue(state: GameState, item: ItemDefinition, modifier = 1) {
-  const marketBonus = item.tags.some((tag) => ["illegal", "prototype", "blacknet"].includes(tag)) ? Math.min(0.15, (state.skills.blackMarket?.level ?? 1) * 0.002) : 0;
+  const marketBonus = item.tags.some((tag) => ["illegal", "prototype", "blacknet"].includes(tag)) ? Math.min(0.15, Math.max(0, state.resources.reputation / 4) * 0.002) : 0;
   return Math.max(balanceConfig.economy.sellMinValue, Math.round(item.sellValue * modifier * (1 + marketBonus)));
 }
 

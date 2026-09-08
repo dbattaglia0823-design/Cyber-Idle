@@ -1,3 +1,4 @@
+import { rpgSideGigs } from "../data/rpgCampaign";
 import { bosses } from "../data/bosses";
 import { combatZones } from "../data/combat";
 import { companions } from "../data/companions";
@@ -43,11 +44,7 @@ const skillLabels: Record<SkillId, string> = {
   hacking: "Hacking",
   cyberware: "Cyberware Engineering",
   combat: "Street Combat",
-  vehicleTuning: "Vehicle Tuning",
-  blackMarket: "Black Market",
-  medical: "Medical Knowledge",
-  streetcraft: "Streetcraft",
-};
+  vehicleTuning: "Vehicle Tuning",  medical: "Medical Knowledge",};
 
 export interface DistrictContentCounts {
   districtId: DistrictId;
@@ -412,6 +409,7 @@ function validateStoryTarget(
   },
 ) {
   const label = `${arcId} story objective`;
+  if (type === "completeLocalGig" && !rpgSideGigs.some(gig => gig.id === target)) warnings.push(label + " references unknown local gig " + target);
   if (type === "completeSkillAction") validateKnown(warnings, refs.actionIds, label, target);
   if (type === "killEnemy") validateKnown(warnings, refs.enemyIds, label, target);
   if (type === "completeOperation") validateKnown(warnings, refs.operationIds, label, target);

@@ -1,6 +1,6 @@
 import { bosses } from "../data/bosses";
 import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
-import { materialSupplyActions } from "../data/materialSupply";
+import { districtSupplyItems } from "../data/materialSupply";
 import { missionAvailable } from "./rpgSystem";
 import { combatZones } from "../data/combat";
 import { operations } from "../data/operations";
@@ -50,10 +50,10 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   const sources: ItemSourceEntry[] = [];
   if (itemId === "rpg-weapon-0") sources.push({ type: "Contract reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Main > Missions.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
   allRpgMissions.forEach(mission => {
-    const supply = materialSupplyActions.find(action => action.districtReq === mission.district);
+    const supply = districtSupplyItems(mission.district);
     const weapon = !mission.sideGig && itemId === `rpg-weapon-${Math.min(7, mission.act + 1)}`;
-    if (weapon || supply?.itemRewards?.[itemId] || itemId === "basic-med-injector" || (mission.id === rpgMissions[7].id && itemId === "rpg-afterimage-os")) {
-      sources.push({ type: "Contract reward", name: mission.title, detail: "Guaranteed mission reward. Open Main > Missions to accept this main job or local gig.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+    if (weapon || supply.includes(itemId) || itemId === "basic-med-injector" || (mission.id === rpgMissions[7].id && itemId === "rpg-afterimage-os")) {
+      sources.push({ type: "Contract reward", name: mission.title, detail: mission.sideGig && supply.includes(itemId) ? "Rotating gig supply: one component per clear, cycling through district materials. Open Main > Missions > Local gigs." : "Guaranteed main-job or medical supply reward. Open Main > Missions.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
     }
   });
   if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {

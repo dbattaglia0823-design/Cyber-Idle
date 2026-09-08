@@ -1,3 +1,4 @@
+import { rpgMissions } from "./rpgCampaign";
 import type { District } from "../types";
 
 export const districts: District[] = [
@@ -122,3 +123,9 @@ export const districts: District[] = [
     travelRequirements: ["Any main skill level 140", "Skyline permit or executive vehicle"],
   },
 ];
+
+for (let index = 1; index < rpgMissions.length; index++) {
+  const district = districts.find(entry => entry.id === rpgMissions[index].district)!;
+  district.unlockRequirements = ["Complete main job: " + rpgMissions[index - 1].title];
+  district.travelRequirements = [...district.unlockRequirements];
+}

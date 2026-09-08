@@ -1,17 +1,11 @@
+import { rpgMissions } from "../data/rpgCampaign";
 import { pushCategorizedLog } from "./gameState";
 import { triggerUnlockEventForDistrict } from "./districtProgression";
 import { districtLevelBands, hasAnyMainSkillLevel } from "../data/levelBands";
 import type { DistrictId, GameState } from "../types";
 
 export function updateWorldUnlocks(state: GameState) {
-  syncDistrictUnlock(state, "neonRow", true);
-  syncDistrictUnlock(state, "rustYards", hasAnyMainSkillLevel(state, 20));
-  syncDistrictUnlock(state, "underpassMarket", hasAnyMainSkillLevel(state, 40));
-  syncDistrictUnlock(state, "blacknetQuarter", hasAnyMainSkillLevel(state, 60));
-  syncDistrictUnlock(state, "helixWard", hasAnyMainSkillLevel(state, 80));
-  syncDistrictUnlock(state, "glasslineDistrict", hasAnyMainSkillLevel(state, 100));
-  syncDistrictUnlock(state, "redlineBlocks", hasAnyMainSkillLevel(state, 120));
-  syncDistrictUnlock(state, "skylineCore", hasAnyMainSkillLevel(state, 140));
+  rpgMissions.forEach((mission, index) => syncDistrictUnlock(state, mission.district, index === 0 || Boolean(state.rpg.completed[rpgMissions[index - 1].id])));
 
   if (state.districts.blacknetQuarter?.unlocked) unlockCompanion(state, "nyra-vale");
   if (state.districts.rustYards?.unlocked) unlockCompanion(state, "dex-riven");
@@ -36,10 +30,10 @@ function syncDistrictUnlock(state: GameState, id: DistrictId, condition: boolean
 }
 
 function districtUnlockProgress(state: GameState, id: DistrictId) {
-  const requiredLevel = districtLevelBands[id].entryLevel;
-  if (requiredLevel <= 1) return 100;
-  const highestLevel = Math.max(...Object.values(state.skills).map((skill) => skill.level));
-  return Math.max(0, Math.min(99, Math.floor((highestLevel / requiredLevel) * 100)));
+  const index = rpgMissions.findIndex(mission => mission.district === id);
+  if (index <= 0) return 100;
+  const completed = rpgMissions.slice(0, index).filter(mission => state.rpg.completed[mission.id]).length;
+  return Math.min(99, Math.floor(completed / index * 100));
 }
 
 function unlockCompanion(state: GameState, id: string) {

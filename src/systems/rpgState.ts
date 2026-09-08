@@ -21,6 +21,7 @@ export function normalizeRpgState(state?: RpgState): RpgState {
   next.streetCred = integer(next.streetCred, 0, 1000000);
   for (const key of Object.keys(next.attributes) as Array<keyof RpgState["attributes"]>) next.attributes[key] = integer(next.attributes[key], 3, 20);
   if (next.active) {
+    if (!["standard", "dangerous", "elite"].includes(next.active.gigRisk ?? "")) next.active.gigRisk = "standard";
     const e = next.active, mission = allRpgMissions.find(entry => entry.id === e.missionId);
     if (!mission || !["briefing", "combat", "decision", "failed"].includes(e.phase)) next.active = null;
     else {

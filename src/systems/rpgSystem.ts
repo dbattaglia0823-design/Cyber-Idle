@@ -1,7 +1,7 @@
 import { equippedDeck, grantStarterQuickhacks, installedQuickhacks } from "./quickhackSystem";
 import { allRpgMissions, rpgMissions, rpgPerks, type RpgMission } from "../data/rpgCampaign";
 import { getItem } from "../data/items";
-import { materialSupplyActions } from "../data/materialSupply";
+import { districtSupplyItems } from "../data/materialSupply";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { addItem } from "./collectionSystem";
 import { calculateMaxHP } from "./healthSystem";
@@ -10,7 +10,7 @@ import { updateWorldUnlocks } from "./worldUnlocks";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { getActiveModifiers } from "./modifiers";
 import { scaledStats } from "./itemFormulas";
-import type { AttributeId, MissionApproach, TacticalAction } from "../rpgTypes";
+import type { AttributeId, MissionApproach, TacticalAction, GigRisk } from "../rpgTypes";
 import type { GameState } from "../types";
 
 export const rpgXpNeeded = (level: number) => 100 + level * 60;
@@ -73,14 +73,30 @@ export function approachRequirement(state: GameState, mission: RpgMission, appro
   return { met: true, label: "Always available · +15% weapon damage" };
 }
 
-export function startRpgMission(state: GameState, id: string) {
+export const gigRisks = {
+  standard: { label: "Standard", payout: 1, health: 1, damage: 1, clears: 0 },
+  dangerous: { label: "Dangerous", payout: 1.5, health: 1.35, damage: 1.2, clears: 1 },
+  elite: { label: "Elite", payout: 2, health: 1.75, damage: 1.45, clears: 3 },
+} as const;
+export function gigPayout(mission: RpgMission, risk: GigRisk = "standard") { return Math.round(mission.reward * (mission.sideGig ? gigRisks[risk].payout : 1)); }
+export function heatCleanupCost(state: GameState) { return Math.ceil(Math.max(0, state.resources.heat) * 10); }
+export function clearHeatWithFixer(state: GameState) {
+  const cost = heatCleanupCost(state);
+  if (state.rpg.active || cost <= 0 || state.resources.credits < cost) return state;
+  const next = cloneState(state); next.resources.credits -= cost; next.resources.heat = 0;
+  pushCategorizedLog(next, "World", "Fixer cleanup: Heat cleared for " + cost + " credits.");
+  return next;
+}
+
+export function startRpgMission(state: GameState, id: string, risk: GigRisk = "standard") {
   const mission = missionById(id);
   if (!mission || state.rpg.active || !missionAvailable(state, mission)) return state;
+  if (!Object.prototype.hasOwnProperty.call(gigRisks, risk) || (mission.sideGig && (state.rpg.completed[id]?.clears ?? 0) < gigRisks[risk].clears)) return state;
   const next = cloneState(state);
   clearActiveActivityForSwitch(state, next, mission.title);
   next.selectedDistrict = mission.district;
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
-  next.rpg.active = { missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
+  next.rpg.active = { gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
     turn: 0, ram: maxRam(next), meds: fieldInjectorCount(next), aimed: false, log: ["Fixer clinic check complete. Health restored; field injectors supplied for this mission."] };
   return next;
 }
@@ -157,7 +173,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   } else {
     if (!stun) {
       const charged = e.turn % 3 === 2;
-      const incoming = Math.max(1, Math.round((10 + mission.act * 2 + e.enemyIndex * 2) * (charged ? 1.8 : 1) * (1 - stats.mitigation) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+      const incoming = Math.max(1, Math.round((10 + mission.act * 2 + e.enemyIndex * 2) * (mission.sideGig ? gigRisks[e.gigRisk ?? "standard"].damage : 1) * (charged ? 1.8 : 1) * (1 - stats.mitigation) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
       next.health.currentHp = Math.max(0, next.health.currentHp - incoming);
       next.healthStatistics.totalDamageTaken += incoming;
       e.log.push(`${charged ? "Charged burst" : "Enemy fire"}: ${incoming} damage${cover ? " through cover" : ""}.`);
@@ -173,7 +189,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
 function setupEnemy(state: GameState, mission: RpgMission) {
   const e = state.rpg.active!;
   e.phase = "combat"; e.turn = 0; e.aimed = false;
-  e.enemyMaxHp = Math.round((80 + mission.act * 24 + e.enemyIndex * 18) * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
+  e.enemyMaxHp = Math.round((80 + mission.act * 24 + e.enemyIndex * 18) * (mission.sideGig ? gigRisks[e.gigRisk ?? "standard"].health : 1) * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
   e.enemyHp = e.enemyMaxHp; e.ram = maxRam(state);
   e.log.push(`Contact: ${mission.enemies[e.enemyIndex]}. Read the enemy intent before choosing your move.`);
 }
@@ -187,7 +203,7 @@ export function leaveRpgMission(state: GameState) {
 }
 export function retryRpgMission(state: GameState) {
   if (state.rpg.active?.phase !== "failed") return state;
-  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId);
+  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk);
 }
 
 export function resolveRpgMission(state: GameState, choiceId: string) {
@@ -197,7 +213,9 @@ export function resolveRpgMission(state: GameState, choiceId: string) {
   const repeated = Boolean(next.rpg.completed[mission.id]);
   next.rpg.completed[mission.id] = { outcome: choice.id, approach: e.approach, clears: (next.rpg.completed[mission.id]?.clears ?? 0) + 1 };
   next.rpg.active = null;
-  next.resources.credits += mission.reward + choice.bonusCredits;
+  const payout = gigPayout(mission, e.gigRisk) + choice.bonusCredits;
+  next.resources.credits += payout;
+  if (mission.sideGig) next.resources.heat = Math.max(0, next.resources.heat - 15);
   next.resources.reputation = Math.max(0, next.resources.reputation + choice.reputation);
   next.rpg.streetCred += mission.sideGig ? 2 : 10;
   next.rpg.xp += repeated ? Math.round(mission.xp * 0.5) : mission.xp;
@@ -205,8 +223,9 @@ export function resolveRpgMission(state: GameState, choiceId: string) {
     next.rpg.xp -= rpgXpNeeded(next.rpg.level); next.rpg.level++; next.rpg.attributePoints += 2; next.rpg.perkPoints++;
   }
   if (next.rpg.level >= 30) next.rpg.xp = 0;
-  const supply = materialSupplyActions.find(action => action.districtReq === mission.district);
-  const loot: Record<string, number> = { ...supply?.itemRewards, "basic-med-injector": 2 };
+  const availableSupplies = districtSupplyItems(mission.district);
+  const supplyItems = mission.sideGig ? [availableSupplies[(state.rpg.completed[mission.id]?.clears ?? 0) % availableSupplies.length]] : availableSupplies;
+  const loot: Record<string, number> = { ...Object.fromEntries(supplyItems.map(id => [id, 1])), "basic-med-injector": 2 };
   if (mission.act >= 2 && !state.inventory["quickhack-synapse-burnout"]) loot["quickhack-synapse-burnout"] = 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
   if (!mission.sideGig) {
@@ -226,6 +245,6 @@ export function resolveRpgMission(state: GameState, choiceId: string) {
   updateWorldUnlocks(next);
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
   pushCategorizedLog(next, "World", `${mission.title}: ${choice.response}`);
-  emitRewardPopupGroup(next, { title: `${mission.title} complete`, category: "story", resources: { credits: mission.reward + choice.bonusCredits, reputation: choice.reputation }, items: loot, story: [choice.response] });
+  emitRewardPopupGroup(next, { title: `${mission.title} complete`, category: "story", resources: { credits: payout, reputation: choice.reputation }, items: loot, story: [choice.response] });
   return next;
 }

@@ -1,0 +1,63 @@
+/* iPhone portrait and landscape, including Safari's changing viewport. */
+html { -webkit-text-size-adjust: 100%; scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+body, .app-shell { min-height: 100svh; }
+.app-shell { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
+.app-shell .topbar { padding-top: max(7px, env(safe-area-inset-top)); padding-left: max(var(--content-gutter), env(safe-area-inset-left)); padding-right: max(var(--content-gutter), env(safe-area-inset-right)); }
+.app-main { padding-left: max(var(--content-gutter), env(safe-area-inset-left)); padding-right: max(var(--content-gutter), env(safe-area-inset-right)); }
+@media (max-width: 940px) and (pointer: coarse), (max-width: 600px) {
+  .app-shell { --content-gutter: 8px; --card-min-width: 240px; }
+  .app-shell :is(button, summary, select) { min-height: 44px; }
+  .app-shell :is(input:not([type=checkbox]):not([type=radio]), textarea, select) { font-size: 16px; max-width: 100%; }
+  .app-shell :is(.panel, .action-card, .panel-heading, .card-list, .rpg-hero, .network-hero-copy, .rpg-build, .runner-summary) { min-width: 0; }
+  .app-shell :is(.panel-heading, .action-row, .rpg-hero-actions, .rpg-button-row) { flex-wrap: wrap; }
+  .app-shell :is(.panel-heading h2, .action-card h3, .runner-identity h2, .rpg-section-nav button) { overflow-wrap: anywhere; }
+  .app-shell .bottom-nav { padding: 6px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+  .app-shell .bottom-nav button { min-height: 50px; font-size: 12px; }
+  .app-shell .floating-sim-cache { position: relative; inset: auto; margin: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left)); justify-items: stretch; }
+  .app-shell .sim-cache-button { width: 100%; grid-template-columns: 1fr auto; padding: 10px 16px; min-height: 44px; border-radius: 2px; }
+  .app-shell .sim-cache-menu { width: 100%; }
+  .app-shell .reward-popup-stack { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: calc(72px + env(safe-area-inset-bottom)); max-height: 30svh; }
+  :is(.offline-recap-modal, .source-popover-panel, .info-popover-panel) { width: min(620px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))); max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; }
+  .main-section-content { padding: 14px 10px; }
+  .app-shell .rpg-section-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .rpg-section-nav button { font-size: 13px; min-width: 0; }
+  .app-shell .runner-vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell :is(.runner-stash-layout, .market-layout, .ripperdoc-workspace, .crafting-workbench-layout, .operations-layout) { grid-template-columns: minmax(0, 1fr); }
+  .app-shell :is(.runner-item-inspector, .market-detail-panel, .ripperdoc-detail-panel, .crafting-detail-panel, .operations-sidebar) { position: static; }
+}
+@media (max-width: 600px) {
+  .app-shell .topbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; }
+  .app-shell .topbar-activity-progress { min-width: 0; max-width: none; width: 100%; }
+  .app-shell .topbar-activity-progress h1 { max-width: none; font-size: 14px; }
+  .app-shell .topbar-activity-progress .eyebrow { font-size: 10px; }
+  .app-shell .player-level-alert { order: initial; min-width: 0; max-width: none; width: 100%; min-height: 44px; }
+  .app-shell .player-level-alert :is(span, strong) { font-size: 10px; white-space: normal; }
+  .app-shell .topbar-right { grid-column: 1 / -1; width: 100%; margin: 0; gap: 6px; }
+  .app-shell .starting-path-badge { flex-shrink: 0; }
+  .app-shell .top-stats { flex: 1; min-width: 0; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .app-shell .stat-pill { min-width: 0; padding: 4px 2px; }
+  .app-shell .stat-pill span { font-size: 10px; }
+  .app-shell .stat-pill strong { font-size: 11px; overflow-wrap: anywhere; }
+  .app-shell .panel { padding: 12px; }
+  .app-shell :is(.rpg-attribute-grid, .rpg-perk-grid, .rpg-approaches) { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .rpg-attribute-grid article { padding: 16px; }
+  .app-shell .rpg-tactics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .rpg-tactics button { padding: 12px 8px; min-width: 0; }
+  .app-shell .rpg-tactics small { font-size: 11px; overflow-wrap: anywhere; }
+  .app-shell .rpg-kit { flex-wrap: wrap; padding: 16px; }
+  .app-shell .rpg-kit > div { min-width: 0; flex-basis: 75%; }
+  .app-shell .rpg-kit .rpg-primary { width: 100%; }
+  .app-shell .runner-identity img { flex-shrink: 0; width: 48px; height: 60px; }
+  .app-shell .runner-identity h2 { font-size: 20px; }
+  .app-shell .runner-equipment .slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .runner-equipment .slot-card { padding: 10px; min-width: 0; }
+  .app-shell .runner-workspace > .character-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .runner-workspace > .character-tabs button { min-width: 0; white-space: normal; }
+}
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .app-shell .topbar { position: relative; flex-wrap: wrap; }
+  .app-shell .rpg-hero { min-height: 0; padding: 20px; }
+  .app-shell .rpg-hero h1 { font-size: 36px; }
+  .app-shell .bottom-nav button { display: flex; justify-content: center; gap: 10px; min-height: 44px; padding: 4px; }
+  .app-shell .city-image-stage { min-height: 230px; height: 75svh; }
+}

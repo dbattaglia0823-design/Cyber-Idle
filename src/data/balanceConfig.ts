@@ -137,9 +137,5 @@ export const skillBalanceTags: Partial<Record<SkillId, string[]>> = {
   hacking: ["trace", "dataTheft", "blacknet"],
   scavenging: ["salvage", "rareDrops"],
   cyberware: ["crafting", "neuralInstability"],
-  vehicleTuning: ["vehicle", "smuggling"],
-  blackMarket: ["pricing", "risk"],
-  medical: ["recovery", "ripperdoc"],
-  streetcraft: ["standing", "heat"],
-  combat: ["damage", "survival"],
+  vehicleTuning: ["vehicle", "smuggling"],  medical: ["recovery", "ripperdoc"],  combat: ["damage", "survival"],
 };

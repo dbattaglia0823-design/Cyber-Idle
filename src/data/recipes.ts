@@ -69,7 +69,7 @@ export const recipes: CraftingRecipe[] = [
       16 + weapon.tier * 14 + weapon.requiredLevel * 2,
       undefined,
       weapon.districtId,
-      "streetcraft",
+      "cyberware",
     ),
   ),
   ...armorSpecs.map((armor) =>
@@ -85,7 +85,7 @@ export const recipes: CraftingRecipe[] = [
       14 + armor.tier * 13 + armor.requiredLevel * 2,
       undefined,
       armor.districtId,
-      "streetcraft",
+      "cyberware",
     ),
   ),
   ...cyberwareSpecs.map((implant) =>
@@ -141,7 +141,7 @@ function sortRecipes(a: CraftingRecipe, b: CraftingRecipe) {
   return a.requiredLevel - b.requiredLevel || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
 }
 
-function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = category === "Weapons" || category === "Armor" || category === "Attachments" || category === "Weapon Mods" || category === "Upgrade Parts" ? "streetcraft" : category === "Consumables" ? "medical" : "cyberware"): CraftingRecipe {
+function recipe(id: string, name: string, category: CraftingRecipe["category"], requiredLevel: number, inputCosts: Record<string, number>, outputItemId: string, outputQuantity: number, durationMs: number, xpReward: number, requiredBlueprint?: string, requiredDistrict?: CraftingRecipe["requiredDistrict"], requiredSkill: CraftingRecipe["requiredSkill"] = category === "Weapons" || category === "Armor" || category === "Attachments" || category === "Weapon Mods" || category === "Upgrade Parts" ? "cyberware" : category === "Consumables" ? "medical" : "cyberware"): CraftingRecipe {
   return {
     id,
     name,

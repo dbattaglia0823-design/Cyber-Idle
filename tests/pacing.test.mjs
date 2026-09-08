@@ -1,3 +1,4 @@
+import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/systems/gameState.ts';
@@ -23,7 +24,7 @@ for (const skill of skillOrder.filter(id => id !== 'combat')) test(`${skill} has
   let lastRate = 0;
   for (let level = 1; level < 150; level++) {
     state.skills[skill].level = level;
-    updateWorldUnlocks(state);
+    openStoryThroughSkillBand(state);
     const available = skillActions.filter(action => action.skillId === skill && canStartSkillAction(state, action));
     assert.ok(available.length, `${skill} level ${level} has no training`);
     const rate = Math.max(...available.map(action => action.xpReward / (action.durationMs / 60000)));
@@ -37,7 +38,7 @@ test('all eight districts provide combat at their entry level with proper access
   for (const [district, band] of Object.entries(districtLevelBands)) {
     const state = createInitialState();
     state.skills.combat.level = band.entryLevel;
-    updateWorldUnlocks(state);
+    openStoryThroughSkillBand(state);
     const enemies = districtCombatZones(district).flatMap(zone => zone.enemies);
     assert.ok(enemies.length >= 5, district);
     assert.ok(enemies.some(enemy => canFightEnemy(state, enemy)), `${district} entry encounter`);

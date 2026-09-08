@@ -1,3 +1,4 @@
+import { rpgMissions } from "./data/rpgCampaign";
 import { QuickhackPanel } from "./components/QuickhackPanel";
 import { NetworkHero } from "./components/NetworkHero";
 import { NetworkHeader } from "./components/NetworkHeader";
@@ -1024,11 +1025,11 @@ export function DistrictHub({
         <>
           <article className="panel">
             <p className="eyebrow">Resource plan</p>
-            <h3>{materialSupplyActions.find(action => action.districtReq === districtId)?.name}</h3>
-            <p className="muted">Gather guaranteed local components in Scavenging. Use the crafting bench to make parts, medicine, armor and weapons; click an ingredient to see where it comes from.</p>
-            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run and Strip Street Electronics. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
-            <p className="fine">Main missions unlock districts directly. Training also opens districts at your highest skill level: 20, 40, 60, 80, 100, 120 and 140. Reach level 150 and finish the eight campaign operations shown in Main / Progress.</p>
-            <button className="secondary-button" onClick={() => setCategory(skillCategoryFor("scavenging"))}>Find crafting supplies</button>
+            <h3>Focused component routes</h3>
+            <p className="muted">Gather raw salvage in Scavenging; process components in Engineering, Hacking, Medical and Vehicle Tuning. Use the crafting bench to make parts, medicine, armor and weapons; click an ingredient to see where it comes from.</p>
+            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run for Scrap. Recover Discarded Circuit Boards supplies boards, and Public Terminal Breach supplies data. Strip Street Electronics in Engineering consumes Scrap and Circuit Boards. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
+            <p className="fine">Main jobs unlock the next district. Replay local gigs for credits and Heat relief. Train Combat for tougher fights and operations, and Engineering to craft equipment.</p>
+            <div className="rpg-button-row">{[...new Set(materialSupplyActions.filter(action => action.districtReq === districtId).map(action => action.skillId))].map(skill => <button className="secondary-button" key={skill} onClick={() => setCategory(skillCategoryFor(skill))}>{skillNames[skill]} supplies</button>)}</div>
           </article>
           <DistrictIntelPanel state={state} districtId={districtId} />
           <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
@@ -1067,7 +1068,7 @@ export function DistrictHub({
 
 const districtSkillIcons: Record<SkillId, typeof Activity> = {
   scavenging: Backpack, hacking: Cpu, cyberware: Shield, vehicleTuning: Wrench,
-  blackMarket: Store, medical: HeartPulse, streetcraft: UserRound, combat: Sword,
+  medical: HeartPulse, combat: Sword,
 };
 
 function skillCategoryFor(skillId: SkillId): DistrictHubCategory {
@@ -2642,7 +2643,7 @@ function CompactRequirementList({ state, districtId, requirements }: { state: Ga
 }
 
 function requirementHint(state: GameState, requirement: string) {
-  const skillMatch = requirement.match(/^(Scavenging|Hacking|Cyberware Engineering|Street Combat|Vehicle Tuning|Black Market Trading|Medical Knowledge|Streetcraft) level (\d+)/i);
+  const skillMatch = requirement.match(/^(Scavenging|Hacking|Cyberware Engineering|Engineering|Street Combat|Vehicle Tuning|Medical Knowledge) level (\d+)/i);
   if (skillMatch) {
     const [, label, target] = skillMatch;
     const skillId = (Object.entries(skillNames).find(([, name]) => name.toLowerCase() === label.toLowerCase())?.[0] ?? null) as SkillId | null;
@@ -3652,19 +3653,18 @@ function textRequirementDetails(state: GameState, requirements: string[]) {
 
 function textRequirementMet(state: GameState, requirement: string) {
   const lower = requirement.toLowerCase();
+  if (lower.startsWith("complete main job:")) return rpgMissions.some(m => lower.endsWith(m.title.toLowerCase()) && Boolean(state.rpg.completed[m.id]));
   const anySkillMatch = lower.match(/any main skill\s+level\s+(\d+)/);
   if (anySkillMatch) return hasAnyMainSkillLevel(state, Number(anySkillMatch[1]));
-  const skillMatch = lower.match(/(scavenging|hacking|cyberware engineering|cyberware|street combat|combat|vehicle tuning|black market trading|black market|medical knowledge|medical|streetcraft)\s+level\s+(\d+)/);
+  const skillMatch = lower.match(/(scavenging|hacking|cyberware engineering|engineering|cyberware|street combat|combat|vehicle tuning|medical knowledge|medical)\s+level\s+(\d+)/);
   if (skillMatch) {
     const label = skillMatch[1];
     const skillId: SkillId | null =
       label.includes("scavenging") ? "scavenging" :
       label.includes("hacking") ? "hacking" :
-      label.includes("cyberware") ? "cyberware" :
+      (label.includes("cyberware") || label.includes("engineering")) ? "cyberware" :
       label.includes("vehicle") ? "vehicleTuning" :
-      label.includes("black market") ? "blackMarket" :
       label.includes("medical") ? "medical" :
-      label.includes("streetcraft") ? "streetcraft" :
       label.includes("combat") ? "combat" : null;
     return skillId ? state.skills[skillId].level >= Number(skillMatch[2]) : true;
   }

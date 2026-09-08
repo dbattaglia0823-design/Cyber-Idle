@@ -1,3 +1,4 @@
+import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
@@ -46,10 +47,10 @@ test('progression dashboard renders useful guidance at every district tier', () 
   for (const level of [1, 20, 40, 60, 80, 100, 120, 140, 150]) {
     const state = createInitialState();
     for (const skill of Object.values(state.skills)) skill.level = level;
-    updateWorldUnlocks(state);
+    openStoryThroughSkillBand(state);
     const html = renderToStaticMarkup(createElement(ProgressionGuide, { state, onStartSkill() {}, onCraft() {}, onOpenDistrict() {} }));
     assert.match(html, /Guaranteed/); assert.match(html, /aria-label="District progression"/);
-    assert.match(html, /0\/8/); assert.doesNotMatch(html, /NaN|undefined|Infinity/);
+    assert.ok(html.includes(Object.keys(state.rpg.completed).length + "/8")); assert.doesNotMatch(html, /NaN|undefined|Infinity/);
     assert.equal((html.match(/runner-route-node/g) ?? []).length, 8);
   }
 });
