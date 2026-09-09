@@ -1,3 +1,4 @@
+import { rpgMissions } from "../data/rpgCampaign";
 import { housingOptions } from "../data/housing";
 import { companions } from "../data/companions";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -7,7 +8,11 @@ import type { GameState } from "../types";
 export function canBuyHousing(state: GameState, housingId: string) {
   const housing = housingOptions.find((option) => option.id === housingId);
   if (!housing || state.ownedHousing[housingId]) return false;
-  return state.resources.credits >= housing.cost && state.districts[housing.districtId]?.unlocked;
+  const missionRequirementsMet = housing.unlockRequirements.filter(requirement => requirement.startsWith("Complete ")).every(requirement => {
+    const mission = rpgMissions.find(entry => requirement === `Complete ${entry.title}`);
+    return Boolean(mission && state.rpg.completed[mission.id]);
+  });
+  return missionRequirementsMet && state.resources.credits >= housing.cost && state.districts[housing.districtId]?.unlocked;
 }
 
 export function buyHousing(state: GameState, housingId: string) {

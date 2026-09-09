@@ -1,3 +1,6 @@
+import { allRpgMissions } from '../src/data/rpgCampaign.ts';
+import { missionRewardPools, missionItemRewards } from '../src/data/missionRewards.ts';
+import { districtSupplyItems } from '../src/data/materialSupply.ts';
 import { materialStage } from "../src/data/materialSupply.ts";
 import { trainingXpPerSecond } from "../src/data/progressionPacing.ts";
 import { getContentValidationReport } from '../src/systems/contentValidation.ts';
@@ -26,15 +29,9 @@ for (const e of combatZones.flatMap(z => z.enemies)) {
   for (const d of e.drops) add(d.id, Math.max(e.requiredCombatLevel ?? 1, level(e.preferredDistrict)), e.name);
   for (const d of percentDropTables[e.id] ?? []) add(d.itemId, Math.max(e.requiredCombatLevel ?? 1, level(e.preferredDistrict)), e.name);
 }
-for (const o of operations) {
-  const at = Math.max(level(o.districtId), ...o.unlockRequirements.map(r => Number(r.match(/level (\d+)/i)?.[1] ?? 1)));
-  for (const d of [...o.rareDrops, ...(bosses.find(b => b.id === o.bossId)?.drops ?? [])]) add(d.id, at, o.name);
-  for (const rewards of [o.completionRewards, o.repeatClearRewards, o.firstClearRewards]) for (const [id,n] of Object.entries(rewards)) if (n > 0) add(id, at, o.name);
-}
-for (const j of jobs) {
-  const at = Math.max(level(j.districtId), ...j.requirements.map(r => Number(r.match(/level (\d+)/i)?.[1] ?? 1)));
-  if (j.rareReward) add(j.rareReward, at, j.name);
-  for (const [id,n] of Object.entries(j.rewards)) if (n > 0) add(id, at, j.name);
+for (const mission of allRpgMissions) {
+  const ids = mission.sideGig ? [...missionRewardPools[mission.district], ...districtSupplyItems(mission.district), ...Object.keys(missionItemRewards(mission))] : Object.keys(missionItemRewards(mission));
+  for (const id of ids) add(id, level(mission.district), mission.title);
 }
 for (let pass = 0; pass < recipes.length; pass++) {
   let changed = false;

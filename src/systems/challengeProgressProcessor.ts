@@ -1,3 +1,4 @@
+import { rpgSideGigs } from "../data/rpgCampaign";
 import { challengeContracts, type ChallengeObjective } from "../data/challengeContracts";
 import type { GameState, SkillId } from "../types";
 
@@ -23,6 +24,8 @@ export function syncChallengeProgress(state: GameState) {
 
 export function challengeObjectiveProgress(state: GameState, objective: ChallengeObjective) {
   switch (objective.type) {
+    case "localGigClears":
+      return { current: state.rpg.completed[objective.missionId]?.clears ?? 0, target: objective.count };
     case "operationClears":
       return { current: state.operationLogs[objective.operationId]?.clears ?? 0, target: objective.count };
     case "enemyKills":
@@ -44,6 +47,7 @@ export function challengeObjectiveProgress(state: GameState, objective: Challeng
 
 export function challengeObjectiveText(objective: ChallengeObjective) {
   switch (objective.type) {
+    case "localGigClears": return `Complete ${rpgSideGigs.find(gig => gig.id === objective.missionId)?.title ?? "local gig"} ${objective.count}x`;
     case "operationClears": return `Clear ${objective.operationId} ${objective.count}x`;
     case "enemyKills": return `Kill ${objective.enemyId} ${objective.count}x`;
     case "bossKills": return `Defeat ${objective.bossId} ${objective.count}x`;

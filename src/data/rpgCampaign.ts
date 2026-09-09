@@ -8,19 +8,7 @@ export const attributeDefinitions: Array<{ id: AttributeId; name: string; descri
   { id: "technical", name: "Technical", description: "Better field medicine and damage reduction. Improve your crafting efficiency.", bonusDescription: "+1% armor, 1% lower crafting costs and 1% lower upgrade credit costs per point above 3. Each point unlocks another upgrade level.", bonuses: { combatDefense: 0.01, craftingCostReduction: 0.01, upgradeCostReduction: 0.01 } },
   { id: "cool", name: "Cool", description: "Stronger opening attacks and cover. Open silent infiltration routes.", bonusDescription: "+0.25% damage reduction and 1% lower heat gain per point above 3.", bonuses: { damageReduction: 0.0025, heatGain: -0.01 } },
 ];
-export const rpgPerks: Array<{ id: string; name: string; attribute: AttributeId; requirement: number; description: string; modifiers?: Partial<ActiveModifiers> }> = [
-  { id: "adrenaline", name: "Adrenaline", attribute: "body", requirement: 5, description: "+30% weapon damage while below half health. Also +3% weapon damage in all combat.", modifiers: { combatDamage: 0.03 } },
-  { id: "second-wind", name: "Second Wind", attribute: "body", requirement: 9, description: "Recover 20% health after each encounter. Also +5% max HP.", modifiers: { combatMaxHp: 0.05 } },
-  { id: "deadeye", name: "Deadeye", attribute: "reflexes", requirement: 5, description: "Aimed attacks deal another 40% damage. Also +3% weapon damage in all combat.", modifiers: { combatDamage: 0.03 } },
-  { id: "finisher", name: "Finisher", attribute: "reflexes", requirement: 9, description: "Weapon attacks execute enemies below 25% health. Also +3% attack speed in idle combat.", modifiers: { combatAttackSpeed: 0.03 } },
-  { id: "ram-recycler", name: "RAM Recycler", attribute: "intelligence", requirement: 5, description: "Regenerate 2 RAM per turn instead of 1. Also +5% hacking XP.", modifiers: { skillXp: { hacking: 0.05 } } },
-  { id: "synapse", name: "Synapse Burn", attribute: "intelligence", requirement: 9, description: "+40% quickhack damage. Also +2% job success.", modifiers: { jobSuccessChance: 0.02 } },
-  { id: "field-medic", name: "Field Medic", attribute: "technical", requirement: 5, description: "One extra field injector per mission. Also +10% healing received.", modifiers: { healingReceived: 0.1 } },
-  { id: "reactive-armor", name: "Reactive Armor", attribute: "technical", requirement: 9, description: "Take 20% less damage during missions. Also +5% armor.", modifiers: { combatDefense: 0.05 } },
-  { id: "ambush", name: "Ambush", attribute: "cool", requirement: 5, description: "+60% damage on the first turn of each encounter. Also 5% lower heat gain.", modifiers: { heatGain: -0.05 } },
-  { id: "vanishing-point", name: "Vanishing Point", attribute: "cool", requirement: 9, description: "Taking cover also primes an aimed shot. Also +3% damage reduction in all combat.", modifiers: { damageReduction: 0.03 } },
-  { id: "tinkerer", name: "Tinkerer", attribute: "technical", requirement: 5, description: "Unlock two extra equipment upgrade levels and reduce upgrade credit costs by 10%.", modifiers: { upgradeCostReduction: 0.1 } },
-];
+export { rpgPerks } from "./rpgPerks";
 
 export interface RpgMission {
   id: string; title: string; district: DistrictId; fixer: string; act: number; sideGig?: boolean;
@@ -91,7 +79,7 @@ const decisionLabels = [
 ];
 
 export const rpgMissions: RpgMission[] = cases.map(entry => ({
-  ...entry, reward: 350 + entry.act * 250, xp: 350 + entry.act * 160,
+  ...entry, reward: 1500 + entry.act * 2500 + (entry.act === 7 ? 30000 : 0), xp: 350 + entry.act * 160,
   choices: entry.act === 7 ? [
     { id: "free", label: "Free the identities", detail: "+20 reputation. Return control to the people inside the network.", response: "For one impossible second, every screen in the city shows a different face. Then the voices go quiet. They finally belong to themselves.", reputation: 20, bonusCredits: 0 },
     { id: "own", label: "Take the throne", detail: "+2,000 credits. Keep the system and become its new operator.", response: "The skyline opens its doors. Your name replaces the old administrator. Far below, the city keeps moving. You can feel every heartbeat.", reputation: -10, bonusCredits: 2000 },

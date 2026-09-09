@@ -2,7 +2,7 @@ import { openStoryThroughSkillBand } from "./story-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/systems/gameState.ts';
-import { campaignOperations } from '../src/data/campaign.ts';
+import { rpgMissions } from '../src/data/rpgCampaign.ts';
 import { legacyCraftingGoals } from '../src/data/endgameSystems.ts';
 import { addItem } from '../src/systems/collectionSystem.ts';
 import { updateWorldUnlocks } from '../src/systems/worldUnlocks.ts';
@@ -13,8 +13,8 @@ import { chooseStoryChoice, updateStoryProgress } from '../src/systems/storySyst
 import { storyArcs } from '../src/data/storyArcs.ts';
 import { streetLegendXpForRank } from '../src/data/streetLegendData.ts';
 
-test('later story chapters unlock in their districts and complete with real operation clears', () => {
-  const chapters = storyArcs.filter(arc => arc.steps.every(step => step.objective.type === 'clearOperation'));
+test('later story chapters unlock in their districts and complete with main-job clears', () => {
+  const chapters = storyArcs.filter(arc => arc.steps.every(step => step.objective.type === 'completeMainMission'));
   assert.ok(chapters.length >= 6);
   for (const arc of chapters) {
     let state = updateStoryProgress(createInitialState());
@@ -24,7 +24,7 @@ test('later story chapters unlock in their districts and complete with real oper
     state = updateStoryProgress(state);
     assert.notEqual(state.storyArcs[arc.id].status, 'locked', arc.id);
     for (const step of arc.steps) {
-      state.operationLogs[step.objective.target] = { firstClear: true, clears: 1, bestClearMs: 1000, drops: {} };
+      state.rpg.completed[step.objective.target] = { clears: 1, outcome: "protect", approach: "assault" };
       state = updateStoryProgress(state);
     }
     assert.equal(state.storyArcs[arc.id].status, 'completed', arc.id);
@@ -50,18 +50,17 @@ test('legend pacing is smooth and a capped skill can prestige without an unrelat
   assert.ok(reset.prestigeProtocol.unlocked);
 });
 
-test('campaign finale requires all districts and awards its rewards exactly once', () => {
-  const state=createInitialState();
-  for(const id of campaignOperations.slice(0,-1)) state.operationLogs[id]={firstClear:true,clears:1,bestClearMs:1000,drops:{}};
+test('campaign completion follows all main jobs and never duplicates mission payouts', () => {
+  const state = createInitialState();
+  for (const mission of rpgMissions.slice(0,-1)) state.rpg.completed[mission.id] = { clears: 1, outcome: "protect", approach: "assault" };
   syncCampaignCompletion(state);
-  assert.equal(campaignProgress(state).complete,false);
-  assert.equal(state.inventory['iconic-exec-os'],undefined);
-  state.operationLogs[campaignOperations.at(-1)]={firstClear:true,clears:1,bestClearMs:1000,drops:{}};
-  const before=state.resources.credits;
+  assert.equal(campaignProgress(state).complete, false);
+  state.rpg.completed[rpgMissions.at(-1).id] = { clears: 1, outcome: "free", approach: "assault" };
+  const before = state.resources.credits;
   syncCampaignCompletion(state); syncCampaignCompletion(state);
-  assert.equal(state.resources.credits,before+50000);
-  assert.equal(state.inventory['iconic-exec-os'],1);
+  assert.equal(state.resources.credits, before);
   assert.ok(state.achievements['campaign-complete']);
+  assert.equal(campaignProgress(state).complete, true);
 });
 
 test('legacy assembly enforces materials and progression and creates usable rewards', () => {
@@ -114,13 +113,13 @@ test('collection rewards require real discovery, grant bonuses, and cannot be re
   assert.ok(getActiveModifiers(state).skillRewards>=0.02);
 });
 
-test('high-threat modes honor their distinct mastery thresholds', () => {
+test('retired high-threat operations remain unavailable at every mastery level', () => {
   const state=createInitialState(); state.streetLegend.rank=25;
   state.operationLogs['op-junkyard-lockdown']={firstClear:true,clears:1,bestClearMs:1000,drops:{}};
   state.districtMastery.rustYards.level=15;
   assert.equal(highThreatUnlocked(state,'ht-op-junkyard-warpath'),false);
   state.districtMastery.rustYards.level=25;
-  assert.equal(highThreatUnlocked(state,'ht-op-junkyard-warpath'),true);
+  assert.equal(highThreatUnlocked(state,'ht-op-junkyard-warpath'),false);
 });
 
 test('story choices cannot skip locked or future steps', () => {

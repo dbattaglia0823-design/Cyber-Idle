@@ -1,3 +1,5 @@
+import { rpgMissions } from "../data/rpgCampaign";
+import { missionRewardPools } from "../data/missionRewards";
 import { campaignOperations } from "../data/campaign";
 import { highThreatOperations, legacyCraftingGoals, collectionRewardMilestones } from "../data/endgameSystems";
 import { items } from "../data/items";
@@ -19,19 +21,15 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import type { DistrictId, GameState, SkillId } from "../types";
 
 export function campaignProgress(state: GameState) {
-  const cleared = campaignOperations.filter(id => state.operationLogs[id]?.firstClear).length;
-  return { cleared, total: campaignOperations.length, complete: cleared === campaignOperations.length, next: campaignOperations.find(id => !state.operationLogs[id]?.firstClear) };
+  const cleared = rpgMissions.filter(mission => state.rpg.completed[mission.id]).length;
+  return { cleared, total: rpgMissions.length, complete: cleared === rpgMissions.length, next: rpgMissions.find(mission => !state.rpg.completed[mission.id])?.id };
 }
 
 export function syncCampaignCompletion(state: GameState) {
   if (!campaignProgress(state).complete || state.achievements["campaign-complete"]) return;
   state.achievements["campaign-complete"] = true;
   state.storyFlags["city-liberated"] = true;
-  state.resources.credits += 50000;
-  addItem(state, "iconic-exec-os");
-  state.endgameStatistics.iconicCyberwareObtained += 1;
-  pushCategorizedLog(state, "World", "Campaign complete: City of Static. The city is yours. Free play and prestige remain available.");
-  emitRewardPopupGroup(state, { title: "Campaign Complete: City of Static", category: "achievement", resources: { credits: 50000 }, items: { "iconic-exec-os": 1 }, durationMs: 8000 });
+  // Rewards are part of the final mission's single, previewed payout.
 }
 
 const legacyRequirements: Record<string, { skill: SkillId; level: number; district: DistrictId; mastery: number; rank: number; item: string; quantity: number }> = {
@@ -60,21 +58,8 @@ export function assembleLegacy(state: GameState, id: string) {
   return next;
 }
 
-export function highThreatUnlocked(state: GameState, id: string) {
-  const entry = highThreatOperations.find(entry => entry.id === id);
-  const mastery = Number(entry?.unlockRequirements.join(" ").match(/District Mastery (\d+)/)?.[1] ?? 15);
-  return Boolean(entry && state.operationLogs[entry.baseOperationId]?.firstClear && state.streetLegend.rank >= 25 && state.districtMastery[entry.districtId].level >= mastery);
-}
-
-export function startHighThreat(state: GameState, id: string) {
-  if (!highThreatUnlocked(state, id)) return state;
-  const entry = highThreatOperations.find(entry => entry.id === id)!;
-  const next = cloneState(state);
-  next.districtThreat[entry.districtId].level = Math.max(50, next.districtThreat[entry.districtId].level);
-  const started = startOperation(next, entry.baseOperationId);
-  // Starting a locked/downed activity must not increase district pressure.
-  return started === next ? state : started;
-}
+export function highThreatUnlocked(_state: GameState, _id: string) { return false; }
+export function startHighThreat(state: GameState, _id: string) { return state; }
 
 export function prestigeSkill(state: GameState, skill: SkillId) {
   if (!state.prestigeProtocol.unlocked || state.skills[skill].level < 150) return state;
@@ -88,7 +73,7 @@ export function prestigeSkill(state: GameState, skill: SkillId) {
 }
 
   const sourceIds = new Set([
-  ...rpgWeapons.map(item => item.id), rpgIconic.id,
+  ...rpgWeapons.map(item => item.id), rpgIconic.id, ...Object.values(missionRewardPools).flat(),
   ...recipes.map(r => r.outputItemId), ...vendors.flatMap(v => v.inventory.map(i => i.itemId)),
   ...skillActions.flatMap(a => [...Object.keys(a.rewards).filter(id => (a.rewards as Record<string, number>)[id] > 0), ...Object.keys(a.itemRewards ?? {}), ...(a.rareDrops ?? []).map(d => d.id)]),
   ...combatZones.flatMap(z => z.enemies.flatMap(e => e.drops.map(d => d.id))), ...bosses.flatMap(b => b.drops.map(d => d.id)),

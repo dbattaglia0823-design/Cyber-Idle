@@ -8,7 +8,7 @@ export function createRpgState(): RpgState {
 
 export function cloneRpgState(state?: RpgState): RpgState {
   const base = createRpgState();
-  return { ...base, ...state, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 4)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
+  return { ...base, ...state, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
     completed: Object.fromEntries(Object.entries(state?.completed ?? {}).map(([id, value]) => [id, { ...value }])),
     active: state?.active ? { ...state.active, log: [...(state.active.log ?? [])] } : null };
 }
@@ -27,7 +27,9 @@ export function normalizeRpgState(state?: RpgState): RpgState {
     else {
       e.enemyIndex = integer(e.enemyIndex, 0, e.phase === "decision" ? mission.enemies.length : mission.enemies.length - 1);
       e.enemyMaxHp = integer(e.enemyMaxHp, 1, 100000); e.enemyHp = integer(e.enemyHp, 0, e.enemyMaxHp);
-      e.turn = integer(e.turn, 0, 100000); e.ram = integer(e.ram, 0, 30); e.meds = integer(e.meds, 0, 4);
+      e.turn = integer(e.turn, 0, 100000); e.ram = integer(e.ram, 0, 40); e.meds = integer(e.meds, 0, 4);
+      e.burnDamage = integer(e.burnDamage ?? 0, 0, 100000); e.burnTurns = integer(e.burnTurns ?? 0, 0, 4);
+      e.weaken = Number.isFinite(e.weaken) ? Math.max(0, Math.min(.75, e.weaken!)) : 0; e.weakenTurns = integer(e.weakenTurns ?? 0, 0, 3);
       e.log = e.log.filter(line => typeof line === "string").slice(-12);
     }
   }

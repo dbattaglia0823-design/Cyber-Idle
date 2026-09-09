@@ -1,8 +1,12 @@
 export type AttributeId = "body" | "reflexes" | "intelligence" | "technical" | "cool";
 export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
-export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock";
+export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock" | `quickhack:${string}`;
 export type GigRisk = "standard" | "dangerous" | "elite";
 export interface RpgEncounter {
+  burnDamage?: number;
+  burnTurns?: number;
+  weaken?: number;
+  weakenTurns?: number;
   gigRisk?: GigRisk;
   missionId: string;
   phase: "briefing" | "combat" | "decision" | "failed";

@@ -17,7 +17,7 @@ export const vehicles: VehicleDefinition[] = [
 
   // ===== GLASSLINE DISTRICT =====
   vehicle("glassline-executive-car", "Glassline Executive Car", "Prototype", "glasslineDistrict", ["Glassline District unlocked"], { credits: 7000, navigationChip: 4, fuelCell: 4 }, { speed: 10, armor: 6, storage: 12, stealth: 10, heatReduction: 9, jobEfficiency: 10, smugglingRewardBonus: 3, districtAccessBonus: 8 }, "Corporate rewards."),
-  vehicle("prototype-interceptor", "Prototype Interceptor", "Relic", "glasslineDistrict", ["Corporate Extraction rare reward"], { credits: 15000, prototypeDriveUnit: 2, engineCore: 5 }, { speed: 18, armor: 12, storage: 14, stealth: 8, heatReduction: 10, jobEfficiency: 12, smugglingRewardBonus: 8, districtAccessBonus: 10 }, "Late-game prototype vehicle."),
+  vehicle("prototype-interceptor", "Prototype Interceptor", "Relic", "glasslineDistrict", ["Complete Hostile Takeover"], { credits: 15000, prototypeDriveUnit: 2, engineCore: 5 }, { speed: 18, armor: 12, storage: 14, stealth: 8, heatReduction: 10, jobEfficiency: 12, smugglingRewardBonus: 8, districtAccessBonus: 10 }, "Late-game prototype vehicle."),
 
   // ===== SKYLINE CORE =====
   vehicle("skyline-lux-cruiser", "Skyline Lux Cruiser", "Legendary", "skylineCore", ["Skyline Core unlocked", "Major credit sink"], { credits: 12000, navigationChip: 6, fuelCell: 6, prototypeDriveUnit: 1 }, { speed: 12, armor: 8, storage: 18, stealth: 9, heatReduction: 11, jobEfficiency: 13, smugglingRewardBonus: 6, districtAccessBonus: 10 }, "Skyline luxury broker."),

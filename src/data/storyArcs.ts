@@ -1,3 +1,6 @@
+import { rpgMissions, rpgSideGigs } from "./rpgCampaign";
+import { operations } from "./operations";
+import { jobs } from "./jobs";
 import type { FactionConflictState, StoryArcDefinition } from "../types";
 
 export const storyArcs: StoryArcDefinition[] = [
@@ -274,4 +277,26 @@ function operationChapter(
       nextStepIds: index + 1 < entries.length ? [`${id}-operation-${index + 2}`] : undefined,
     })),
   };
+}
+
+// Keep saved case-file IDs while replacing retired activity objectives.
+for (const arc of storyArcs) {
+  for (const step of arc.steps) {
+    if (step.objective.type === "clearOperation") {
+      const district = operations.find(operation => operation.id === step.objective.target)?.districtId ?? arc.districtId ?? "neonRow";
+      const mission = rpgMissions.find(entry => entry.district === district)!;
+      step.objective = { ...step.objective, type: "completeMainMission", target: mission.id, requiredCount: 1 };
+      step.title = mission.title;
+      step.description = `Complete ${mission.title} in Missions.`;
+    } else if (step.objective.type === "completeFixerContract") {
+      const district = jobs.find(job => job.id === step.objective.target)?.districtId ?? arc.districtId ?? "neonRow";
+      const gig = rpgSideGigs.find(entry => entry.district === district)!;
+      step.objective = { ...step.objective, type: "completeLocalGig", target: gig.id };
+      step.title = "Local gig reputation";
+      step.description = `Complete ${step.objective.requiredCount} ${gig.title} local gigs in Missions.`;
+    }
+    step.unlocks = step.unlocks?.filter(id => !id.startsWith("operation:"));
+    step.worldFlags = step.worldFlags?.filter(id => !id.startsWith("lead-"));
+  }
+  arc.outcomeFlags = arc.outcomeFlags.filter(id => !id.startsWith("lead-"));
 }

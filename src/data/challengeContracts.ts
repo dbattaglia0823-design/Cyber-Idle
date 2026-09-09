@@ -1,8 +1,11 @@
+import { operations } from "./operations";
+import { rpgSideGigs } from "./rpgCampaign";
 import type { DistrictId } from "../types";
 
 export type ChallengeTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "Iconic" | "Apex";
 
 export type ChallengeObjective =
+  | { type: "localGigClears"; missionId: string; count: number }
   | { type: "operationClears"; operationId: string; count: number }
   | { type: "enemyKills"; enemyId: string; count: number }
   | { type: "bossKills"; bossId: string; count: number }
@@ -101,4 +104,17 @@ export const challengeContracts: ChallengeContractDefinition[] = [
 
 function tier(tierName: ChallengeTier, objective: ChallengeObjective, streetLegendXp: number, rewards: string[]): ChallengeTierDefinition {
   return { tier: tierName, objective, streetLegendXp, rewards };
+}
+
+// Preserve claimed challenge IDs; future progress now comes from local gigs.
+for (const challenge of challengeContracts) {
+  for (const entry of challenge.tiers) {
+    if (entry.objective.type !== "operationClears" && entry.objective.type !== "bossKills") continue;
+    const objective = entry.objective;
+    const district = objective.type === "operationClears" ? operations.find(operation => operation.id === objective.operationId)?.districtId : operations.find(operation => operation.bossId === objective.bossId)?.districtId;
+    const gig = rpgSideGigs.find(mission => mission.district === (district ?? challenge.districtId ?? "neonRow"))!;
+    entry.objective = { type: "localGigClears", missionId: gig.id, count: Math.max(1, Math.min(50, objective.count)) };
+  }
+  if (challenge.id === "challenge-backstreet-sweep") { challenge.name = "Lowglow Gig Circuit"; challenge.description = "Replay local gigs and build district mastery."; }
+  if (challenge.id === "challenge-junkyard-warden") { challenge.name = "Rust Yards Regular"; challenge.description = "Build your reputation through repeated Rust Yards gigs."; }
 }

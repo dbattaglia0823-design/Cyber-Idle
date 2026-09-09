@@ -93,7 +93,7 @@ export const legacyCraftingGoals: LegacyCraftingGoal[] = [
 export const iconicCyberwareGoals: IconicCyberwareGoal[] = [
   { id: "iconic-reflex-spine", name: "Reflex Spine: Ghostline", slot: "Skeleton", instabilityLoad: 14, source: "Legacy Reflex Core assembly", requirements: ["Cyberware 80", "Neon Row Mastery 50", "Street Legend Rank 20"] },
   { id: "iconic-null-eye", name: "Null Eye", slot: "Optics", instabilityLoad: 12, source: "Blacknet Processor assembly", requirements: ["Hacking 85", "Blacknet Quarter Mastery 50", "Street Legend Rank 30"] },
-  { id: "iconic-exec-os", name: "Executive Ghost OS", slot: "Operating System", instabilityLoad: 18, source: "Campaign completion", requirements: ["Clear all eight campaign operations", "Cyberware 140 to equip"] },
+  { id: "iconic-exec-os", name: "Executive Ghost OS", slot: "Operating System", instabilityLoad: 18, source: "Campaign completion", requirements: ["Complete Afterimage or replay Skyline local gigs", "Cyberware 140 to equip"] },
 ];
 
 export const collectionRewardMilestones: CollectionRewardMilestone[] = [

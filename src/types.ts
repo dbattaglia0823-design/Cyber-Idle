@@ -145,6 +145,7 @@ export type StoryCategory =
   | "Vehicle Chain"
   | "Neural Instability Arc";
 export type StoryObjectiveType =
+  | "completeMainMission"
   | "completeLocalGig"
   | "completeSkillAction"
   | "reachSkillLevel"

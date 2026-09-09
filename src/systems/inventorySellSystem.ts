@@ -19,16 +19,26 @@ export function canQuickSellInventoryItem(state: GameState, itemId: string) {
   return spareInventoryCopies(state, itemId) > 0;
 }
 
-export function quickSellInventoryItem(state: GameState, itemId: string) {
+export function inventorySellAllButOneCount(state: GameState, itemId: string) {
+  return Math.max(0, Math.floor(state.inventory[itemId] ?? 0) - Math.max(1, equippedCopies(state, itemId)));
+}
+
+export function quickSellAllButOne(state: GameState, itemId: string) {
+  return quickSellInventoryItem(state, itemId, inventorySellAllButOneCount(state, itemId));
+}
+
+export function quickSellInventoryItem(state: GameState, itemId: string, quantity = 1) {
   if (!canQuickSellInventoryItem(state, itemId)) return state;
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > spareInventoryCopies(state, itemId)) return state;
   const item = getItem(itemId)!;
+  const value = inventoryQuickSellValue(state, itemId) * quantity;
   const next = cloneState(state);
-  if (!removeItem(next, itemId, 1)) return state;
-  const value = inventoryQuickSellValue(next, itemId);
+  if (!removeItem(next, itemId, quantity)) return state;
   next.resources.credits += value;
-  pushCategorizedLog(next, "Loot", `Quick sold ${item.name} for ${value} Credits.`);
+  const soldName = quantity === 1 ? item.name : `${quantity} × ${item.name}`;
+  pushCategorizedLog(next, "Loot", `Quick sold ${soldName} for ${value} Credits.`);
   emitRewardPopupGroup(next, {
-    title: `Sold ${item.name}`,
+    title: `Sold ${soldName}`,
     resources: { credits: value },
   });
   return next;

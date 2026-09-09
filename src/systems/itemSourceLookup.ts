@@ -1,3 +1,8 @@
+import { quickhacks } from "../data/quickhacks";
+import { cyberdecks } from "../data/cyberdecks";
+import { districtProgressionOrder } from "../data/districtProgressionOrder";
+import { softwareStageUnlocked } from "./quickhackSystem";
+import { missionItemRewards, missionRewardPools } from "../data/missionRewards";
 import { bosses } from "../data/bosses";
 import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
 import { districtSupplyItems } from "../data/materialSupply";
@@ -29,6 +34,7 @@ export type ItemSourceType =
   | "Boss drop"
   | "Operation reward"
   | "Contract reward"
+  | "Mission reward"
   | "Crafting recipe"
   | "Vendor"
   | "Ripperdoc"
@@ -48,22 +54,19 @@ export interface ItemSourceEntry {
 
 export function getItemSources(itemId: string, state: GameState): ItemSourceEntry[] {
   const sources: ItemSourceEntry[] = [];
-  if (itemId === "rpg-weapon-0") sources.push({ type: "Contract reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Main > Missions.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
+  const software = quickhacks.find(entry => entry.id === itemId) ?? cyberdecks.find(entry => entry.id === itemId);
+  if (software) sources.push({ type: "Vendor", name: "Netrunner exchange", detail: `${software.price} credits in Character > Quickhacks. Programs can also be crafted with credits and Encrypted Data.`, districtId: districtProgressionOrder[software.stage], unlocked: softwareStageUnlocked(state, software.stage) });
+  if (itemId === "rpg-weapon-0") sources.push({ type: "Mission reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Main > Missions.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });
   allRpgMissions.forEach(mission => {
     const supply = districtSupplyItems(mission.district);
-    const weapon = !mission.sideGig && itemId === `rpg-weapon-${Math.min(7, mission.act + 1)}`;
-    if (weapon || supply.includes(itemId) || itemId === "basic-med-injector" || (mission.id === rpgMissions[7].id && itemId === "rpg-afterimage-os")) {
-      sources.push({ type: "Contract reward", name: mission.title, detail: mission.sideGig && supply.includes(itemId) ? "Rotating gig supply: one component per clear, cycling through district materials. Open Main > Missions > Local gigs." : "Guaranteed main-job or medical supply reward. Open Main > Missions.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+    const rewards = missionItemRewards(mission);
+    if (rewards[itemId] || (mission.sideGig && [...supply, ...missionRewardPools[mission.district]].includes(itemId))) {
+      sources.push({ type: "Mission reward", name: mission.title, detail: mission.sideGig ? "Guaranteed local-gig loot rotation. The mission preview shows the next payout; replay to cycle through all district loot." : "Guaranteed main-job reward. Open Missions > Main jobs.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
     }
   });
   if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {
     sources.push({ type: "Crafting recipe", name: itemId === "iconic-reflex-spine" ? "Legacy Reflex Core" : "Blacknet Processor", detail: "Assemble in Main > Progress > Street Legend > Legacy. The bench lists the required skills, mastery and materials.", unlocked: state.streetLegend.rank >= (itemId === "iconic-reflex-spine" ? 20 : 30) });
   }
-  if (itemId === "iconic-exec-os") sources.push({ type: "Operation reward", name: "City of Static campaign", detail: "Guaranteed for clearing all eight campaign operations shown in Main > Progress.", districtId: "skylineCore", unlocked: state.districts.skylineCore.unlocked });
-  if (itemId === "boss-data-key") {
-    operations.forEach(operation => sources.push({ type: "Operation reward", name: operation.name, detail: "Guaranteed 1 Boss Data Key on every successful clear.", districtId: operation.districtId, unlocked: canStartOperation(state, operation) }));
-  }
-
   skillActions.forEach((action) => {
     const quantity = (action.rewards as Record<string, number>)[itemId] ?? action.itemRewards?.[itemId] ?? 0;
     if (quantity > 0) {
@@ -119,53 +122,6 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
     });
   });
 
-  bosses.forEach((boss) => {
-    boss.drops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      const operation = operations.find(entry => entry.bossId === boss.id);
-      sources.push({ type: "Boss drop", name: boss.name, detail: `${formatChance(drop.chance)} from boss drops.`, districtId: operation?.districtId, chance: drop.chance, unlocked: Boolean(operation && canStartOperation(state, operation)), goLabel: `Go to ${boss.name}` });
-    });
-  });
-
-  operations.forEach((operation) => {
-    if ((operation.completionRewards as Record<string, number>)[itemId] || (operation.firstClearRewards as Record<string, number>)[itemId] || (operation.repeatClearRewards as Record<string, number>)[itemId]) {
-      sources.push({
-        type: "Operation reward",
-        name: operation.name,
-        detail: "Operation completion reward.",
-        districtId: operation.districtId,
-        unlocked: canStartOperation(state, operation),
-        requirement: operation.unlockRequirements.join(", "),
-        goLabel: `Go to ${operation.name}`,
-      });
-    }
-    operation.rareDrops.filter((drop) => drop.id === itemId).forEach((drop) => {
-      sources.push({
-        type: "Operation reward",
-        name: operation.name,
-        detail: `Rare operation drop, ${formatChance(drop.chance)}.`,
-        districtId: operation.districtId,
-        chance: drop.chance,
-        unlocked: canStartOperation(state, operation),
-        requirement: operation.unlockRequirements.join(", "),
-        goLabel: `Go to ${operation.name}`,
-      });
-    });
-  });
-
-  jobs.forEach((job) => {
-    if ((job.rewards as Record<string, number>)[itemId] || job.rareReward === itemId) {
-      sources.push({
-        type: "Contract reward",
-        name: job.name,
-        detail: job.rareReward === itemId ? "Rare fixer contract reward." : "Fixer contract reward.",
-        districtId: job.districtId,
-        unlocked: canAttemptJob(state, job),
-        requirement: job.requirements.join(", "),
-        goLabel: `Go to ${job.name}`,
-      });
-    }
-  });
-
   recipes.filter((recipe) => recipe.outputItemId === itemId).forEach((recipe) => {
     sources.push({
       type: "Crafting recipe",
@@ -208,8 +164,8 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
 
   const item = getItem(itemId);
   const hint = resourceSourceHint(itemId) ?? item?.sourceHint;
-  if (hint) sources.push({ type: "Item note", name: resourceName(itemId), detail: hint, unlocked: true });
-  if (!sources.length) sources.push({ type: "Black Market", name: "Black Market", detail: "Watch vendors, contracts, and rare market listings.", unlocked: Boolean(state.districts.blacknetQuarter?.unlocked || state.districts.underpassMarket?.unlocked), goLabel: "Go to Black Market" });
+  if (hint && !sources.some(source => source.type === "Mission reward")) sources.push({ type: "Item note", name: resourceName(itemId), detail: hint, unlocked: true });
+  if (!sources.length) sources.push({ type: "Black Market", name: "Black Market", detail: "Watch vendors, local gigs, and rare market listings.", unlocked: Boolean(state.districts.blacknetQuarter?.unlocked || state.districts.underpassMarket?.unlocked), goLabel: "Go to Black Market" });
   return sources.sort((a, b) => Number(a.type === "Item note") - Number(b.type === "Item note") || Number(b.unlocked) - Number(a.unlocked) || Number(Boolean(a.chance)) - Number(Boolean(b.chance)));
 }
 

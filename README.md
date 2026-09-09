@@ -1,6 +1,6 @@
 # Neon // Afterimage
 
-A single-player cyberpunk RPG with an eight-chapter story, tactical combat, character builds, lifepath approaches, and three endings. The existing city economy, operations, crafting, and idle training remain available through district services.
+A single-player cyberpunk RPG with an eight-chapter story, tactical combat, character builds, lifepath approaches, and three endings. The existing city economy, crafting, and idle training remain available through district services.
 
 ## Run
 
@@ -12,11 +12,11 @@ Use Node.js 24 or newer for the included tests. Install dependencies with `npm i
 
 ## Start the RPG campaign
 
-Choose a lifepath, open **Journal**, and claim Sable's field kit. The kit supplies and equips a starting sidearm and armor if those slots are empty. Open **Attributes & perks** to spend seven starting attribute points and two perk points, then accept **Dead Drop**.
+Choose a lifepath, open **Missions**, and claim Sable's field kit. The kit supplies and equips a starting sidearm and armor if those slots are empty. Open **Character** to spend seven starting attribute points and two perk points, then accept **Dead Drop**.
 
 The five attributes are Body, Reflexes, Intelligence, Technical, and Cool. There are ten functional build perks, a character level cap of 30, and free attribute/perk refunds between missions. Missions and gigs award character XP; each level grants two attribute points and one perk point. The separate idle skill levels are optional training progression.
 
-Main jobs open the next district directly and supply stronger usable weapons. All eight chapters can be completed without idle training, material farming, or purchased healing. Eight local gigs are replayable for XP, credits, and district components; repeat completions award half their initial XP.
+Main jobs open the next district directly and supply stronger usable weapons. All eight chapters can be completed without idle training, material farming, or purchased healing. Eight local gigs are replayable for credits, supplies, and equipment. Each clear grants one rotating district component and up to three items from a guaranteed district loot rotation; the preview lists the next payout. Repeat completions award half their initial XP. Main jobs pay substantially more, grant weapon upgrades, and unlock the next district.
 
 Select assault, stealth, netrunner, or a lifepath entrance. Assault is always available; other entrances check attributes or origin. In combat, each action advances a turn. Read the enemy's intent, aim from cover, interrupt charged attacks, manage RAM, and use field injectors. Equipped weapons, upgrades, armor, cyberware, and RPG attributes affect the fight.
 
@@ -26,16 +26,16 @@ Main-job choices alter payouts and reputation, build community support, and are 
 
 ## Optional city activities
 
-Open **Map** or **District services** for gathering, crafting, trading, companions, and the original operations campaign. Only one activity runs at a time; starting idle work abandons an unfinished field mission, and starting a field mission stops idle work.
+Open **Map** or **District services** for gathering, crafting, trading, companions, and optional skill training. Only one activity runs at a time; starting idle work abandons an unfinished field mission, and starting a field mission stops idle work.
 
 Start with Scavenging for scrap and circuits, Hacking for data and credits, and Cyberware for implant parts. Each district has a guaranteed Scavenging supply route for its crafting components. These routes require the district's entry level in Scavenging; advanced routes also consume scrap. Blueprints and essential vehicle components have crafting recipes, so progression does not depend on rare drops.
 
-Craft and equip a weapon and armor, make medicine, and enable auto-healing before fighting. Operation loadout readiness of 100% meets the gear check, but you must also survive the encounters. Defeat the eight main district operations to complete the campaign and earn an iconic operating system. Progress contains collection rewards, legacy crafting, high-threat operations, and optional level-150 skill prestige.
+Craft and equip a weapon and armor, make medicine, and enable auto-healing before idle combat. Progress contains mission completion, collection rewards, legacy crafting, and optional level-150 skill prestige. Contracts and operations have been retired. Their exclusive loot is available through mission and local-gig rewards. Existing saves retain earned items and historical records, while any running retired activity is canceled without additional costs or rewards.
 
-Any main skill opens districts at levels 20, 40, 60, 80, 100, 120, and 140. Individual activities still require their own skill levels. XP costs rise continuously and activity XP scales with the level and duration of the activity. Pacing checks cover every training level with replenished inputs; gathering, gear preparation, and optional goals add to that time.
+Main jobs open districts in story order; local gigs and skill training never bypass that sequence. Individual activities still require their own skill levels. XP costs rise continuously and activity XP scales with the level and duration of the activity. Pacing checks cover every training level with replenished inputs; gathering, gear preparation, and optional goals add to that time.
 
 The game saves locally every five seconds and when the page is hidden. There are three save slots and save export/import controls. Offline progression observes activity costs, healing, death, and the offline time limit. Existing saves are migrated automatically; districts remain unlocked after prestige.
 
 ## Verification limits
 
-The automated suite plays the full RPG campaign with assault, netrunner, and stealth builds using only earned rewards. It also checks tactical actions, approach gates, decision rewards, retries, save migration, paused offline encounters, original operations and resources, and React screen rendering. Browser interaction and visual layout remain unverified because no browser is connected in this environment.
+The automated suite plays the full RPG campaign with assault, netrunner, and stealth builds using only earned rewards. It also checks tactical actions, approach gates, decision rewards, retries, save migration, paused offline encounters, retired-activity migration and resource availability, and React screen rendering. Browser interaction and visual layout remain unverified because no browser is connected in this environment.

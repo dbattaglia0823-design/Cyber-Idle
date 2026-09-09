@@ -130,27 +130,3 @@ test('simulation caches pay full inputs, award supplies and reject invalid count
   state=runBasicSimCache(state,1);
   assert.ok(state.inventory['street-coil']>0);
 });
-
-for (const operation of operations) test(`${operation.name} is clearable with equipment from its progression stage`, () => {
-  let state=createInitialState(1000);
-  const minimum=Math.max(districtLevelBands[operation.districtId].entryLevel,...operation.unlockRequirements.map(r=>Number(r.match(/level (\d+)/i)?.[1]??1)));
-  const level=Math.min(150,minimum+10);
-  state.rpg.level = Math.min(30, 1 + Math.ceil((level - 1) / 5));
-  for(const skill of Object.values(state.skills)) skill.level=level;
-  openStoryThroughSkillBand(state);
-  state.resources.reputation=1000; state.operationLeads[operation.id]=true;
-  for (const [id,n] of Object.entries(operation.requiredItems??{})) state.inventory[id]=n;
-  const available=spec=>spec.requiredLevel<=level && state.districts[spec.districtId].unlocked;
-  state.equippedGear.weapon=weaponSpecs.filter(available).sort((a,b)=>b.stats.damage-a.stats.damage)[0].id;
-  for(const slot of ['head','chest','hands','legs','boots']) state.equippedGear[slot]=armorSpecs.filter(a=>a.slot===slot&&available(a)).sort((a,b)=>(b.stats.armor??0)-(a.stats.armor??0))[0].id;
-  for(const slot of ['neural','optics','arms','legs','skin','skeleton','operatingSystem','utility']) state.equippedCyberware[slot]=cyberwareSpecs.filter(a=>a.slot===slot&&available(a)).sort((a,b)=>b.requiredLevel-a.requiredLevel)[0].id;
-  state.health.currentHp=calculateMaxHP(state);
-  state.inventory['advanced-med-injector']=100;
-  state.autoHeal={...state.autoHeal,unlocked:true,enabled:true,threshold:60,itemId:'advanced-med-injector'};
-  assert.ok(operationRequirementDetails(state,operation).every(r=>r.met));
-  state=startOperation(state,operation.id,undefined,1000);
-  assert.ok(state.activeOperation);
-  state=processOperation(state,1000+state.activeOperation.durationMs);
-  assert.equal(state.operationRecap.success,true);
-  assert.ok(state.operationLogs[operation.id].firstClear);
-});
