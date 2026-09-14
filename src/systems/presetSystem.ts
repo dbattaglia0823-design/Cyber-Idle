@@ -5,11 +5,11 @@ import type { GameState } from "../types";
 
 export function savePreset(state: GameState, name: string) {
   const next = cloneState(state);
-  next.equipmentPresets[name] = {
+  next.equipmentPresets = { ...next.equipmentPresets, [name]: {
     name,
     gear: { ...state.equippedGear },
     cyberware: { ...state.equippedCyberware },
-  };
+  } };
   pushCategorizedLog(next, "World", `Saved preset: ${name}.`);
   return next;
 }
@@ -17,14 +17,14 @@ export function savePreset(state: GameState, name: string) {
 export function loadPreset(state: GameState, name: string) {
   if (state.rpg.active) return state;
   const preset = state.equipmentPresets[name];
-  if (!preset) return state;
+  if (!Object.prototype.hasOwnProperty.call(state.equipmentPresets, name) || !preset) return state;
   const next = cloneState(state);
-  const allowed = ([, id]: [string, string]) => {
+  const allowed = (cyberware: boolean) => ([slot, id]: [string, string]) => {
     const item = getItem(id);
-    return Boolean(item && (state.inventory[id] ?? 0) > 0 && meetsItemAttributeRequirement(state, item));
+    return Boolean(item && item.slot === slot && (cyberware ? item.type === "Cyberware" : item.type === "Weapon" || item.type === "Armor") && (state.inventory[id] ?? 0) > 0 && meetsItemAttributeRequirement(state, item));
   };
-  next.equippedGear = Object.fromEntries(Object.entries(preset.gear).filter(allowed));
-  next.equippedCyberware = Object.fromEntries(Object.entries(preset.cyberware).filter(allowed));
+  next.equippedGear = Object.fromEntries(Object.entries(preset.gear ?? {}).filter(allowed(false)));
+  next.equippedCyberware = Object.fromEntries(Object.entries(preset.cyberware ?? {}).filter(allowed(true)));
   pushCategorizedLog(next, "World", `Loaded preset: ${name}. Only owned items meeting attribute requirements were equipped.`);
   return next;
 }

@@ -34,7 +34,7 @@ export function quickSellInventoryItem(state: GameState, itemId: string) {
   return next;
 }
 
-function spareInventoryCopies(state: GameState, itemId: string) {
+export function spareInventoryCopies(state: GameState, itemId: string) {
   return (state.inventory[itemId] ?? 0) - equippedCopies(state, itemId);
 }
 

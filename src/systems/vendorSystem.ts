@@ -1,3 +1,4 @@
+import { spareInventoryCopies } from "./inventorySellSystem";
 import { vendors } from "../data/vendors";
 import { getItem } from "../data/items";
 import { resourceNames } from "../data/resources";
@@ -93,7 +94,7 @@ export function buyVendorItem(state: GameState, vendorId: string, itemId: string
 export function canSellVendorItem(state: GameState, vendorId: string, itemId: string) {
   const vendor = vendors.find((entry) => entry.id === vendorId);
   if (!vendor?.canSell || !state.districts[vendor.districtId]?.unlocked) return false;
-  return getOwnedCount(state, itemId) > 0 && sellValue(state, vendor, itemId) > 0;
+  return (isResourceId(itemId) ? getOwnedCount(state, itemId) : spareInventoryCopies(state, itemId)) > 0 && sellValue(state, vendor, itemId) > 0;
 }
 
 export function sellVendorItem(state: GameState, vendorId: string, itemId: string) {
@@ -101,7 +102,7 @@ export function sellVendorItem(state: GameState, vendorId: string, itemId: strin
   const vendor = vendors.find((entry) => entry.id === vendorId)!;
   const next = cloneState(state);
   if (isResourceId(itemId)) next.resources[itemId] = Math.max(0, next.resources[itemId] - 1);
-  else removeItem(next, itemId, 1);
+  else if (!removeItem(next, itemId, 1)) return state;
   const value = sellValue(next, vendor, itemId);
   next.resources.credits += value;
   discoverDistrictVendor(next, vendorId);

@@ -1,3 +1,4 @@
+import { spareInventoryCopies } from "./inventorySellSystem";
 import { getItem } from "../data/items";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -8,7 +9,7 @@ import type { BlackMarketListing, BlackMarketStrategy, GameState } from "../type
 
 export function blackMarketEligibleItems(state: GameState) {
   return Object.entries(state.inventory)
-    .filter(([, quantity]) => quantity > 0)
+    .filter(([id]) => spareInventoryCopies(state, id) > 0)
     .map(([id]) => getItem(id))
     .filter((item) => item && isBlackMarketEligible(item.id))
     .map((item) => item!.id);
@@ -16,7 +17,7 @@ export function blackMarketEligibleItems(state: GameState) {
 
 export function isBlackMarketEligible(itemId: string) {
   const item = getItem(itemId);
-  if (!item) return false;
+  if (!item || item.type === "Quest" || item.type === "Quickhack" || item.sellValue <= 0) return false;
   return item.rarity !== "Common" || item.tags.some((tag) => ["prototype", "illegal", "blacknet", "weapon-mod", "attachment", "blueprint"].includes(tag)) || item.type === "Cyberware" || item.type === "WeaponAttachment" || item.type === "WeaponMod";
 }
 
@@ -25,7 +26,7 @@ export function expectedBlackMarketValue(state: GameState, itemId: string, strat
 }
 
 export function listBlackMarketItem(state: GameState, itemId: string, strategy: BlackMarketStrategy, quantity = 1, now = Date.now()) {
-  if (!isBlackMarketEligible(itemId) || (state.inventory[itemId] ?? 0) < quantity) return state;
+  if (!Number.isSafeInteger(quantity) || quantity <= 0 || !isBlackMarketEligible(itemId) || spareInventoryCopies(state, itemId) < quantity) return state;
   if (state.resources.heat >= 100 && !state.blackMarketAutomation.autoPauseHighHeat) return state;
   const next = cloneState(state);
   if (!removeItem(next, itemId, quantity)) return state;

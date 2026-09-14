@@ -13,7 +13,7 @@ import { canFightEnemy } from '../src/systems/combatProcessing.ts';
 test('XP costs increase smoothly without a wall at former tier boundaries', () => {
   for (let level = 10; level < 149; level++) {
     const ratio = xpForNextLevel(level + 1) / xpForNextLevel(level);
-    assert.ok(ratio > 1 && ratio < 1.21, `level ${level}: ${ratio}`);
+    assert.ok(ratio > 1 && ratio < 1.23, `level ${level}: ${ratio}`);
   }
 });
 
@@ -29,7 +29,7 @@ for (const skill of skillOrder.filter(id => id !== 'combat')) test(`${skill} has
     assert.ok(available.length, `${skill} level ${level} has no training`);
     const rate = Math.max(...available.map(action => action.xpReward / (action.durationMs / 60000)));
     assert.ok(rate >= lastRate, `${skill} regresses at level ${level}`);
-    assert.ok(xpForNextLevel(level) / rate < 12, `${skill} level ${level} exceeds 12 minutes before any mastery bonuses`);
+    assert.ok(xpForNextLevel(level) / rate < 40, `${skill} level ${level} exceeds 40 minutes before any mastery bonuses`);
     lastRate = rate;
   }
 });
@@ -51,3 +51,17 @@ test('all eight districts provide combat at their entry level with proper access
   }
 });
 
+
+
+test('skill XP grows more steeply while preserving the opening cost', () => {
+  const previousCost = level => Math.floor(42 * Math.pow(level, 1.68) * (0.72 + (level - 1) * 0.012));
+  assert.equal(xpForNextLevel(1), previousCost(1));
+  let lastIncrease = 1;
+  for (const level of [10, 25, 50, 100, 149]) {
+    const increase = xpForNextLevel(level) / previousCost(level);
+    assert.ok(increase > lastIncrease, 'relative cost must rise with level ' + level);
+    lastIncrease = increase;
+  }
+  assert.ok(xpForNextLevel(100) / previousCost(100) > 2.7);
+  assert.ok(xpForNextLevel(149) / previousCost(149) < 3.1);
+});

@@ -1,3 +1,4 @@
+import { meetsItemAttributeRequirement } from "./runnerProgression";
 import { equippedDeck, grantStarterQuickhacks, installedQuickhacks } from "./quickhackSystem";
 import { allRpgMissions, rpgMissions, rpgPerks, type RpgMission } from "../data/rpgCampaign";
 import { getItem } from "../data/items";
@@ -61,6 +62,12 @@ export function respecRpg(state: GameState) {
   next.rpg.perkPoints += Object.values(next.rpg.perks).filter(Boolean).length;
   for (const id of Object.keys(next.rpg.attributes) as AttributeId[]) next.rpg.attributes[id] = 3;
   next.rpg.perks = {};
+  const stillEligible = ([, id]: [string, string]) => {
+    const item = getItem(id);
+    return Boolean(item && meetsItemAttributeRequirement(next, item));
+  };
+  next.equippedGear = Object.fromEntries(Object.entries(next.equippedGear).filter(stillEligible));
+  next.equippedCyberware = Object.fromEntries(Object.entries(next.equippedCyberware).filter(stillEligible));
   next.health.currentHp = Math.min(next.health.currentHp, calculateMaxHP(next));
   return next;
 }

@@ -37,7 +37,9 @@ export function loadGame(slot: SaveSlotId = getActiveSaveSlot()) {
 }
 
 export function exportSave(state: GameState) {
-  return btoa(JSON.stringify({ ...state, lastSavedAt: Date.now(), saveVersion: SAVE_VERSION }));
+  // Escape Unicode inside JSON so base64 remains compatible with older exports.
+  const json = JSON.stringify({ ...state, lastSavedAt: Date.now(), saveVersion: SAVE_VERSION });
+  return btoa(json.replace(/[\u007f-\uffff]/g, char => "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0")));
 }
 
 export function importSave(payload: string) {
