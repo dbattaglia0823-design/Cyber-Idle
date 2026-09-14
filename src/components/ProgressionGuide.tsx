@@ -47,7 +47,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
       <div className="runner-guide-intro">
         <span className="runner-guide-kicker"><Radio size={14} /> RUNNER NETWORK / NEXT OBJECTIVE</span>
         <h2>{next ? `Open ${next.name}` : "Own your place in the city"}</h2>
-        <p>{next ? "Complete main jobs to open districts. Replay local gigs for credits and Heat relief; train skills for equipment and tougher operations." : "Complete the eight district operations, assemble iconic gear, and begin your prestige runs."}</p>
+        <p>{next ? "Complete main jobs to open districts. Replay local gigs for credits and Heat relief; train skills for equipment and tougher fights." : "Complete the main missions, replay local gigs for loot, and improve your equipment."}</p>
         <div className="runner-guide-stats"><span><Zap size={14} /> Highest skill <b>{highest}</b></span><span><Crosshair size={14} /> Main jobs <b>{campaign.cleared}/{campaign.total}</b></span></div>
       </div>
       <div className="runner-guide-meter" role="progressbar" aria-label="Main story progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)}>

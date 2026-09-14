@@ -25,7 +25,7 @@ export function canBuyVehicle(state: GameState, vehicleId: string) {
     if (rep) return state.resources.reputation >= Number(rep[1]);
     const skill = requirement.match(/Vehicle Tuning level (\d+)/i);
     if (skill) return state.skills.vehicleTuning.level >= Number(skill[1]);
-    if (requirement === "Corporate Extraction rare reward") return Boolean(state.operationLogs["op-corporate-extraction"]?.firstClear);
+    if (requirement === "Complete Hostile Takeover") return Boolean(state.rpg.completed["hostile-takeover"]);
     return true;
   })) return false;
   if (Object.values(state.ownedVehicles).filter(Boolean).length >= garageSlots(state)) return false;

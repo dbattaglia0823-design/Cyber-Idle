@@ -30,3 +30,27 @@
 .rpg-runner-stats b { display: block; margin-top: 9px; color: var(--rpg-cyan); font: 22px "Segoe UI", sans-serif; }
 .rpg-attribute-grid .rpg-attribute-bonus { color: #d9d59f; border-top: 1px solid #363a48; padding-top: 12px; }
 .rpg-attribute-grid article > small { font: 9px Consolas, monospace; color: var(--rpg-cyan); }
+
+.rpg-loot-preview { padding: 16px 0; border-top: 1px solid #28414b; }
+.rpg-loot-preview .runner-guide-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rpg-loot-preview .runner-guide-tags span { padding: 6px 9px; border: 1px solid #29454d; background: #102128; color: #bfe2db; font-size: 12px; }
+.perk-tree { --tree-accent: #f1b665; margin: 28px 0; border: 1px solid #334452; background: #0c141e; padding: 22px; }
+.perk-tree-reflexes { --tree-accent: #69d9cf; } .perk-tree-intelligence { --tree-accent: #bba1ff; } .perk-tree-technical { --tree-accent: #f2d664; } .perk-tree-cool { --tree-accent: #7eb8ff; }
+.perk-tree-heading { display: flex; justify-content: space-between; gap: 20px; align-items: start; }
+.perk-tree-heading h3 { font-size: 24px; margin: 7px 0; } .perk-tree-heading p { max-width: 650px; color: #a5b8c9; }
+.perk-tree-heading > strong { color: var(--tree-accent); font-size: 32px; text-align: right; } .perk-tree-heading > strong small { display: block; font-size: 10px; white-space: nowrap; }
+.perk-tree-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 20px 0; }
+.perk-tree-tabs button { display: grid; gap: 7px; text-align: left; padding: 12px; border: 1px solid #304152; background: #111e2b; color: #c7d6e6; }
+.perk-tree-tabs button[aria-selected=true] { border-color: var(--tree-accent); box-shadow: inset 0 -3px var(--tree-accent); color: var(--tree-accent); }
+.perk-tree-tabs small { color: #a5b8c9; font-size: 10px; } .perk-tree-summary { border-bottom: 1px solid #304152; padding-bottom: 12px; } .perk-tree-summary h3 { color: var(--tree-accent); font-size: 25px; margin-bottom: 6px; }
+.perk-tree-tier { display: grid; grid-template-columns: 105px 1fr; gap: 20px; position: relative; padding-top: 22px; }
+.perk-tier-marker { border-left: 2px solid #304152; padding-left: 12px; display: flex; flex-direction: column; gap: 5px; } .perk-tier-marker b { font-size: 28px; color: #96a8bb; } .perk-tier-marker span { font-size: 9px; letter-spacing: 1px; color: #a5b8c9; } .perk-tree-tier.unlocked .perk-tier-marker { border-color: var(--tree-accent); } .perk-tree-tier.unlocked .perk-tier-marker b { color: var(--tree-accent); }
+.perk-tree .rpg-perk-grid { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .perk-tree .rpg-perk-grid button { min-width: 0; text-align: left; } .perk-tree .rpg-perk-grid button:disabled { opacity: .8; } .perk-tree .rpg-perk-grid .available { border-color: var(--tree-accent); } .perk-tree .rpg-perk-grid .owned { border-color: #69d9a4; background: #11292b; opacity: 1; } .perk-capstone { grid-column: 1 / -1; }
+.perk-prerequisites { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; } .perk-prerequisites small { padding: 4px 7px; border: 1px solid #465164; } .perk-prerequisites .met { color: #72dbaa; border-color: #39795c; } .perk-prerequisites .unmet { color: #b0bdce; }
+.software-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 14px; margin-top: 18px; }
+.software-card { background: #101b28; border: 1px solid #304152; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; } .software-card h3 { margin: 0; } .software-card p { color: #b7c7d8; margin: 0; line-height: 1.6; } .software-card > button, .software-actions { margin-top: auto; } .software-card.installed { border-color: #69d9cf; } .software-actions { display: grid; gap: 6px; padding-top: 8px; }
+.software-rarity { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #c0c9d2; } .rarity-uncommon { color: #72dbaa; } .rarity-rare { color: #7eb8ff; } .rarity-epic { color: #c6a3ff; } .rarity-legendary { color: #f2d664; } .rarity-prototype { color: #ff9679; }
+.software-specs { display: flex; flex-wrap: wrap; gap: 6px; } .software-specs span { padding: 4px 6px; background: #192b3c; font-size: 11px; color: #b7cede; }
+.software-filter { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 16px; } .software-filter label { display: flex; align-items: center; gap: 8px; } .software-filter select { background: #122333; color: #d6e4f3; padding: 8px; border: 1px solid #3a5168; }
+.program-slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; } .program-slot { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px dashed #405d70; background: #10202b; } .program-slot > small { color: #90a8bb; letter-spacing: 1px; } .program-slot button { margin-top: auto; }
+@media(max-width: 720px) { .perk-tree { padding: 12px; } .perk-tree-tabs { grid-template-columns: repeat(3, 1fr); } .perk-tree-tier { grid-template-columns: 58px 1fr; gap: 10px; } .perk-tree .rpg-perk-grid { grid-template-columns: 1fr; } .perk-tree-heading { flex-wrap: wrap; } .perk-tier-marker { padding-left: 7px; } }

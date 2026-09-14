@@ -1,3 +1,4 @@
+import { cyberdeckItems } from "./cyberdecks";
 import { quickhackItems } from "./quickhacks";
 import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemRarity, WeaponClassId } from "../types";
 import { armorSpecs, type ArmorSpec } from "./armor";
@@ -30,6 +31,7 @@ export const gearSlots: Array<{ id: GearSlot; label: string }> = [
 
 export const items: ItemDefinition[] = [
   ...quickhackItems,
+  ...cyberdeckItems,
   ...endgameItems,
   ...rpgWeapons,
   rpgIconic,

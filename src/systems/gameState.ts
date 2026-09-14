@@ -10,7 +10,7 @@ import { weaponClasses } from "../data/weaponClasses";
 import { factionConflictDefaults, storyArcs } from "../data/storyArcs";
 import type { DistrictId, FactionId, GameState, GameLogEntry, LogCategory, StartingPathId } from "../types";
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 13;
 
 export function createInitialState(now = Date.now()): GameState {
   return {
@@ -23,7 +23,9 @@ export function createInitialState(now = Date.now()): GameState {
       scavenging: { level: 1, xp: 0 },
       hacking: { level: 1, xp: 0 },
       cyberware: { level: 1, xp: 0 },
-      vehicleTuning: { level: 1, xp: 0 },      medical: { level: 1, xp: 0 },      combat: { level: 1, xp: 0 },
+      vehicleTuning: { level: 1, xp: 0 },
+      medical: { level: 1, xp: 0 },
+      combat: { level: 1, xp: 0 },
     },
     actionMastery: {},
     inventory: {},
@@ -106,7 +108,9 @@ export function createInitialState(now = Date.now()): GameState {
       scavenging: { xp: 0, spent: 0 },
       hacking: { xp: 0, spent: 0 },
       cyberware: { xp: 0, spent: 0 },
-      vehicleTuning: { xp: 0, spent: 0 },      medical: { xp: 0, spent: 0 },      combat: { xp: 0, spent: 0 },
+      vehicleTuning: { xp: 0, spent: 0 },
+      medical: { xp: 0, spent: 0 },
+      combat: { xp: 0, spent: 0 },
     },
     claimedTierRewards: {},
     simulationEfficiency: {},

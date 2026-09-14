@@ -1,3 +1,4 @@
+import { rpgMissions, rpgSideGigs } from "./rpgCampaign";
 import { districts } from "./districts";
 import { combatZones } from "./combat";
 import { housingOptions } from "./housing";
@@ -28,8 +29,8 @@ export function calculateDistrictCompletion(state: GameState, districtId: Distri
   const districtUnlocked = Boolean(state.districts[districtId]?.unlocked);
   const combatEnemies = districtCombatEnemyIds(districtId);
   const districtActions = skillActions.filter((action) => action.districtReq === districtId);
-  const districtJobs = jobs.filter((job) => job.districtId === districtId);
-  const districtOperations = operations.filter((operation) => operation.districtId === districtId);
+  const districtJobs = rpgSideGigs.filter((job) => job.district === districtId);
+  const districtOperations = rpgMissions.filter((mission) => mission.district === districtId);
   const districtHousing = housingOptions.filter((housing) => housing.districtId === districtId);
   const districtServices = ripperdocServices.filter((service) => service.districtId === districtId);
   const districtVendors = vendors.filter((vendor) => vendor.districtId === districtId);
@@ -38,12 +39,12 @@ export function calculateDistrictCompletion(state: GameState, districtId: Distri
   const actionProgress = ratio(districtActions.filter((action) => districtUnlocked && state.manualDiscovery.skillActions[action.id]).length, districtActions.length);
   const categories = {
     combat: ratio(combatEnemies.filter((id) => districtUnlocked && (state.enemyLog[id]?.kills ?? 0) > 0).length, combatEnemies.length),
-    jobs: ratio(districtJobs.filter((job) => districtUnlocked && state.manualDiscovery.jobs[job.id]).length, districtJobs.length),
+    jobs: ratio(districtJobs.filter((job) => districtUnlocked && state.rpg.completed[job.id]).length, districtJobs.length),
     collection: ratio(districtUnlocked ? Object.keys(discoveries).filter((key) => key.startsWith("item:")).length : 0, districtVendors.length * 2),
     housing: ratio(districtHousing.filter((housing) => districtUnlocked && state.ownedHousing[housing.id]).length, districtHousing.length),
     factions: ratio((getDistrict(districtId)?.associatedFactions ?? []).filter((id) => districtUnlocked && (state.factions[id]?.reputation ?? 0) > 0).length, getDistrict(districtId)?.associatedFactions.length ?? 0),
     services: ratio(districtServices.filter((service) => districtUnlocked && state.ripperdocUnlocks[service.id]).length, districtServices.length),
-    operations: ratio(districtOperations.filter((operation) => districtUnlocked && state.operationLogs[operation.id]?.firstClear).length, districtOperations.length),
+    operations: ratio(districtOperations.filter((operation) => districtUnlocked && state.rpg.completed[operation.id]).length, districtOperations.length),
     vendors: ratio(districtVendors.filter((vendor) => districtUnlocked && Object.values(state.vendors[vendor.id]?.purchases ?? {}).some((count) => count > 0)).length, districtVendors.length),
   };
   const storyProgress = ratio(districtUnlocked ? districtStory.reduce((sum, arc) => sum + Object.keys(state.storyArcs[arc.id]?.completedSteps ?? {}).length, 0) : 0, districtStory.reduce((sum, arc) => sum + arc.steps.length, 0));

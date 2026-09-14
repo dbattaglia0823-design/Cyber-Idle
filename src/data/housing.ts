@@ -1,3 +1,4 @@
+import { rpgMissions } from "./rpgCampaign";
 import type { ActiveModifiers, HousingOption } from "../types";
 
 export const housingOptions: HousingOption[] = [
@@ -234,4 +235,10 @@ function combineHousingModifiers(...mods: Array<Partial<ActiveModifiers>>): Part
     });
     return total;
   }, {});
+}
+
+// Housing follows the same district mission milestones as the rest of the city.
+for (const housing of housingOptions) {
+  housing.unlockRequirements = housing.unlockRequirements.map(requirement =>
+    /clear|contracts completed/i.test(requirement) ? `Complete ${rpgMissions.find(mission => mission.district === housing.districtId)?.title}` : requirement);
 }

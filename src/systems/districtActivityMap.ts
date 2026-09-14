@@ -65,10 +65,10 @@ export function districtContentMap(state: GameState, districtId: DistrictId): Di
   const localFactions = factions.filter((faction) => faction.districtInfluence.includes(districtId));
   return {
     actions: skillActions.filter((action) => action.districtReq === districtId).map((action) => action.id),
-    contracts: districtJobs.map((job) => job.id),
+    contracts: [],
     combatZones: zoneList.map((zone) => zone.id),
     enemies: zoneList.flatMap((zone) => zone.enemies.map((enemy) => enemy.id)),
-    operations: operations.filter((operation) => operation.districtId === districtId).map((operation) => operation.id),
+    operations: [],
     fixers: districtFixers(districtId).map((fixer) => fixer.id),
     vendors: vendors.filter((vendor) => vendor.districtId === districtId).map((vendor) => vendor.id),
     ripperdocServices: ripperdocServices.filter((service) => service.districtId === districtId).map((service) => service.id),
@@ -101,15 +101,6 @@ export function districtActivitySummaries(state: GameState, districtId: District
       warning: heat >= 75 && content.blacknet.length ? "High trace pressure" : undefined,
     },
     {
-      id: "contracts",
-      label: "Contracts",
-      summary: `${content.contracts.length} contracts from ${content.fixers.length} fixers`,
-      available: unlocked ? content.contracts.length : 0,
-      locked: unlocked ? 0 : content.contracts.length,
-      reward: "Credits, trust, reputation",
-      warning: threat >= 75 ? "Threat hurts success" : undefined,
-    },
-    {
       id: "combat",
       label: "Combat",
       summary: `${content.enemies.length} enemies in ${content.combatZones.length} zones`,
@@ -117,14 +108,6 @@ export function districtActivitySummaries(state: GameState, districtId: District
       locked: unlocked ? 0 : content.enemies.length,
       reward: "Combat XP, drops",
       warning: threat >= 75 ? "High threat rewards and risk" : undefined,
-    },
-    {
-      id: "operations",
-      label: "Operations",
-      summary: `${content.operations.length} boss chains`,
-      available: unlocked ? content.operations.length : 0,
-      locked: unlocked ? 0 : content.operations.length,
-      reward: "First clears, rare drops",
     },
     {
       id: "crafting",

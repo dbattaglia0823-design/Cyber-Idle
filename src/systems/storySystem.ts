@@ -53,6 +53,8 @@ export function storyProgressForArc(state: GameState, arc: StoryArcDefinition) {
 
 export function storyObjectiveProgress(state: GameState, objective: StoryObjective) {
   switch (objective.type) {
+    case "completeMainMission":
+      return state.rpg.completed[objective.target] ? 1 : 0;
     case "completeLocalGig":
       return state.rpg.completed[objective.target]?.clears ?? 0;
     case "completeSkillAction":
