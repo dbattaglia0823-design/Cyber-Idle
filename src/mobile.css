@@ -61,3 +61,159 @@ body, .app-shell { min-height: 100svh; }
   .app-shell .bottom-nav button { display: flex; justify-content: center; gap: 10px; min-height: 44px; padding: 4px; }
   .app-shell .city-image-stage { min-height: 230px; height: 75svh; }
 }
+
+/* Compact phone workspace: reflow content instead of shrinking the viewport. */
+@media (max-width: 600px) {
+  .app-shell { --content-gutter: 6px; font-size: 14px; padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .app-shell :is(button, summary) { line-height: 1.35; }
+  .app-shell :is(h1, h2, h3, p, button, summary, label, small, strong, em) { overflow-wrap: anywhere; }
+  .app-shell :is(button, input, select, textarea) { max-width: 100%; min-width: 0; }
+  .app-shell :is(.panel, .action-card, .slot-card, .software-card, .rpg-mission-content, .network-body, .network-workspace-content, .main-section-content) { padding: 10px; }
+  .app-shell :is(.panel-heading, .action-row) { gap: 8px; }
+  .app-shell .panel-heading { padding-bottom: 8px; margin-bottom: 10px; }
+  .app-shell .panel-heading h2 { font-size: 18px; }
+  .app-shell :is(.card-list, .slot-grid, .software-grid, .runner-stash-layout) { gap: 8px; }
+  .app-shell :is(.primary-button, .secondary-button, .rpg-primary) { padding: 8px 10px; font-size: 13px; }
+  .app-shell .bottom-nav { gap: 4px; padding-top: 3px; padding-bottom: max(3px, env(safe-area-inset-bottom)); }
+  .app-shell .bottom-nav button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 5px; font-size: 13px; }
+  .app-shell .bottom-nav button svg { width: 19px; height: 19px; }
+  .app-shell .topbar { gap: 4px 8px; padding-bottom: 5px; }
+  .app-shell .player-level-alert { padding: 6px; }
+  .app-shell .player-level-alert :is(span, strong) { line-height: 1.35; }
+  .app-shell .topbar-right { gap: 4px; }
+  .app-shell .starting-path-badge { width: 32px; height: 36px; min-height: 36px; }
+  .app-shell .stat-pill { padding: 3px 2px; }
+
+  /* A short shared hero, with progress in a horizontal strip. */
+  .app-shell .rpg-masthead { padding: 7px 10px; letter-spacing: .4px; }
+  .app-shell .rpg-masthead > div { min-width: 0; gap: 6px; }
+  .app-shell .rpg-hero { display: flex; flex-direction: column; align-items: stretch; min-height: 0; padding: 12px; gap: 10px; }
+  .app-shell .network-hero-copy h1 { font-size: clamp(25px, 7vw, 30px); line-height: 1.08; letter-spacing: -.8px; margin: 8px 0; }
+  .app-shell .network-hero-copy h1 br { display: none; }
+  .app-shell .network-hero-copy h1 span { padding-inline: 5px; }
+  .app-shell .rpg-hero-copy { font-size: 13px; line-height: 1.5; margin: 0; }
+  .app-shell .rpg-hero-actions { margin-top: 10px; gap: 8px; }
+  .app-shell .rpg-hero-actions > * { flex: 1 1 140px; justify-content: center; text-align: center; }
+  .app-shell .rpg-hero-location { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; margin: 0; padding: 8px 10px; gap: 5px 10px; }
+  .app-shell .rpg-hero-location > span { font-size: 10px; line-height: 1.4; }
+  .app-shell .rpg-hero-location > strong { grid-column: 2; grid-row: 1 / 4; align-self: center; font-size: 26px; margin: 0; }
+  .app-shell .rpg-hero-location .rpg-bar { grid-column: 1; margin: 0; }
+  .app-shell .rpg-hero-location > p { grid-column: 1; font-size: 10px; line-height: 1.4; margin: 0; }
+  .app-shell .network-header { min-height: 0; padding: 12px; gap: 8px; }
+  .app-shell .network-header h1 { font-size: 26px; margin: 6px 0; }
+  .app-shell .network-description { font-size: 13px; line-height: 1.5; }
+
+  /* Full labels, no sideways tab strip. */
+  .app-shell :is(.rpg-section-nav, .network-tabs, .district-skill-tabs, .runner-workspace > .character-tabs) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 4px; gap: 2px; overflow: visible; }
+  .app-shell :is(.rpg-section-nav, .network-tabs, .district-skill-tabs, .runner-workspace > .character-tabs) button { width: auto; flex: initial; justify-content: center; padding: 7px 4px; gap: 4px; font-size: 12px; white-space: normal; }
+  .app-shell .rpg-section-nav:not(.district-primary-tabs) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .district-primary-tabs button { align-content: center; }
+  .app-shell .district-primary-tabs small { font-size: 10px; white-space: normal; }
+  .app-shell .rpg-section-nav .rpg-services { margin: 0; }
+  .app-shell :is(.district-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row, .endgame-tabs) { display: flex; flex-wrap: wrap; gap: 4px; }
+  .app-shell :is(.district-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row, .endgame-tabs) > button { flex: 1 1 95px; padding: 7px 5px; font-size: 12px; white-space: normal; }
+
+  .app-shell .runner-summary { padding: 10px; gap: 10px; }
+  .app-shell .runner-identity { gap: 8px; }
+  .app-shell .runner-identity img { width: 36px; height: 44px; }
+  .app-shell .runner-identity h2 { font-size: 18px; }
+  .app-shell .runner-vitals { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .app-shell .runner-vitals strong { font-size: 15px; line-height: 1.5; white-space: normal; }
+  .app-shell .runner-equipment .slot-card { min-height: 0; padding: 8px; gap: 5px; }
+  .app-shell .runner-stash .item-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; }
+  .app-shell .runner-search { margin: 10px 0; gap: 5px; }
+  .app-shell .runner-search input { padding: 8px; }
+  .app-shell .inventory-slot { height: auto; min-height: 100px; padding: 8px; }
+  .app-shell .inventory-slot strong { font-size: 13px; line-height: 1.4; }
+  .app-shell .inventory-slot span { font-size: 11px; }
+  .app-shell .equipped-marker { position: static; max-width: 100%; width: fit-content; font-size: 10px !important; line-height: 1.4; }
+  .app-shell :is(.rpg-build, .rpg-manual) { padding: 10px; }
+  .app-shell .rpg-build-heading { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+  .app-shell .rpg-build-heading > div:first-child { flex: 1 1 180px; min-width: 0; }
+  .app-shell .rpg-build-heading h2 { font-size: 20px; margin: 6px 0; }
+  .app-shell .rpg-points { gap: 14px; }
+  .app-shell .rpg-points strong { font-size: 24px; }
+  .app-shell .rpg-xp { margin: 10px 0; }
+  .app-shell .rpg-runner-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+  .app-shell .rpg-runner-stats > span { padding: 8px; font-size: 10px; }
+  .app-shell .rpg-runner-stats b { font-size: 17px; margin-top: 5px; overflow-wrap: anywhere; }
+  .app-shell :is(.rpg-attribute-grid, .rpg-perk-grid, .rpg-approaches) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .app-shell :is(.rpg-attribute-grid article, .rpg-perk-grid button, .rpg-approaches button) { padding: 9px; gap: 7px; min-width: 0; }
+  .app-shell .rpg-attribute-grid strong { font-size: 26px; }
+  .app-shell .rpg-attribute-grid h3 { font-size: 13px; letter-spacing: .2px; }
+  .app-shell :is(.rpg-attribute-grid p, .rpg-perk-grid p, .rpg-approaches small) { font-size: 12px; line-height: 1.5; }
+  .app-shell :is(.rpg-attribute-grid button, .rpg-perk-grid strong, .rpg-approaches strong) { font-size: 12px; }
+  .app-shell :is(.rpg-perk-grid small, .rpg-attribute-grid article > small, .rpg-points small) { font-size: 10px; line-height: 1.4; }
+  .app-shell .rpg-choice-warning { margin: 10px 0 !important; font-size: 12px; line-height: 1.5; }
+  .app-shell .rpg-attribute-grid .rpg-attribute-bonus { padding-top: 7px; }
+  .app-shell .rpg-kit { padding: 10px; gap: 8px; }
+  .app-shell .rpg-kit h3 { font-size: 17px; }
+  .app-shell .rpg-kit p { font-size: 13px; line-height: 1.5; }
+  .app-shell .rpg-mission-heading { padding-bottom: 10px; margin-bottom: 10px; }
+  .app-shell .rpg-mission-heading h2 { font-size: 22px; }
+  .app-shell .rpg-briefing { padding: 10px 0; font-size: 14px; line-height: 1.55; }
+  .app-shell .rpg-objective { padding: 10px; margin: 8px 0; }
+  .app-shell .rpg-reward-strip { gap: 12px; margin: 10px 0; }
+  .app-shell .rpg-start { min-width: 0; width: 100%; }
+  .app-shell .rpg-battle-stage { min-height: 0; gap: 10px; margin: 10px 0; padding: 8px 0; }
+  .app-shell .rpg-battle-stage > div { min-width: 0; }
+  .app-shell .rpg-tactics button { min-height: 56px; padding: 8px; gap: 6px; }
+  .app-shell .rpg-tactics strong { font-size: 12px; }
+  .app-shell .software-grid { margin-top: 10px; }
+  .app-shell .software-card p { font-size: 13px; line-height: 1.5; }
+  .app-shell .program-slot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .app-shell .program-slot { min-width: 0; padding: 8px; gap: 6px; }
+  .app-shell .city-district-list { gap: 5px; padding: 8px; }
+  .app-shell .city-district-list button { min-height: 50px; padding: 7px; }
+  .app-shell .city-district-list strong { font-size: 12px; }
+  .app-shell .city-image-stage { min-height: 240px; height: 34svh; }
+  .app-shell .city-map-drawer { padding: 10px; }
+
+  /* Remove all mobile text truncation used by the desktop cards. */
+  .app-shell :is(.topbar-activity-progress p, .topbar h1, .player-level-alert span, .player-level-alert strong,
+    .operation-route-list span, .compact-active-labels small, .compact-active-main strong,
+    .compact-skill-progress .progress-wrap span, .path-save-slots strong, .resource-wallet-card-heading span,
+    .equipped-marker, .cyberware-slot-panel strong, .cyberware-slot-panel span, .cyberware-slot-panel em,
+    .cyberware-slot-panel b, .inventory-slot strong, .item-index-card em, .crafting-recipe-tile strong,
+    .crafting-recipe-tile em, .district-skill-tabs button em, .challenge-tier span, .reward-popup strong) {
+    min-width: 0; max-width: 100%; white-space: normal; overflow: visible; text-overflow: clip;
+    overflow-wrap: anywhere; -webkit-line-clamp: unset; line-clamp: unset;
+  }
+}
+@media (max-width: 359px) {
+  .app-shell :is(.runner-vitals, .rpg-runner-stats, .district-primary-tabs, .runner-workspace > .character-tabs) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell :is(.rpg-attribute-grid, .rpg-perk-grid, .rpg-approaches) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.mobile-mission-picker { display: none; }
+@media (max-width: 600px) {
+  .app-shell .player-level-alert { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .app-shell .player-level-alert strong { justify-self: start; }
+  .app-shell .rpg-quest-list { display: grid; grid-template-columns: minmax(0, 1fr); overflow: visible; padding: 10px; gap: 8px; }
+  .app-shell .rpg-list-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; gap: 6px; }
+  .app-shell .rpg-quest-list > .rpg-quest { display: none; }
+  .app-shell .mobile-mission-picker { display: grid; min-width: 0; gap: 5px; font-size: 12px; color: var(--muted); }
+  .app-shell .mobile-mission-picker select { width: 100%; padding: 8px; }
+  .app-shell .perk-tree { padding: 9px; }
+  .app-shell .perk-tree-tier { grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 12px; }
+  .app-shell .perk-tier-marker { display: flex; align-items: center; gap: 8px; }
+  .app-shell .perk-tier-marker span { font-size: 10px; }
+  .app-shell .perk-tree .rpg-perk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .app-shell .runner-equipment .slot-card { padding-right: 34px; }
+  .app-shell .cyberware-frame { width: 100%; aspect-ratio: auto; display: grid; gap: 8px; padding: 8px; overflow: visible; }
+  .app-shell .cyberware-background-layer { object-fit: cover; opacity: .16; }
+  .app-shell .cyberware-overlay-layer { position: relative; inset: auto; height: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .app-shell .cyberware-slot-overlay { position: relative; inset: auto !important; width: auto !important; height: auto !important; min-height: 90px; padding: 8px; background: #10131ce8; }
+  .app-shell .cyberware-slot-panel { height: auto; padding-right: 0; gap: 5px; }
+  .app-shell .cyberware-slot-panel .equipment-icon-badge { position: static; justify-self: start; }
+  .app-shell .cyberware-slot-panel strong { font-size: 13px; line-height: 1.4; }
+  .app-shell .cyberware-slot-panel :is(span, em, b) { font-size: 11px; line-height: 1.4; }
+  .app-shell .cyberware-summary-panel { position: relative; inset: auto; transform: none; max-width: 100%; padding: 8px; text-align: left; }
+  .app-shell .cyberware-summary-risk { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .app-shell .cyberware-summary-risk em { flex-basis: 100%; }
+  .app-shell .cyberware-summary-bonuses :is(summary, p) { font-size: 12px; line-height: 1.5; }
+  .app-shell .cyberware-details-drawer { position: relative; inset: auto; width: 100%; max-height: none; padding: 10px; box-shadow: none; }
+}
