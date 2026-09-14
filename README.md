@@ -10,6 +10,17 @@ Use Node.js 24 or newer for the included tests. Install dependencies with `npm i
 - `npm test` checks progression, resources, combat, recovery, offline progress, saving, endgame rewards, and React rendering.
 - `npm run audit` checks content references and ingredient availability against recipe stages.
 
+## Publish to GitHub Pages
+
+The repository includes .github/workflows/deploy.yml, which tests, builds, and deploys the compiled dist directory whenever changes reach main.
+
+1. Commit and push the updated project, including the workflow and Vite configuration, to GitHub.
+2. In the repository, open **Settings > Pages** and set **Build and deployment > Source** to **GitHub Actions**.
+3. Open **Actions > Deploy game to GitHub Pages**. If needed, choose **Run workflow** on main after changing the Pages setting.
+4. Wait for both build and deploy to succeed, then open https://dbattaglia0823-design.github.io/Cyber-Idle/ on your phone.
+
+Do not publish the repository root as a static site: its HTML references TypeScript source that needs Vite compilation. Production asset URLs use /Cyber-Idle/; local development continues to use /. If you rename the repository, update the production base in vite.config.ts.
+
 ## Start the RPG campaign
 
 Choose a lifepath, open **Journal**, and claim Sable's field kit. The kit supplies and equips a starting sidearm and armor if those slots are empty. Open **Attributes & perks** to spend seven starting attribute points and two perk points, then accept **Dead Drop**.
