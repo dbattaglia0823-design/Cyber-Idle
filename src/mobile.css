@@ -217,3 +217,37 @@ body, .app-shell { min-height: 100svh; }
   .app-shell .cyberware-summary-bonuses :is(summary, p) { font-size: 12px; line-height: 1.5; }
   .app-shell .cyberware-details-drawer { position: relative; inset: auto; width: 100%; max-height: none; padding: 10px; box-shadow: none; }
 }
+
+/* In-flow section menus for phones; desktop retains its tab navigation. */
+.mobile-section-menu, .mobile-main-navigation { display: none; }
+@media (max-width: 600px) {
+  .app-shell .mobile-section-menu { display: block; min-width: 0; border: 1px solid var(--line); background: #10131c; }
+  .app-shell .mobile-section-menu summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; min-height: 52px; cursor: pointer; list-style: none; }
+  .app-shell .mobile-section-menu summary::-webkit-details-marker { display: none; }
+  .app-shell .mobile-section-menu summary > span { display: grid; gap: 3px; min-width: 0; }
+  .app-shell .mobile-section-menu summary small { font-size: 11px; color: var(--muted); }
+  .app-shell .mobile-section-menu summary strong { font-size: 15px; color: var(--network-yellow); line-height: 1.35; }
+  .app-shell .mobile-section-menu svg { flex-shrink: 0; }
+  .app-shell .mobile-section-menu[open] > summary { border-bottom: 1px solid var(--line); }
+  .app-shell .mobile-section-menu[open] > summary > svg { transform: rotate(180deg); }
+  .app-shell .mobile-section-menu nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .app-shell .mobile-section-menu nav button { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 48px; padding: 9px; border: 1px solid var(--line); border-radius: 2px; background: #171b26; color: var(--text); font-size: 13px; text-align: left; white-space: normal; }
+  .app-shell .mobile-section-menu nav button[aria-current] { color: var(--network-yellow); border-color: var(--network-yellow); background: #f1e6600a; }
+  .app-shell .mobile-main-navigation { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 6px; align-items: start; padding: 8px; }
+  .app-shell .mobile-main-navigation > button { min-height: 62px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .app-shell .rpg-shell > .rpg-section-nav, .app-shell .runner-workspace > .character-tabs, .app-shell .menu-network > .network-tabs { display: none; }
+  .app-shell .rpg-shell:not([data-section="journal"]) > :is(.rpg-masthead, .rpg-hero) { display: none; }
+  .app-shell .runner-workspace > .mobile-section-menu { margin: 8px 0; }
+  .app-shell .runner-summary { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+  .app-shell .runner-identity { flex: 1 1 100%; }
+  .app-shell .runner-identity > div > p.muted { display: none; }
+  .app-shell .runner-vitals { flex: 1 1 100%; }
+  .app-shell .menu-network > .network-masthead { display: none; }
+  .app-shell .menu-network > .network-header { background-image: none !important; padding: 12px; }
+  .app-shell .menu-network > .network-header .eyebrow { display: none; }
+  .app-shell .menu-network > .network-header h1 { margin: 0 0 5px; font-size: 22px; }
+  .app-shell .menu-network > .mobile-section-menu { margin: 0 10px 8px; }
+  .app-shell .settings-option-row { display: flex; align-items: center; gap: 10px; }
+  .app-shell .settings-option-row > div { flex: 1; min-width: 0; }
+  .app-shell .settings-option-row > button { flex-shrink: 0; min-width: 48px; }
+}

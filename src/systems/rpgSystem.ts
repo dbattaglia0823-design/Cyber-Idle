@@ -2,7 +2,7 @@ import { meetsItemAttributeRequirement } from "./runnerProgression";
 import { factions } from "../data/factions";
 import { changeLocalStanding } from "./districtProgression";
 import { updateOperationAchievements } from "./achievements";
-import { missionItemRewards } from "../data/missionRewards";
+import { missionItemRewards, rollGigUnique } from "../data/missionRewards";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import { fixers } from "../data/fixers";
 import { equippedDeck, grantStarterQuickhacks, installedQuickhacks, deckBonuses, quickhackRamCost, ramRecovery, quickhackForAction } from "./quickhackSystem";
@@ -233,7 +233,7 @@ export function retryRpgMission(state: GameState) {
   return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk);
 }
 
-export function resolveRpgMission(state: GameState, choiceId: string) {
+export function resolveRpgMission(state: GameState, choiceId: string, random: () => number = Math.random) {
   const e = state.rpg.active, mission = e && missionById(e.missionId), choice = mission?.choices.find(c => c.id === choiceId);
   if (!e || e.phase !== "decision" || !e.approach || !mission || !choice || (!mission.sideGig && state.rpg.completed[mission.id])) return state;
   const next = cloneState(state);
@@ -257,12 +257,10 @@ export function resolveRpgMission(state: GameState, choiceId: string) {
     next.fixerTrust[fixer.id] = { ...progress, trust: progress.trust + (mission.sideGig ? 3 : 12), completedJobs: progress.completedJobs + 1 };
   }
   addDistrictMasteryXp(next, mission.district, "action", mission.sideGig ? 40 + mission.act * 25 : 250 + mission.act * 100);
-  if (mission.act >= 2 && !state.inventory["quickhack-synapse-burnout"]) loot["quickhack-synapse-burnout"] = 1;
+  const unique = rollGigUnique(mission, random);
+  if (unique) loot[unique] = (loot[unique] ?? 0) + 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
   if (!mission.sideGig) {
-    const weaponId = `rpg-weapon-${Math.min(7, mission.act + 1)}`;
-
-    if ((getItem(next.equippedGear.weapon ?? "")?.stats?.damage ?? 0) < (getItem(weaponId)?.stats?.damage ?? 0)) next.equippedGear.weapon = weaponId;
     next.storyFlags[`afterimage:${mission.id}:${choice.id}`] = true;
     next.factions[choice.reputation >= 0 ? "ghostMarket" : "helixOrder"].reputation += 10;
     const nextDistrict = rpgMissions[mission.act + 1]?.district;

@@ -8,7 +8,7 @@ import type { DistrictId, SkillAction, SkillId, RewardBundle } from "../types";
 type Route = [DistrictId, SkillAction["skillId"], string, string[]];
 const routes: Route[] = [
   ["neonRow", "cyberware", "Strip Street Electronics", ["street-coil", "neon-circuit-fragment"]],
-  ["neonRow", "scavenging", "Recover Street Wire and Lenses", ["redline-wire", "lowgrade-optic-lens"]],
+  ["neonRow", "vehicleTuning", "Recover Courier Wiring and Lenses", ["redline-wire", "lowgrade-optic-lens"]],
   ["neonRow", "medical", "Calibrate Reflex Chips", ["urban-reflex-chip"]],
   ["neonRow", "hacking", "Decode Discarded Schematics", ["rare-blueprint-fragment"]],
   ["rustYards", "vehicleTuning", "Rebuild Yard Drivetrains", ["engineCore", "chrome-jackal-gearset"]],

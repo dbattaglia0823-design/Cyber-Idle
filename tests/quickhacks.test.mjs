@@ -111,14 +111,13 @@ test('quickhack management renders installed slots, crafting requirements and mi
   }
 });
 
-test('later mission rewards grant a usable program without duplicate rewards', async () => {
+test('main jobs no longer bypass program crafting with automatic quickhacks', async () => {
   const { rpgMissions } = await import('../src/data/rpgCampaign.ts');
   const state = fresh(), mission = rpgMissions[2];
   state.rpg.active = { missionId: mission.id, phase: 'decision', approach: 'assault', enemyIndex: mission.enemies.length, enemyHp: 0, enemyMaxHp: 100, turn: 1, ram: 0, meds: 1, aimed: false, log: [] };
   const next = resolveRpgMission(state, mission.choices[0].id);
-  assert.equal(next.inventory['quickhack-synapse-burnout'], 1);
+  assert.equal(next.inventory['quickhack-synapse-burnout'], undefined);
   assert.equal(state.inventory['quickhack-synapse-burnout'], undefined);
   assert.equal(resolveRpgMission(next, mission.choices[0].id), next);
-  const equipped = installQuickhack(removeQuickhack(next, 'quickhack-short-circuit'), 'quickhack-synapse-burnout');
-  assert.ok(installedQuickhacks(equipped).some(h => h.action === 'burnout'));
+
 });

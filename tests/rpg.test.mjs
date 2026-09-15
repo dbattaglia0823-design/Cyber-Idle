@@ -148,7 +148,7 @@ test('local gigs replenish supplies and award half XP on repeat without resettin
     assert.equal(state.rpg.completed[rpgSideGigs[0].id].clears,n);
   }
   assert.equal(mainChaptersCleared(state),0); assert.ok(state.inventory['basic-med-injector']>=9);
-  assert.ok(getItemSources('rpg-weapon-1',state).some(source=>source.name==='Dead Drop'));
+  assert.ok(getItemSources('rpg-weapon-1',state).some(source=>source.name===rpgSideGigs[0].title));
 });
 
 test('old saves acquire the RPG profile without changing existing progress or gear',()=>{

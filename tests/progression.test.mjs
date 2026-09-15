@@ -51,7 +51,7 @@ test('every district supplies its equipment materials at entry, even without rar
 for (const path of ['streetborn', 'outrider', 'corporateDefector']) test(`${path} can gather, craft starter gear and medicine from a new save`, () => {
   let state = chooseStartingPath(createInitialState(1000), path);
   let now = 1000;
-  for (const [action, loops] of [['scav-alley-scrap-run', 40], ['scav-recover-circuit-boards', 12], ['supply-neonRow', 8], ['cyber-strip-implant', 5], ['hack-public-terminal', 4]]) {
+  for (const [action, loops] of [['scav-alley-scrap-run', 40], ['supply-neonRow', 8], ['cyber-strip-implant', 5], ['hack-public-terminal', 4]]) {
     state = startSkillAction(state, action, now);
     assert.ok(state.activeAction, action);
     for (let i=0; i<loops; i++) {
@@ -76,7 +76,7 @@ test('source guide never lists consuming an ingredient as a source', () => {
   const state = createInitialState();
   const sources = getItemSources('scrap', state);
   assert.ok(!sources.some(s => s.name === 'Strip Damaged Implant'));
-  assert.equal(getItemSources('redline-wire', state)[0].name, 'Recover Street Wire and Lenses');
+  assert.ok(getItemSources('redline-wire', state).some(source => source.name === 'Recover Courier Wiring and Lenses'));
   assert.ok(!getItemSources('legendary-chrome-matrix',state).some(s => s.type !== 'Item note' && s.unlocked));
 });
 

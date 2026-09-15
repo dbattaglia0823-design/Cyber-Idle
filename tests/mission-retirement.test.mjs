@@ -48,7 +48,7 @@ test('old saves cancel retired work while preserving money, inventory and earned
   }
 });
 
-for (const gig of rpgSideGigs) test(`${gig.title} preserves every retired district reward in a finite, guaranteed rotation`, () => {
+for (const gig of rpgSideGigs) test(`${gig.title} keeps retired rewards obtainable through crafting, supplies or rare gig loot`, () => {
   const formerRewards = new Set();
   const addBundle = rewards => Object.entries(rewards ?? {}).forEach(([id, amount]) => { if (amount > 0) formerRewards.add(id); });
   for (const operation of operations.filter(entry => entry.districtId === gig.district)) {
@@ -63,7 +63,7 @@ for (const gig of rpgSideGigs) test(`${gig.title} preserves every retired distri
   }
   ['credits', 'heat', 'reputation'].forEach(id => formerRewards.delete(id));
   const obtained = new Set();
-  const clears = Math.max(Math.ceil(missionRewardPools[gig.district].length / 3), districtSupplyItems(gig.district).length);
+  const clears = Math.max(missionRewardPools[gig.district].length, districtSupplyItems(gig.district).length);
   const state = createInitialState();
   for (let clear = 0; clear < clears; clear++) for (const [id, amount] of Object.entries(missionItemRewards(gig, clear))) {
     assert.ok(getItem(id) || resourceNames[id], `Unknown reward ${id}`);
@@ -71,7 +71,7 @@ for (const gig of rpgSideGigs) test(`${gig.title} preserves every retired distri
     obtained.add(id);
     assert.ok(getItemSources(id, state).some(source => source.type === 'Mission reward' && source.name === gig.title), `Missing source for ${id}`);
   }
-  for (const id of formerRewards) assert.ok(obtained.has(id), `Stranded reward ${id}`);
+  for (const id of formerRewards) assert.ok(getItemSources(id, state).some(source => source.type !== "Item note"), `Stranded reward ${id}`);
   assert.ok(rpgMissions.find(mission => mission.district === gig.district).reward > gig.reward * 2);
 });
 

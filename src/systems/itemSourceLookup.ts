@@ -2,7 +2,7 @@ import { quickhacks } from "../data/quickhacks";
 import { cyberdecks } from "../data/cyberdecks";
 import { districtProgressionOrder } from "../data/districtProgressionOrder";
 import { softwareStageUnlocked } from "./quickhackSystem";
-import { missionItemRewards, missionRewardPools } from "../data/missionRewards";
+import { missionItemRewards, missionRewardPools, gigUniquePools, GIG_UNIQUE_CHANCE } from "../data/missionRewards";
 import { bosses } from "../data/bosses";
 import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
 import { districtSupplyItems } from "../data/materialSupply";
@@ -60,8 +60,8 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   allRpgMissions.forEach(mission => {
     const supply = districtSupplyItems(mission.district);
     const rewards = missionItemRewards(mission);
-    if (rewards[itemId] || (mission.sideGig && [...supply, ...missionRewardPools[mission.district]].includes(itemId))) {
-      sources.push({ type: "Mission reward", name: mission.title, detail: mission.sideGig ? "Guaranteed local-gig loot rotation. The mission preview shows the next payout; replay to cycle through all district loot." : "Guaranteed main-job reward. Open Missions > Main jobs.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+    if (rewards[itemId] || (mission.sideGig && [...supply, ...missionRewardPools[mission.district], ...gigUniquePools[mission.district]].includes(itemId))) {
+      sources.push({ type: "Mission reward", name: mission.title, detail: mission.sideGig ? gigUniquePools[mission.district].includes(itemId) ? `Rare unique drop: ${Number((GIG_UNIQUE_CHANCE * 100 / gigUniquePools[mission.district].length).toFixed(2))}% per clear for this item. At most one unique item per gig.` : "Guaranteed rotating crafting supplies. The mission preview shows the next payout." : "Guaranteed main-job reward. Open Missions > Main jobs.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
     }
   });
   if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {

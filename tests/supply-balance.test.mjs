@@ -70,3 +70,22 @@ test('local gig supplies rotate one component per clear instead of bypassing eve
     for (const material of materials) assert.equal((state.inventory[material] ?? 0) - (before[material] ?? 0), material === materials[i] ? 1 : 0);
   }
 });
+
+
+test('Neon Row has exactly three Scavenging actions and preserves starter material access', () => {
+  const actions = skillActions.filter(a => a.skillId === 'scavenging' && a.districtReq === 'neonRow').sort((a,b) => a.levelReq-b.levelReq);
+  assert.deepEqual(actions.map(a => a.levelReq), [1,10,15]);
+  assert.deepEqual(actions.map(a => a.id), ['scav-alley-scrap-run','scav-backlot-dumpster-sweep','scav-clinic-sweep']);
+  assert.ok(!skillActions.some(a => a.id === 'scav-recover-circuit-boards'));
+  let state = startSkillAction(createInitialState(1000), actions[0].id, 1000);
+  const before = { ...state.resources };
+  state = processActionCompletion(state, 1000 + state.activeAction.durationMs);
+  assert.equal(state.resources.circuitBoards - before.circuitBoards, 1);
+  assert.equal(state.resources.scrap - before.scrap, 6);
+  assert.ok(actions[0].durationMs >= 8000);
+  const recovery = skillActions.find(a => a.id === 'supply-neonRow-1');
+  assert.equal(recovery.skillId, 'vehicleTuning');
+  assert.equal(recovery.levelReq, 1);
+  assert.deepEqual(recovery.itemRewards, {'redline-wire':1,'lowgrade-optic-lens':1});
+  assert.ok(recovery.rewards.vehicleParts < 0);
+});

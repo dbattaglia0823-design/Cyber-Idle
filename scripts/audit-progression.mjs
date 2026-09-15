@@ -1,5 +1,5 @@
 import { allRpgMissions } from '../src/data/rpgCampaign.ts';
-import { missionRewardPools, missionItemRewards } from '../src/data/missionRewards.ts';
+import { missionRewardPools, missionItemRewards, gigUniquePools } from '../src/data/missionRewards.ts';
 import { districtSupplyItems } from '../src/data/materialSupply.ts';
 import { materialStage } from "../src/data/materialSupply.ts";
 import { trainingXpPerSecond } from "../src/data/progressionPacing.ts";
@@ -30,7 +30,7 @@ for (const e of combatZones.flatMap(z => z.enemies)) {
   for (const d of percentDropTables[e.id] ?? []) add(d.itemId, Math.max(e.requiredCombatLevel ?? 1, level(e.preferredDistrict)), e.name);
 }
 for (const mission of allRpgMissions) {
-  const ids = mission.sideGig ? [...missionRewardPools[mission.district], ...districtSupplyItems(mission.district), ...Object.keys(missionItemRewards(mission))] : Object.keys(missionItemRewards(mission));
+  const ids = mission.sideGig ? [...missionRewardPools[mission.district], ...gigUniquePools[mission.district], ...districtSupplyItems(mission.district), ...Object.keys(missionItemRewards(mission))] : Object.keys(missionItemRewards(mission));
   for (const id of ids) add(id, level(mission.district), mission.title);
 }
 for (let pass = 0; pass < recipes.length; pass++) {

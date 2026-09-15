@@ -46,19 +46,18 @@ function baseMasteryXpReward() {
 export const skillActions: SkillAction[] = [
   ...materialSupplyActions,
   // ===== NEON ROW =====
-  action({ id: "scav-recover-circuit-boards", skillId: "scavenging", name: "Recover Discarded Circuit Boards", district: "Neon Row", districtReq: "neonRow", description: "Pick reusable boards out of discarded street electronics. Supplies the workshop without consuming materials.", levelReq: 1, durationMs: 8000, xpReward: 32, masteryXpReward: 10, rewards: { circuitBoards: 1, scrap: 1 }, tags: ["scavenging", "salvage", "street"] }),
   action({
     id: "scav-alley-scrap-run",
     skillId: "scavenging",
     name: "Alley Scrap Run",
     district: "Lowglow",
     districtReq: "neonRow",
-    description: "Sweep service alleys for metal, wire, and saleable junk.",
+    description: "Sweep service alleys for scrap and reusable circuit boards. Supplies starter crafting and Engineering without consuming materials.",
     levelReq: 1,
-    durationMs: 3500,
+    durationMs: 8000,
     xpReward: 24,
     masteryXpReward: 11,
-    rewards: { scrap: 3, credits: 2 },
+    rewards: { scrap: 6, circuitBoards: 1, credits: 2 },
     rareDrops: [drop("grip-polymer", "Grip Polymer", 0.05), drop("rare-blueprint-fragment", "Rare Blueprint Fragment", 0.015)],
     recommendedTools: ["basic-scanner"],
     tags: ["scavenging", "street", "salvage"],

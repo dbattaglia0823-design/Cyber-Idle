@@ -1,3 +1,4 @@
+import { MobileSectionMenu } from "./components/MobileSectionMenu";
 import { rpgMissions, rpgSideGigs } from "./data/rpgCampaign";
 import { QuickhackPanel } from "./components/QuickhackPanel";
 import { NetworkHero } from "./components/NetworkHero";
@@ -1015,7 +1016,7 @@ export function DistrictHub({
             <p className="eyebrow">Resource plan</p>
             <h3>Focused component routes</h3>
             <p className="muted">Gather raw salvage in Scavenging; process components in Engineering, Hacking, Medical and Vehicle Tuning. Use the crafting bench to make parts, medicine, armor and weapons; click an ingredient to see where it comes from.</p>
-            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run for Scrap. Recover Discarded Circuit Boards supplies boards, and Public Terminal Breach supplies data. Strip Street Electronics in Engineering consumes Scrap and Circuit Boards. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
+            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run for Scrap and Circuit Boards. Public Terminal Breach supplies data. Vehicle Tuning recovers Redline Wire and Lowgrade Optic Lenses from courier parts. Strip Street Electronics in Engineering consumes Scrap and Circuit Boards. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
             <p className="fine">Main jobs unlock the next district. Replay local gigs for credits and Heat relief. Train Combat for tougher fights, and Engineering to craft equipment.</p>
             <div className="rpg-button-row">{[...new Set(materialSupplyActions.filter(action => action.districtReq === districtId).map(action => action.skillId))].map(skill => <button className="secondary-button" key={skill} onClick={() => setCategory(skillCategoryFor(skill))}>{skillNames[skill]} supplies</button>)}</div>
           </article>
@@ -4347,6 +4348,7 @@ export function CharacterTab({
         <div className="runner-identity">{path && <img src={startingPathImages[path.id]} alt="" />}<div><p className="eyebrow">RUNNER / LEVEL {state.rpg.level}</p><h2>{path?.name ?? "Your character"}</h2><p className="muted">Equipment, progression and recovery in one place.</p></div></div>
         <div className="runner-vitals"><span>HEALTH<strong>{Math.ceil(state.health.currentHp)} / {maxHp}</strong></span><span>DAMAGE<strong>{stats.damage}</strong></span><span>ARMOR<strong>{stats.armor}</strong></span><span>ATTACK INTERVAL<strong>{(stats.attackSpeedMs / 1000).toFixed(2)}s</strong></span></div>
       </header>
+      <MobileSectionMenu label="Character tools" value={section} options={characterSections} onChange={onSection} />
       <div className="district-tabs character-tabs" aria-label="Character sections">
         {characterSections.map((tabSection) => (
           <button
@@ -4891,6 +4893,11 @@ export function MoreTab({
   return (
     <section className="network-shell menu-network">
       <NetworkHeader eyebrow="PERSONAL TERMINAL / CONNECTIONS & ARCHIVE" title="Your network." description="Follow city stories, check your contacts, browse the archive and manage your save." />
+        <MobileSectionMenu label="Menu sections" value={section} onChange={onSection} options={([
+          { id: "story", label: "City stories" }, { id: "companions", label: "Companions" },
+          { id: "itemIndex", label: "Item index" }, { id: "simCache", label: "Simulation cache" },
+          ...(isDevBuild ? [{ id: "balance", label: "Balance tools" }] : []), { id: "settings", label: "Settings & saves" },
+        ] as Array<{ id: MoreSection; label: string }>)} />
         <nav className="network-tabs" aria-label="Menu sections">
           {(["story", "companions", "itemIndex", "simCache", ...(isDevBuild ? ["balance" as MoreSection] : []), "settings"] as MoreSection[]).map((id) => (
             <button key={id} className={section === id ? "active" : ""} onClick={() => onSection(id)}>
