@@ -12,7 +12,7 @@ export const balanceConfig = {
     companionRankMax: 10,
   },
   xpCurves: {
-    skill: { base: 42, exponent: 1.90, maxLevel: 150 },
+    skill: { base: 840, exponent: 2.10, maxLevel: 150 },
     weaponClass: { base: 46, exponent: 1.78, maxLevel: 99 },
     mastery: { base: 10, exponent: 1.35, maxLevel: 99 },
     districtMastery: { base: 95, exponent: 2.02, maxLevel: 99 },

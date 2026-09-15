@@ -202,7 +202,6 @@ import { actionAccessRequirementText, meetsActionAccessRequirement } from "./sys
 import { updateWorldUnlocks } from "./systems/worldUnlocks";
 import { campaignOperations } from "./data/campaign";
 import { campaignProgress, canAssembleLegacy, assembleLegacy, highThreatUnlocked, startHighThreat, prestigeSkill, collectionPercent, claimCollectionReward } from "./systems/endgameProgress";
-import { materialSupplyActions } from "./data/materialSupply";
 import { startAutoSave } from "./systems/autoSave";
 import { getItemSources } from "./systems/itemSourceLookup";
 import type { ActiveModifiers, AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, EnemyDrop, FactionId, GameState, GearSlot, ItemDefinition, ItemRarity, ItemStats, ItemType, JobContract, OperationDefinition, OperationRoute, OperationRouteId, ResourceId, RewardBundle, RipperdocService, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry, WeaponClassId } from "./types";
@@ -1012,14 +1011,6 @@ export function DistrictHub({
       <div className="network-workspace-content stack">
       {category === "overview" ? (
         <>
-          <article className="panel">
-            <p className="eyebrow">Resource plan</p>
-            <h3>Focused component routes</h3>
-            <p className="muted">Gather raw salvage in Scavenging; process components in Engineering, Hacking, Medical and Vehicle Tuning. Use the crafting bench to make parts, medicine, armor and weapons; click an ingredient to see where it comes from.</p>
-            {districtId === "neonRow" && <p className="fine">Start with Alley Scrap Run for Scrap and Circuit Boards. Public Terminal Breach supplies data. Vehicle Tuning recovers Redline Wire and Lowgrade Optic Lenses from courier parts. Strip Street Electronics in Engineering consumes Scrap and Circuit Boards. Strip Damaged Implant converts Scrap into Cyberware Parts. Craft Basic Med Injectors before fighting, and follow Act 1 in Story to unlock Backstreet Sweep.</p>}
-            <p className="fine">Main jobs unlock the next district. Replay local gigs for credits and Heat relief. Train Combat for tougher fights, and Engineering to craft equipment.</p>
-            <div className="rpg-button-row">{[...new Set(materialSupplyActions.filter(action => action.districtReq === districtId).map(action => action.skillId))].map(skill => <button className="secondary-button" key={skill} onClick={() => setCategory(skillCategoryFor(skill))}>{skillNames[skill]} supplies</button>)}</div>
-          </article>
           <DistrictIntelPanel state={state} districtId={districtId} />
           <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
           <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
