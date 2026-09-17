@@ -7,7 +7,7 @@ import { canStartSkillAction } from '../src/systems/actionProcessing.ts';
 import { xpForNextLevel } from '../src/systems/formulas.ts';
 import { skillActions, skillOrder } from '../src/data/skills.ts';
 import { districtLevelBands } from '../src/data/levelBands.ts';
-import { districtCombatZones } from '../src/systems/districtActivities.ts';
+import { districtCombatZones, districtSkillActions } from '../src/systems/districtActivities.ts';
 import { canFightEnemy } from '../src/systems/combatProcessing.ts';
 
 test('XP costs increase smoothly without a wall at former tier boundaries', () => {
@@ -75,5 +75,34 @@ test('12 hours of the first Scavenging action stays within the opening skill tie
     const result = applyOfflineProgress(state, 1000 + 12 * 60 * 60 * 1000);
     assert.ok(result.skills.scavenging.level >= 10 && result.skills.scavenging.level <= 16, path + ': ' + result.skills.scavenging.level);
     assert.deepEqual(normalizeSave(result).skills, result.skills);
+  }
+});
+
+
+test('each district has exactly three training cards per skill at distinct unlock levels', () => {
+  for (const district of Object.keys(districtLevelBands)) {
+    for (const skill of skillOrder.filter(id => id !== 'combat')) {
+      const actions = districtSkillActions(district).filter(action => action.skillId === skill);
+      assert.equal(actions.length, 3, district + ': ' + skill);
+      assert.equal(new Set(actions.map(action => action.levelReq)).size, 3, district + ': ' + skill);
+      if (district === 'neonRow') assert.deepEqual(actions.map(action => action.levelReq), [1, 10, 15]);
+    }
+  }
+});
+
+test('hidden district requirements still block training and component processing', () => {
+  const state = createInitialState();
+  for (const skill of skillOrder) state.skills[skill].level = 150;
+  for (const key of Object.keys(state.resources)) state.resources[key] = 100000;
+  for (const action of skillActions) {
+    for (const id of action.requiredUnlocks ?? []) state.unlocks[id] = true;
+    for (const [id, amount] of Object.entries(action.requiredItems ?? {})) {
+      if (id in state.resources) state.resources[id] = Math.max(state.resources[id], amount);
+      else state.inventory[id] = amount;
+    }
+    state.districts[action.districtReq].unlocked = true;
+    assert.ok(canStartSkillAction(state, action), action.id + ' available');
+    state.districts[action.districtReq].unlocked = false;
+    assert.equal(canStartSkillAction(state, action), false, action.id + ' locked');
   }
 });

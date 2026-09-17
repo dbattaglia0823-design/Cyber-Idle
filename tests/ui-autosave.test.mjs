@@ -62,7 +62,8 @@ test('new game and saved character render through the actual application entry p
   saveGame(chooseStartingPath(createInitialState(), 'streetborn'), 1);
   const playing = renderToStaticMarkup(createElement(App));
   assert.match(playing, /Afterimage RPG/);
-  assert.match(playing, /Claim field kit/);
+  assert.match(playing, /Main section selection/);
+  assert.match(playing, /Inventory &amp; loadout/);
   const primary = playing.match(/<nav class="bottom-nav"[^>]*>(.*?)<\/nav>/s)?.[1];
   assert.ok(primary);
   assert.deepEqual([...primary.matchAll(/<span>(.*?)<\/span>/g)].map(match => match[1]), ['Map', 'Main', 'Menu']);

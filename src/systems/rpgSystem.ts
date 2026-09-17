@@ -1,3 +1,4 @@
+import { mainJobBalance } from "../data/mainJobBalance";
 import { meetsItemAttributeRequirement } from "./runnerProgression";
 import { factions } from "../data/factions";
 import { changeLocalStanding } from "./districtProgression";
@@ -132,7 +133,8 @@ export function chooseMissionApproach(state: GameState, approach: MissionApproac
 export function maxRam(state: GameState) { const deck = equippedDeck(state); return deck ? 5 + Math.floor(state.rpg.attributes.intelligence / 2) + deckBonuses(state).ram + (state.rpg.perks["expanded-memory"] ? 3 : 0) : 0; }
 export function tacticalStats(state: GameState) {
   const a = state.rpg.attributes, weapon = state.equippedGear.weapon && getItem(state.equippedGear.weapon);
-  const gear = weapon ? Math.min(22, Math.sqrt(scaledStats(state, weapon.id).damage ?? 0) * 2) : 0;
+  const weaponDamage = weapon ? scaledStats(state, weapon.id).damage ?? 0 : 0;
+  const gear = Math.sqrt(Math.max(0, weaponDamage)) * 2 + weaponDamage * 0.9;
   const armor = Object.values(state.equippedGear).reduce((sum, id) => sum + (scaledStats(state, id).armor ?? 0), 0);
   const modifiers = getActiveModifiers(state);
   return {
@@ -142,6 +144,17 @@ export function tacticalStats(state: GameState) {
     heal: Math.min(0.75, (0.35 + a.technical * 0.015) * (1 + modifiers.healingReceived)),
   };
 }
+export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk: GigRisk = "standard") {
+  const boss = !mission.sideGig && enemyIndex === mission.enemies.length - 1;
+  if (mission.sideGig) return { boss: false, health: Math.round((80 + mission.act * 24 + enemyIndex * 18) * gigRisks[risk].health), damage: (10 + mission.act * 2 + enemyIndex * 2) * gigRisks[risk].damage };
+  const tier = mainJobBalance[mission.district];
+  return {
+    boss,
+    health: Math.round(tier.health * (boss ? 1.8 : 1 + enemyIndex * 0.1)),
+    damage: tier.damage * (boss ? 1.35 : 1 + enemyIndex * 0.06),
+  };
+}
+
 export function enemyIntent(state: GameState) {
   const active = state.rpg.active;
   return active && active.turn % 3 === 2 ? "Charged burst" : active && active.turn % 3 === 1 ? "Suppressing fire" : "Direct shot";
@@ -198,7 +211,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   } else {
     if (!stun) {
       const charged = e.turn % 3 === 2;
-      const incoming = Math.max(1, Math.round((10 + mission.act * 2 + e.enemyIndex * 2) * (mission.sideGig ? gigRisks[e.gigRisk ?? "standard"].damage : 1) * (charged ? 1.8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
       next.health.currentHp = Math.max(0, next.health.currentHp - incoming);
       next.healthStatistics.totalDamageTaken += incoming;
       e.log.push(`${charged ? "Charged burst" : "Enemy fire"}: ${incoming} damage${cover ? " through cover" : ""}.`);
@@ -216,9 +229,9 @@ function setupEnemy(state: GameState, mission: RpgMission) {
   const e = state.rpg.active!;
   e.phase = "combat"; e.turn = 0; e.aimed = false;
   e.burnDamage = 0; e.burnTurns = 0; e.weaken = 0; e.weakenTurns = 0;
-  e.enemyMaxHp = Math.round((80 + mission.act * 24 + e.enemyIndex * 18) * (mission.sideGig ? gigRisks[e.gigRisk ?? "standard"].health : 1) * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
+  e.enemyMaxHp = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).health * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
   e.enemyHp = e.enemyMaxHp; e.ram = maxRam(state);
-  e.log.push(`Contact: ${mission.enemies[e.enemyIndex]}. Read the enemy intent before choosing your move.`);
+  e.log.push(`${missionEnemyStats(mission, e.enemyIndex).boss ? "Boss contact" : "Contact"}: ${mission.enemies[e.enemyIndex]}. Read the enemy intent before choosing your move.`);
 }
 
 export function leaveRpgMission(state: GameState) {

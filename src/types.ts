@@ -182,6 +182,7 @@ export interface RewardPopupLine {
 }
 
 export interface RewardPopupGroup {
+  skill?: { id: SkillId; name: string; level: number };
   id: string;
   title: string;
   category: RewardPopupCategory;

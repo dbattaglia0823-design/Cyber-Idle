@@ -1,3 +1,4 @@
+import { prepareMainJob } from "./main-job-fixture.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
@@ -38,10 +39,10 @@ function fight(state, style='weapon') {
 }
 
 for(const [path,attribute,approach,ending] of [['streetborn','body','assault','free'],['corporateDefector','intelligence','netrunner','own'],['outrider','cool','ghost','erase']]) {
-  test(`${path} can finish all eight RPG chapters as ${approach}, without idle work, farming, or purchased supplies`,()=>{
+  test(`${path} can finish all eight RPG chapters as ${approach}, with district-crafted gear and local-gig character progression`,()=>{
     let state=fresh(path);
     for(const mission of rpgMissions) {
-      state=build(state,attribute);
+      state=prepareMainJob(state,mission,attribute);
       assert.ok(missionAvailable(state,mission),mission.id);
       state=startRpgMission(state,mission.id);
       assert.ok(approachRequirement(state,mission,approach).met,`${mission.id} approach`);
@@ -63,7 +64,7 @@ for(const [path,attribute,approach,ending] of [['streetborn','body','assault','f
 }
 
 test('field kit and chapter rewards cannot be claimed twice, and later chapters cannot be skipped',()=>{
-  let state=fresh(); const inventory={...state.inventory};
+  let state=prepareMainJob(fresh(),rpgMissions[0]); const inventory={...state.inventory};
   assert.equal(claimFieldKit(state),state); assert.deepEqual(state.inventory,inventory);
   assert.equal(startRpgMission(state,rpgMissions[7].id),state);
   state=startRpgMission(state,rpgMissions[0].id);
@@ -184,7 +185,7 @@ test('unknown mission data is dropped safely while the rest of a save is retaine
 
 test('RPG entry, briefing, combat, decision and failure screens render without invalid values',()=>{
   const render=state=>renderToStaticMarkup(createElement(RpgHub,{state,onUpdate(){},onServices(){},page:"journal",onPage(){}}));
-  let state=fresh();
+  let state=prepareMainJob(fresh(),rpgMissions[0]);
   assert.match(render(state),/Dead Drop/);
   state=startRpgMission(state,'dead-drop'); assert.match(render(state),/Choose your way in/);
   state=chooseMissionApproach(state,'assault'); assert.match(render(state),/Short Circuit/);

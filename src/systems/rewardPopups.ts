@@ -43,16 +43,19 @@ const categoryDuration: Record<RewardPopupCategory, number> = {
 
 export function emitRewardPopupGroup(state: GameState, input: RewardPopupInput) {
   const now = Date.now();
-  const lines = compactLines(buildRewardLines(input));
+  const skillId = Object.keys(input.xp ?? {})[0] as SkillId | undefined;
+  const skill = skillId ? { id: skillId, name: skillNames[skillId], level: state.skills[skillId].level } : undefined;
+  const lines = compactLines(buildRewardLines(input).filter(entry => !skill || (entry.category !== "xp" && entry.category !== "mastery")));
   if (!lines.length && !input.title) return;
   const category = input.category ?? prominentCategory(lines);
   const popup: RewardPopupGroup = {
     id: `reward-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title: input.title,
+    skill,
     category,
     lines: lines.slice(0, 6),
     createdAt: now,
-    expiresAt: now + (input.durationMs ?? categoryDuration[category]),
+    expiresAt: now + (input.durationMs ?? (skill && ["resource", "credits", "item"].includes(category) ? 2000 : categoryDuration[category])),
   };
   state.rewardPopups = mergeRecentPopup(state.rewardPopups ?? [], popup).slice(0, 2);
 }
@@ -129,6 +132,7 @@ function prominentCategory(lines: RewardPopupLine[]): RewardPopupCategory {
 function mergeRecentPopup(existing: RewardPopupGroup[], popup: RewardPopupGroup) {
   const previous = existing.find((entry) => entry.title === popup.title && popup.createdAt - entry.createdAt < 600);
   if (!previous) return [popup, ...existing.filter((entry) => entry.expiresAt > popup.createdAt)];
+  previous.skill = popup.skill;
   previous.lines = compactLines([...popup.lines, ...previous.lines]).slice(0, 6);
   previous.category = prominentCategory(previous.lines);
   previous.expiresAt = Math.max(previous.expiresAt, popup.expiresAt);

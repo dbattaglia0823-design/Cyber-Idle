@@ -13,6 +13,7 @@ import {
   HeartPulse,
   Store,
   ChevronRight,
+  ChevronDown,
   MapPin,
   Zap,
   ArrowDown,
@@ -242,7 +243,7 @@ function App() {
   const [reviewedNoticeKeys, setReviewedNoticeKeys] = useState<Set<string>>(() => loadReviewedNoticeKeys(getActiveSaveSlot()));
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
   const [tab, setTab] = useState<TabId>("field");
-  const [mainSection, setMainSection] = useState<MainSection>("journal");
+  const [mainSection, setMainSection] = useState<MainSection>("home");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
   const [importPayload, setImportPayload] = useState("");
@@ -444,7 +445,7 @@ function App() {
             onReviewAllNotices={() => markTabNoticesReviewed("city")}
           />
         )}
-        {tab === "field" && <RpgHub state={state} onUpdate={setState} onServices={openCityTab} page={mainSection} onPage={setMainSection} inventoryNoticeCount={inventoryNotices.length}>
+        {tab === "field" && <RpgHub state={state} onUpdate={setState} onServices={openCityTab} page={mainSection} onPage={setMainSection} onCharacterTool={setCharacterSection} inventoryNoticeCount={inventoryNotices.length}>
           {mainSection === "character" && (
             <CharacterTab
               state={state}
@@ -544,7 +545,7 @@ function App() {
 
       <nav className="bottom-nav" aria-label="Primary">
         {tabs.map(({ id, label, Icon }) => (
-          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); setTab(id); }}>
+          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setTab(id); }}>
             <Icon size={20} />
             <span>{label}</span>
             {tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled) && <b className="tab-indicator">{tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled)}</b>}
@@ -979,7 +980,7 @@ export function DistrictHub({
   onStopActive: () => void;
 }) {
   const [category, setCategory] = useState<DistrictHubCategory>("overview");
-  const [infoOpen, setInfoOpen] = useState(false);
+
   const district = getDistrict(districtId)!;
   const unlocked = Boolean(state.districts[districtId]?.unlocked);
   const summaries = districtActivitySummaries(state, districtId);
@@ -1003,15 +1004,22 @@ export function DistrictHub({
           return <button key={skillTab.id} className={category === skillTab.id ? "selected" : ""} aria-current={category === skillTab.id ? "page" : undefined} onClick={() => setCategory(skillTab.id)}><Icon size={16} />{skillTab.label}<small>Lv {state.skills[skillTab.skillId].level}</small></button>;
         })}
         {systemSummaries.length > 0 && <button className={systemSummaries.some(summary => summary.id === category) ? "selected" : ""} aria-current={systemSummaries.some(summary => summary.id === category) ? "page" : undefined} onClick={() => setCategory(systemSummaries[0].id)}><Store size={16} />Services</button>}
-        <button className="rpg-services" aria-expanded={infoOpen} onClick={() => setInfoOpen(value => !value)}>District intel <ArrowUpRight size={15} /></button>
       </nav>
       {systemSummaries.some(summary => summary.id === category) && <nav className="network-tabs district-service-tabs" aria-label="District services">{systemSummaries.map(summary => <button key={summary.id} className={category === summary.id ? "active" : ""} aria-current={category === summary.id ? "page" : undefined} onClick={() => setCategory(summary.id)}>{summary.label}</button>)}</nav>}
       {!unlocked && <CompactRequirementList state={state} districtId={districtId} requirements={district.unlockRequirements} />}
-      {infoOpen && <div className="network-body district-intel-expanded"><DistrictInfoPanel state={state} districtId={districtId} /><DistrictMasteryPanel state={state} districtId={districtId} /><DistrictReturnGoalsPanel state={state} districtId={districtId} /><ThreatMeter value={threat} tier={threatTier(threat)} /></div>}
       <div className="network-workspace-content stack">
+      <details className="section-disclosure district-intel-disclosure" key={districtId}>
+        <summary><span><strong>District intel</strong><small>Factions, standing, mastery and threat</small></span><ChevronDown size={22} /></summary>
+        <div className="stack">
+          <DistrictIntelPanel state={state} districtId={districtId} />
+          <DistrictInfoPanel state={state} districtId={districtId} />
+          <DistrictMasteryPanel state={state} districtId={districtId} />
+          <DistrictReturnGoalsPanel state={state} districtId={districtId} />
+          <ThreatMeter value={threat} tier={threatTier(threat)} />
+        </div>
+      </details>
       {category === "overview" ? (
         <>
-          <DistrictIntelPanel state={state} districtId={districtId} />
           <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
           <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
         </>
@@ -1574,7 +1582,31 @@ function DistrictActivityMenu({
     );
   }
   if (category === "crafting") {
-    return <FocusedPanel title="Crafting"><CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} /></FocusedPanel>;
+    return (
+      <section className="stack">
+        <details className="network-disclosure" open>
+          <summary>Component processing</summary>
+          <p className="fine">Turn local supplies into crafting materials. These routes still train their listed skill.</p>
+          <div className="card-list">
+            {skillActions
+              .filter(action => action.districtReq === districtId && action.tags?.includes("supply"))
+              .map(action => (
+                <ActionCard
+                  key={action.id}
+                  state={state}
+                  action={action}
+                  disabled={false}
+                  onStart={() => onStartSkill(action.id)}
+                  onStop={onStopActive}
+                />
+              ))}
+          </div>
+        </details>
+        <FocusedPanel title="Crafting">
+          <CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} />
+        </FocusedPanel>
+      </section>
+    );
   }
   if (category === "ripperdoc") {
     return (
@@ -1689,7 +1721,7 @@ function DistrictSkillWorkPanel({
         </div>
         <p className="muted">{skillDescriptions[skillId]}</p>
         <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
-        <p className="fine">This tab only shows work that trains {skillNames[skillId]}.</p>
+        <p className="fine">Three training actions per district. Component processing is available under Services / Crafting.</p>
       </article>
 
       {actions.length > 0 && (
@@ -2367,7 +2399,7 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
       name: action.name,
       type: skillNames[action.skillId],
       districtId: action.districtReq ?? state.selectedDistrict,
-      category: skillCategoryFor(action.skillId),
+      category: action.tags?.includes("supply") ? "crafting" : skillCategoryFor(action.skillId),
       progress: progressPercent(now, state.activeAction.startedAt, state.activeAction.durationMs),
       skillId: action.skillId,
       skillLevel: skill.level,
@@ -2635,7 +2667,7 @@ function SkillPanel({
         <summary className="details-button">Actions</summary>
         <div className="card-list">
           {skillActions
-            .filter((action) => action.skillId === skillId)
+            .filter((action) => action.skillId === skillId && !action.tags?.includes("supply"))
             .sort((a, b) => a.levelReq - b.levelReq || a.durationMs - b.durationMs || a.name.localeCompare(b.name))
             .map((action) => (
               <ActionCard
@@ -2711,7 +2743,6 @@ function ActionCard({
               state={state}
               action={action}
               accessMet={accessMet}
-              districtUnlocked={districtUnlocked}
               unlocksMet={unlocksMet}
               requiredItemsMet={requiredItemsMet}
               displayedCosts={displayedCosts}
@@ -2868,7 +2899,6 @@ function RequirementSummary({
   state,
   action,
   accessMet,
-  districtUnlocked,
   unlocksMet,
   requiredItemsMet,
   displayedCosts,
@@ -2878,7 +2908,6 @@ function RequirementSummary({
   state: GameState;
   action: SkillAction;
   accessMet: boolean;
-  districtUnlocked: boolean | undefined;
   unlocksMet: boolean;
   requiredItemsMet: boolean;
   displayedCosts: RewardBundle;
@@ -2896,14 +2925,6 @@ function RequirementSummary({
         text={`${skillNames[action.skillId]} level ${action.levelReq}`}
         value={`${state.skills[action.skillId].level} / ${action.levelReq}`}
       />
-      {action.districtReq && (
-        <RequirementSummaryRow
-          met={Boolean(districtUnlocked)}
-          label="District"
-          text={getDistrict(action.districtReq)?.name ?? action.districtReq}
-          value={districtUnlocked ? "Unlocked" : "Locked"}
-        />
-      )}
       {(action.requiredUnlocks?.length ?? 0) > 0 && (
         <RequirementSummaryRow
           met={unlocksMet}

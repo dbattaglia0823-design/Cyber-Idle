@@ -10,7 +10,7 @@ export function MobileSectionMenu<T extends string>({ label, value, options, onC
 }) {
   const disclosure = useRef<HTMLDetailsElement>(null);
   return <details className="mobile-section-menu" ref={disclosure}>
-    <summary><span><small>{label}</small><strong>{options.find(option => option.id === value)?.label}</strong></span><ChevronDown size={20} /></summary>
+    <summary><span><small>{label}</small><strong>{options.find(option => option.id === value)?.label}</strong></span><span className="section-menu-hint">Browse<ChevronDown size={22} /></span></summary>
     <nav aria-label={label}>{options.map(option => <button key={option.id} type="button" aria-current={value === option.id ? "page" : undefined} onClick={() => {
       onChange(option.id);
       if (disclosure.current) {

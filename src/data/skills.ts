@@ -1937,7 +1937,7 @@ export const skillActions: SkillAction[] = [
     district: "Skyline Labs",
     districtReq: "skylineCore",
     description: "Recover Rare Wreckage keeps Skyline Core progression moving for Scavenging.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 23000,
     xpReward: 915,
     masteryXpReward: 10,
@@ -1971,7 +1971,7 @@ export const skillActions: SkillAction[] = [
     district: "Skyline Labs",
     districtReq: "skylineCore",
     description: "Late-game vault breach with extreme trace pressure and rare archive payloads.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 20000,
     xpReward: 800,
     masteryXpReward: 450,
@@ -2008,7 +2008,7 @@ export const skillActions: SkillAction[] = [
     districtReq: "skylineCore",
     requiredItems: { "prototype-neural-core": 1, "stabilized-chrome-frame": 1 },
     description: "Assemble high-load prototype implants for late-game chrome paths.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 14000,
     xpReward: 300,
     masteryXpReward: 203,
@@ -2059,7 +2059,7 @@ export const skillActions: SkillAction[] = [
     district: "Skyline Labs",
     districtReq: "skylineCore",
     description: "Tune Route Hardware keeps Skyline Core progression moving for Vehicle Tuning.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 22000,
     xpReward: 827,
     masteryXpReward: 10,
@@ -2093,7 +2093,7 @@ export const skillActions: SkillAction[] = [
     district: "Skyline Labs",
     districtReq: "skylineCore",
     description: "Stabilize Clinic Case keeps Skyline Core progression moving for Medical.",
-    levelReq: 145,
+    levelReq: 150,
     durationMs: 22000,
     xpReward: 827,
     masteryXpReward: 10,
@@ -2105,3 +2105,6 @@ export const skillActions: SkillAction[] = [
 
 
 ];
+
+// Component processing stays available in the workshop, separate from training cards.
+export const trainingSkillActions = skillActions.filter(action => !action.tags?.includes("supply"));

@@ -6,8 +6,8 @@ export function RewardPopupContainer({ popups, now, onDismiss }: { popups: Rewar
   return (
     <aside className="reward-popup-stack" aria-live="polite" aria-label="Reward notifications">
       {visible.map((popup) => (
-        <button className={`reward-popup reward-popup-${popup.category}`} key={popup.id} onClick={() => onDismiss(popup.id)}>
-          <span className="reward-popup-badge">{labelForCategory(popup.category)}</span>
+        <button aria-label={`Dismiss ${popup.skill ? popup.skill.name + " level " + popup.skill.level + ": " : ""}${popup.title}`} className={`reward-popup reward-popup-${popup.category}${popup.skill ? " reward-popup-skill" : ""}`} key={popup.id} onClick={() => onDismiss(popup.id)}>
+          {popup.skill ? <span className="reward-popup-skill-heading">{popup.skill.name} <b>Lv {popup.skill.level}</b></span> : <span className="reward-popup-badge">{labelForCategory(popup.category)}</span>}
           <strong>{popup.title}</strong>
           <span className="reward-popup-lines">
             {popup.lines.map((line) => (
