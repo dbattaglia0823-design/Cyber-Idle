@@ -91,7 +91,7 @@ import {
 } from "./systems/formulas";
 import { applyOfflineProgress } from "./systems/offlineProgress";
 import { exportSave, getActiveSaveSlot, importSave, loadGame, resetSave, saveGame, saveSlotSummaries, setActiveSaveSlot, type SaveSlotId, type SaveSlotSummary } from "./systems/saveSystem";
-import { buyHousing, giveCompanionGift, setActiveCompanion, setActiveResidence, spendTimeWithCompanion } from "./systems/worldProgression";
+import { canBuyHousing, buyHousing, giveCompanionGift, setActiveCompanion, setActiveResidence, spendTimeWithCompanion } from "./systems/worldProgression";
 import { recipes } from "./data/recipes";
 import { getItem, gearSlots } from "./data/items";
 import { cyberwareInstabilityLoad, cyberwareLoad, effectiveNeuralInstability, scaledStats } from "./systems/itemFormulas";
@@ -110,7 +110,7 @@ import { attributeDefinitions, rpgPerks } from "./data/rpgCampaign";
 import { districtSpecificMaterials, nextDistrictMasteryMilestone } from "./data/districtMastery";
 import { nextActionMasteryMilestone } from "./data/actionMasteryMilestones";
 import { canStartOperation, operationRequirementDetails, operationLoadoutReadiness, processOperation, startOperation, stopOperation } from "./systems/operationProcessor";
-import { buyVehicle, canBuyVehicle, garageSlots, setActiveVehicle, upgradeVehicle } from "./systems/vehicleSystem";
+import { vehicleUpgradeCost, canUpgradeVehicle, buyVehicle, canBuyVehicle, garageSlots, setActiveVehicle, upgradeVehicle } from "./systems/vehicleSystem";
 import { threatTier } from "./systems/districtThreat";
 import { cityDistrictOrder, districtCompletionBreakdown, districtCompletionDebug, districtCompletionPercent, getDistrict } from "./data/cityMap";
 import {
@@ -1582,31 +1582,7 @@ function DistrictActivityMenu({
     );
   }
   if (category === "crafting") {
-    return (
-      <section className="stack">
-        <details className="network-disclosure" open>
-          <summary>Component processing</summary>
-          <p className="fine">Turn local supplies into crafting materials. These routes still train their listed skill.</p>
-          <div className="card-list">
-            {skillActions
-              .filter(action => action.districtReq === districtId && action.tags?.includes("supply"))
-              .map(action => (
-                <ActionCard
-                  key={action.id}
-                  state={state}
-                  action={action}
-                  disabled={false}
-                  onStart={() => onStartSkill(action.id)}
-                  onStop={onStopActive}
-                />
-              ))}
-          </div>
-        </details>
-        <FocusedPanel title="Crafting">
-          <CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} />
-        </FocusedPanel>
-      </section>
-    );
+    return <FocusedPanel title="Crafting"><CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} /></FocusedPanel>;
   }
   if (category === "ripperdoc") {
     return (
@@ -1630,44 +1606,10 @@ function DistrictActivityMenu({
     );
   }
   if (category === "housing") {
-    return (
-      <FocusedPanel title="Housing">
-        {districtHousing(districtId).map((housing) => (
-          <ActivityCard key={housing.id} locked={!state.districts[housing.districtId]?.unlocked}>
-            <div>
-              <p className="eyebrow">Housing</p>
-              <h3>{housing.name}</h3>
-              <p className="fine">Cost {housing.cost} Credits / {state.ownedHousing[housing.id] ? "Owned" : "For Sale"}</p>
-              <p className="fine">Active bonus: +2% action speed, {modifierSummary(housing.passiveModifiers ?? {})}</p>
-              <RequirementStatusList requirements={textRequirementDetails(state, housing.unlockRequirements ?? [])} />
-            </div>
-            {state.ownedHousing[housing.id] ? <button className="secondary-button full" onClick={() => onSetResidence(housing.id)}>Set Active</button> : <button className="primary-button full" disabled={state.resources.credits < housing.cost} onClick={() => onBuyHousing(housing.id)}>Buy</button>}
-          </ActivityCard>
-        ))}
-      </FocusedPanel>
-    );
+    return <FocusedPanel title="Housing"><HousingSection state={state} onBuy={onBuyHousing} onSetResidence={onSetResidence} /></FocusedPanel>;
   }
   if (category === "garage") {
-    return (
-      <FocusedPanel title="Garage">
-        {districtVehicles(districtId).map((vehicle) => {
-          const owned = Boolean(state.ownedVehicles[vehicle.id]);
-          const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-          return (
-            <ActivityCard key={vehicle.id} className={`rarity-${vehicle.rarity.toLowerCase()}`}>
-              <div>
-                <p className="eyebrow">{vehicle.rarity} / {vehicle.type}</p>
-                <h3>{vehicle.name}{owned ? ` +${level}` : ""}</h3>
-                <p className="fine">Cost {formatRewards(vehicle.cost)}</p>
-                <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
-                <RequirementStatusList requirements={textRequirementDetails(state, vehicle.unlockRequirements)} />
-              </div>
-              {owned ? <div className="card-list compact"><button className="secondary-button full" onClick={() => onSetVehicle(vehicle.id)}>Set Active</button><button className="primary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>{level >= vehicle.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}</button></div> : <button className="primary-button full" disabled={!canBuyVehicle(state, vehicle.id)} onClick={() => onBuyVehicle(vehicle.id)}>Buy Vehicle</button>}
-            </ActivityCard>
-          );
-        })}
-      </FocusedPanel>
-    );
+    return <FocusedPanel title="Vehicles"><GarageSection state={state} onBuy={onBuyVehicle} onSetVehicle={onSetVehicle} onUpgradeVehicle={onUpgradeVehicle} /></FocusedPanel>;
   }
   return (
     <FocusedPanel title="Story">
@@ -1721,7 +1663,7 @@ function DistrictSkillWorkPanel({
         </div>
         <p className="muted">{skillDescriptions[skillId]}</p>
         <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
-        <p className="fine">Three training actions per district. Component processing is available under Services / Crafting.</p>
+        <p className="fine">Three training actions per skill in each district.</p>
       </article>
 
       {actions.length > 0 && (
@@ -2399,7 +2341,7 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
       name: action.name,
       type: skillNames[action.skillId],
       districtId: action.districtReq ?? state.selectedDistrict,
-      category: action.tags?.includes("supply") ? "crafting" : skillCategoryFor(action.skillId),
+      category: skillCategoryFor(action.skillId),
       progress: progressPercent(now, state.activeAction.startedAt, state.activeAction.durationMs),
       skillId: action.skillId,
       skillLevel: skill.level,
@@ -5262,104 +5204,65 @@ function FactionsSection({ state }: { state: GameState }) {
   );
 }
 
-function HousingSection({
-  state,
-  onBuy,
-  onSetResidence,
-}: {
-  state: GameState;
-  onBuy: (id: string) => void;
-  onSetResidence: (id: string) => void;
+export function HousingSection({ state, onBuy, onSetResidence }: {
+  state: GameState; onBuy: (id: string) => void; onSetResidence: (id: string) => void;
 }) {
-  return (
-    <section className="stack">
-      {housingOptions.map((housing) => {
-        const owned = Boolean(state.ownedHousing[housing.id]);
-        const districtUnlocked = state.districts[housing.districtId]?.unlocked;
-        const active = state.activeResidence === housing.id;
-        return (
-          <article className="action-card vertical" key={housing.id}>
-            <div>
-              <p className="eyebrow">{districts.find((district) => district.id === housing.districtId)?.name} / {owned ? "Owned" : "For Sale"}</p>
-              <h2>{housing.name}</h2>
-              <p className="muted">{housing.passiveBonuses.join(", ")}</p>
-              <p className="fine">Cost {housing.cost} Credits / Unlock {housing.unlockRequirements.join(", ")}</p>
-              <p className="fine">Active bonus: +2% action speed, {modifierSummary(housing.passiveModifiers ?? {})}</p>
-              <p className="fine">Storage +{housing.storageBonus}, offline cap +{housing.offlineCapBonusHours}h, Heat decay +{housing.heatDecayBonus}, IN recovery +{housing.neuralRecoveryBonus}</p>
-            </div>
-            {owned ? (
-              <button className="primary-button full" disabled={active} onClick={() => onSetResidence(housing.id)}>
-                {active ? "Active Residence" : "Set Active"}
-              </button>
-            ) : (
-              <button className="primary-button full" disabled={!districtUnlocked || state.resources.credits < housing.cost} onClick={() => onBuy(housing.id)}>
-                Buy
-              </button>
-            )}
-          </article>
-        );
-      })}
-    </section>
-  );
+  const [view, setView] = useState<"market" | "owned">("market");
+  const owned = housingOptions.filter(home => state.ownedHousing[home.id]);
+  const homes = view === "market" ? housingOptions : owned;
+  return <section className="stack asset-hub">
+    <nav className="asset-section-tabs" aria-label="Housing sections">
+      <button aria-pressed={view === "market"} onClick={() => setView("market")}>Property market<small>Browse all homes</small></button>
+      <button aria-pressed={view === "owned"} onClick={() => setView("owned")}>Owned homes<small>{owned.length} properties</small></button>
+    </nav>
+    <p className="fine">{view === "market" ? "Homes across every district. Purchase requirements apply wherever you browse." : "Choose your active residence. All owned homes are available here."}</p>
+    {homes.length === 0 && <article className="panel"><h3>No homes owned yet</h3><p>Visit the property market to buy your first residence.</p><button className="primary-button" onClick={() => setView("market")}>Browse homes</button></article>}
+    <div className="asset-card-grid">{homes.map(home => {
+      const isOwned = Boolean(state.ownedHousing[home.id]);
+      const active = state.activeResidence === home.id;
+      return <article className="action-card vertical" key={home.id}>
+        <div><p className="eyebrow">{getDistrict(home.districtId)?.name} / {active ? "Active residence" : isOwned ? "Owned" : "For sale"}</p>
+          <h3>{home.name}</h3><p className="fine">Active bonus: +2% action speed, {modifierSummary(home.passiveModifiers ?? {})}</p>
+          <p className="fine">Storage +{home.storageBonus} / Offline cap +{home.offlineCapBonusHours}h / Garage slots +{home.garageSlots ?? 0}</p>
+          {view === "market" && <><p className="fine">Price: {home.cost.toLocaleString()} Credits</p><p className="fine">Requires {getDistrict(home.districtId)?.name} access. {home.unlockRequirements.join(" / ")}</p></>}
+        </div>
+        {view === "market" ? <button className="primary-button full" disabled={!canBuyHousing(state, home.id)} onClick={() => onBuy(home.id)}>{isOwned ? "Owned" : "Buy home"}</button> : <button className="primary-button full" disabled={active} onClick={() => onSetResidence(home.id)}>{active ? "Active residence" : "Set active residence"}</button>}
+      </article>;
+    })}</div>
+  </section>;
 }
 
-function GarageSection({
-  state,
-  onBuy,
-  onSetVehicle,
-  onUpgradeVehicle,
-}: {
-  state: GameState;
-  onBuy: (id: string) => void;
-  onSetVehicle: (id: string) => void;
-  onUpgradeVehicle: (id: string) => void;
+export function GarageSection({ state, onBuy, onSetVehicle, onUpgradeVehicle }: {
+  state: GameState; onBuy: (id: string) => void; onSetVehicle: (id: string) => void; onUpgradeVehicle: (id: string) => void;
 }) {
-  const ownedCount = Object.values(state.ownedVehicles).filter(Boolean).length;
-  return (
-    <section className="stack">
-      <article className="panel">
-        <p className="eyebrow">Garage slots</p>
-        <h2>{ownedCount} / {garageSlots(state)}</h2>
-        <p className="muted">Only one active vehicle applies bonuses at a time. Housing can add garage slots.</p>
-      </article>
-      {vehicles.map((vehicle) => {
-        const owned = Boolean(state.ownedVehicles[vehicle.id]);
-        const active = state.activeVehicle === vehicle.id;
-        const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
-        const canBuy = !owned && ownedCount < garageSlots(state);
-        return (
-          <article className={`action-card vertical rarity-${vehicle.rarity.toLowerCase()}`} key={vehicle.id}>
-            <div>
-              <p className="eyebrow">{vehicle.rarity} / {districts.find((district) => district.id === vehicle.districtId)?.name}</p>
-              <h3>{vehicle.name} {owned ? `+${level}` : ""}</h3>
-              <p className="muted">{vehicle.sourceHint}</p>
-              <p className="fine">Unlock: {vehicle.unlockRequirements.join(", ")}</p>
-              <p className="fine">Cost: {formatRewards(vehicle.cost)}</p>
-              <p className="fine">Speed {vehicle.stats.speed}, Armor {vehicle.stats.armor}, Storage {vehicle.stats.storage}, Stealth {vehicle.stats.stealth}</p>
-              <p className="fine">Heat Reduction {vehicle.stats.heatReduction}%, Job Efficiency {vehicle.stats.jobEfficiency}%, Smuggling Bonus {vehicle.stats.smugglingRewardBonus}%</p>
-              <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
-            </div>
-            <div className="card-list compact">
-              {owned ? (
-                <>
-                  <button className="primary-button full" disabled={active} onClick={() => onSetVehicle(vehicle.id)}>
-                    {active ? "Active" : "Set Active"}
-                  </button>
-                  <button className="secondary-button full" disabled={level >= vehicle.maxUpgradeLevel} onClick={() => onUpgradeVehicle(vehicle.id)}>
-                    {level >= vehicle.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}
-                  </button>
-                </>
-              ) : (
-                <button className="primary-button full" disabled={!canBuy} onClick={() => onBuy(vehicle.id)}>
-                  Buy
-                </button>
-              )}
-            </div>
-          </article>
-        );
-      })}
-    </section>
-  );
+  const [view, setView] = useState<"dealership" | "garage">("dealership");
+  const owned = vehicles.filter(vehicle => state.ownedVehicles[vehicle.id]);
+  const catalog = view === "dealership" ? vehicles : owned;
+  return <section className="stack asset-hub">
+    <nav className="asset-section-tabs" aria-label="Vehicle sections">
+      <button aria-pressed={view === "dealership"} onClick={() => setView("dealership")}>Dealership<small>Browse all vehicles</small></button>
+      <button aria-pressed={view === "garage"} onClick={() => setView("garage")}>Garage<small>{owned.length} owned vehicles</small></button>
+    </nav>
+    <p className="fine">Garage capacity: {owned.length} / {garageSlots(state)}. Housing can add slots. Only your equipped vehicle applies its active bonuses.</p>
+    {view === "dealership" && <p className="fine">The complete vehicle catalog. Meet the listed requirements and purchase here from any district.</p>}
+    {owned.length >= garageSlots(state) && view === "dealership" && <p className="warning-text">Garage full. Buy a home with garage slots to make room.</p>}
+    {catalog.length === 0 && <article className="panel"><h3>Your garage is empty</h3><p>Purchase a vehicle at the dealership to equip or upgrade it here.</p><button className="primary-button" onClick={() => setView("dealership")}>Visit dealership</button></article>}
+    <div className="asset-card-grid">{catalog.map(vehicle => {
+      const isOwned = Boolean(state.ownedVehicles[vehicle.id]);
+      const active = state.activeVehicle === vehicle.id;
+      const level = state.vehicleUpgradeLevels[vehicle.id] ?? 0;
+      const maxed = level >= vehicle.maxUpgradeLevel;
+      return <article className={"action-card vertical rarity-" + vehicle.rarity.toLowerCase()} key={vehicle.id}>
+        <div><p className="eyebrow">{vehicle.rarity} / {vehicle.type} / {active ? "Equipped" : isOwned ? "Owned" : "For sale"}</p>
+          <h3>{vehicle.name}{isOwned ? " +" + level : ""}</h3>
+          <p className="fine">Speed {vehicle.stats.speed} / Armor {vehicle.stats.armor} / Storage {vehicle.stats.storage} / Stealth {vehicle.stats.stealth}</p>
+          <p className="fine">Active bonus: +2% action speed, {modifierSummary(vehicle.passiveModifiers)}</p>
+          {view === "dealership" ? <><p className="fine">Price: {formatRewards(vehicle.cost)}</p><p className="fine">Requires {getDistrict(vehicle.districtId)?.name} access. {vehicle.unlockRequirements.join(" / ")}</p></> : <p className="fine">{maxed ? "Fully upgraded" : "Next upgrade: " + formatRewards(vehicleUpgradeCost(state, vehicle.id))}</p>}
+        </div>
+        {view === "dealership" ? <button className="primary-button full" disabled={!canBuyVehicle(state, vehicle.id)} onClick={() => onBuy(vehicle.id)}>{isOwned ? "Owned" : "Buy vehicle"}</button> : <div className="card-list compact"><button className="primary-button full" disabled={active} onClick={() => onSetVehicle(vehicle.id)}>{active ? "Equipped" : "Equip vehicle"}</button><button className="secondary-button full" disabled={!canUpgradeVehicle(state, vehicle.id)} onClick={() => onUpgradeVehicle(vehicle.id)}>{maxed ? "Max upgrade" : "Upgrade vehicle"}</button></div>}
+      </article>;
+    })}</div>
+  </section>;
 }
 
 function CompanionsSection({

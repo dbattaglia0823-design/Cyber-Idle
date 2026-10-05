@@ -2106,5 +2106,5 @@ export const skillActions: SkillAction[] = [
 
 ];
 
-// Component processing stays available in the workshop, separate from training cards.
+// Keep component-processing routes separate from the three district training cards.
 export const trainingSkillActions = skillActions.filter(action => !action.tags?.includes("supply"));

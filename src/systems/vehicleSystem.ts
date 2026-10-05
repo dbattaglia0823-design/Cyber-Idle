@@ -57,12 +57,22 @@ export function setActiveVehicle(state: GameState, vehicleId: string) {
   return next;
 }
 
+export function vehicleUpgradeCost(state: GameState, vehicleId: string): RewardBundle {
+  const level = state.vehicleUpgradeLevels[vehicleId] ?? 0;
+  return { vehicleParts: 5 * (level + 1), credits: calculateVehicleUpgradeCost(state, level), engineCore: level >= 4 ? 1 : 0 };
+}
+
+export function canUpgradeVehicle(state: GameState, vehicleId: string) {
+  const vehicle = vehicles.find(entry => entry.id === vehicleId);
+  return Boolean(vehicle && state.ownedVehicles[vehicleId] && (state.vehicleUpgradeLevels[vehicleId] ?? 0) < vehicle.maxUpgradeLevel && canPay(state, vehicleUpgradeCost(state, vehicleId)));
+}
+
 export function upgradeVehicle(state: GameState, vehicleId: string) {
   const vehicle = vehicles.find((entry) => entry.id === vehicleId);
   if (!vehicle || !state.ownedVehicles[vehicleId]) return state;
   const level = state.vehicleUpgradeLevels[vehicleId] ?? 0;
   if (level >= vehicle.maxUpgradeLevel) return state;
-  const cost = { vehicleParts: 5 * (level + 1), credits: calculateVehicleUpgradeCost(state, level), engineCore: level >= 4 ? 1 : 0 };
+  const cost = vehicleUpgradeCost(state, vehicleId);
   if (!canPay(state, cost)) return state;
   const next = cloneState(state);
   pay(next, cost);

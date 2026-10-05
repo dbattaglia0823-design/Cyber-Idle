@@ -235,7 +235,7 @@ body, .app-shell { min-height: 100svh; }
   .app-shell .mobile-section-menu nav button[aria-current] { color: var(--network-yellow); border-color: var(--network-yellow); background: #f1e6600a; }
   .app-shell .mobile-main-navigation { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 6px; align-items: start; padding: 8px; }
   .app-shell .mobile-main-navigation > button { min-height: 62px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-  .app-shell .rpg-shell > .rpg-section-nav, .app-shell .runner-workspace > .character-tabs, .app-shell .menu-network > .network-tabs { display: none; }
+  .app-shell .rpg-shell > .rpg-section-nav:not(.district-primary-tabs), .app-shell .runner-workspace > .character-tabs, .app-shell .menu-network > .network-tabs { display: none; }
   .app-shell .rpg-shell:not([data-section="journal"]) > :is(.rpg-masthead, .rpg-hero) { display: none; }
   .app-shell .runner-workspace > .mobile-section-menu { margin: 8px 0; }
   .app-shell .runner-summary { flex-direction: row; flex-wrap: wrap; gap: 8px; }
@@ -308,3 +308,32 @@ body, .app-shell { min-height: 100svh; }
   .main-menu-card small { font-size: 12px; line-height: 1.4; }
   .main-menu-missions { grid-column: 1 / -1; min-height: 100px; }
 }
+
+/* Direct district entry on phones, including compact landscape. */
+.mobile-district-grid { display: none; }
+@media (max-width: 600px), (max-width: 950px) and (max-height: 500px) {
+  .app-shell .city-explorer { display: none; }
+  .app-shell .mobile-district-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+  .app-shell .district-tile { display: flex; flex-direction: column; align-items: stretch; gap: 7px; min-width: 0; min-height: 170px; padding: 13px; border: 1px solid #385464; border-top: 3px solid var(--tile-accent); border-radius: 6px; background: linear-gradient(145deg, #172b36, #101720); color: #edf7ff; text-align: left; white-space: normal; cursor: pointer; }
+  .app-shell .district-tile-top { display: flex; align-items: center; justify-content: space-between; color: var(--tile-accent); font: 700 12px Consolas, monospace; }
+  .app-shell .district-tile strong { font-size: 17px; line-height: 1.25; overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+  .app-shell .district-tile small { font-size: 12px; line-height: 1.4; color: #becbd6; white-space: normal; overflow-wrap: anywhere; }
+  .app-shell .district-tile-status { font-size: 11px; font-weight: 700; color: #7de6c1; }
+  .app-shell .district-tile-enter { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: auto; padding-top: 8px; border-top: 1px solid #385464; color: #f1e660; font-size: 12px; font-weight: 700; }
+  .app-shell .district-tile:disabled { opacity: 1; cursor: default; background: #111822; border-color: #34424f; }
+  .app-shell .district-tile:disabled .district-tile-top, .app-shell .district-tile:disabled .district-tile-status { color: #a7b7c6; }
+  .app-shell .district-tile .district-tile-requirement { margin-top: auto; padding-top: 7px; border-top: 1px solid #34424f; }
+  .app-shell .district-tile:not(:disabled):hover, .app-shell .district-tile:focus-visible { outline: 2px solid #f1e660; outline-offset: 2px; background: #203440; }
+}
+@media (min-width: 601px) and (max-width: 950px) and (max-height: 500px) {
+  .app-shell .mobile-district-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.asset-section-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.asset-section-tabs button { display: grid; gap: 5px; min-height: 72px; padding: 12px; border: 1px solid #45616d; border-top: 3px solid #6de4ed; border-radius: 4px; background: #14232d; color: #edf7ff; font-size: 18px; font-weight: 700; text-align: left; white-space: normal; }
+.asset-section-tabs button small { font-size: 12px; font-weight: 400; color: #bdcbd6; }
+.asset-section-tabs button[aria-pressed="true"] { border-color: #f1e660; color: #f1e660; background: #272b25; }
+.asset-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.asset-card-grid > article { min-width: 0; }
+.asset-card-grid h3, .asset-card-grid p { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .asset-section-tabs { gap: 7px; } .asset-section-tabs button { font-size: 16px; } }

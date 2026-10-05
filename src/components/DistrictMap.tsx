@@ -1,5 +1,5 @@
 import { rpgMissions } from "../data/rpgCampaign";
-import { ChevronRight, LockKeyhole } from "lucide-react";
+import { ChevronRight, LockKeyhole, MapPin } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import mapImage from "../assets/maps/Map.png";
 import { factions } from "../data/factions";
@@ -33,11 +33,27 @@ export function DistrictMap({ state, activeDistrictId, activeActivityName, onOpe
     <section className="city-image-shell">
       <div className="city-image-header">
         <div>
-          <p className="eyebrow">Metro Grid / Live Overlay</p>
+          <p className="eyebrow">City / District directory</p>
           <h2>Select a district</h2>
         </div>
         <span className="warning-badge">{cityDistrictOrder.filter((id) => state.districts[id]?.unlocked).length}/{cityDistrictOrder.length} open</span>
       </div>
+
+      <nav className="mobile-district-grid" aria-label="District tiles">
+        {cityDistrictOrder.map((id, index) => {
+          const district = getDistrict(id)!;
+          const unlocked = Boolean(state.districts[id]?.unlocked);
+          const active = activeDistrictId === id;
+          const color = cityMapOverlayRegions.find(region => region.districtId === id)?.color ?? "#6de4ed";
+          return <button key={id} className="district-tile" disabled={!unlocked} style={{ "--tile-accent": color } as CSSProperties} onClick={() => onOpenDistrict(id)}>
+            <span className="district-tile-top"><span>{String(index + 1).padStart(2, "0")}</span>{unlocked ? <MapPin size={20} /> : <LockKeyhole size={20} />}</span>
+            <strong>{district.name}</strong>
+            <small>{districtLevelBandLabel(id)}</small>
+            <span className="district-tile-status">{active ? "Activity running" : unlocked ? "District open" : "Locked"}</span>
+            {unlocked ? <span className="district-tile-enter">Enter district <ChevronRight size={16} /></span> : <small className="district-tile-requirement">{requirementHint(state, district.unlockRequirements[0] ?? "Complete the previous main job")}</small>}
+          </button>;
+        })}
+      </nav>
 
       <div className="city-explorer">
         <nav className="network-sidebar city-district-list" aria-label="City districts">
