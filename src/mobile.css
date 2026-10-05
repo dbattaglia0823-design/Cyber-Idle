@@ -337,3 +337,17 @@ body, .app-shell { min-height: 100svh; }
 .asset-card-grid > article { min-width: 0; }
 .asset-card-grid h3, .asset-card-grid p { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .asset-section-tabs { gap: 7px; } .asset-section-tabs button { font-size: 16px; } }
+
+/* Keep the SIM dock above the actual nav height, including safe-area padding. */
+.app-shell .floating-sim-cache {
+  position: fixed; inset: auto max(10px, env(safe-area-inset-right)) calc(var(--navigation-height, 86px + env(safe-area-inset-bottom)) + 10px) auto;
+  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 8px; margin: 0;
+  width: min(300px, calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right))); pointer-events: none;
+}
+.app-shell .sim-cache-button { pointer-events: auto; display: flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-width: 68px; min-height: 44px; padding: 9px 12px; border-radius: 6px; }
+.app-shell .sim-cache-menu { pointer-events: auto; width: 100%; min-height: 0; max-height: calc(100dvh - var(--navigation-height, 86px + env(safe-area-inset-bottom)) - 80px - env(safe-area-inset-top)); overflow-y: auto; overscroll-behavior: contain; }
+.app-shell .sim-cache-scrim { bottom: var(--navigation-height, calc(86px + env(safe-area-inset-bottom))); }
+.app-shell { padding-bottom: calc(var(--navigation-height, 86px + env(safe-area-inset-bottom)) + 68px); }
+
+.app-shell .back-to-top { position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: calc(var(--navigation-height, 86px + env(safe-area-inset-bottom)) + 10px); z-index: 30; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 1px solid #48d9e8; border-radius: 8px; background: #101d29; color: #6de4ed; box-shadow: 0 3px 12px #0006; cursor: pointer; }
+.app-shell .back-to-top:hover, .app-shell .back-to-top:focus-visible { color: #f1e660; outline: 2px solid #f1e660; outline-offset: 2px; }

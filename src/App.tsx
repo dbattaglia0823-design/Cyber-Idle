@@ -1,3 +1,4 @@
+import { BackToTop } from "./components/BackToTop";
 import { MobileSectionMenu } from "./components/MobileSectionMenu";
 import { rpgMissions, rpgSideGigs } from "./data/rpgCampaign";
 import { QuickhackPanel } from "./components/QuickhackPanel";
@@ -521,6 +522,7 @@ function App() {
         )}
       </main>
 
+      <BackToTop />
       <FloatingSimCacheButton
         state={state}
         open={simMenuOpen}
@@ -545,7 +547,7 @@ function App() {
 
       <nav className="bottom-nav" aria-label="Primary">
         {tabs.map(({ id, label, Icon }) => (
-          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setTab(id); }}>
+          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setSimMenuOpen(false); setTab(id); }}>
             <Icon size={20} />
             <span>{label}</span>
             {tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled) && <b className="tab-indicator">{tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled)}</b>}
@@ -739,6 +741,17 @@ function FloatingSimCacheButton({
   onRun: (count: number) => void;
   onOpenFull: () => void;
 }) {
+  const dock = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const shell = dock.current?.closest<HTMLElement>(".app-shell");
+    const navigation = shell?.querySelector<HTMLElement>(".bottom-nav");
+    if (!shell || !navigation) return;
+    const measure = () => shell.style.setProperty("--navigation-height", navigation.getBoundingClientRect().height + "px");
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(navigation, { box: "border-box" });
+    return () => { observer.disconnect(); shell.style.removeProperty("--navigation-height"); };
+  }, []);
   const available = state.inventory["basic-sim-cache"] ?? 0;
   const eligibility = simCacheEligibility(state);
   const active = activeActivity(state);
@@ -751,7 +764,7 @@ function FloatingSimCacheButton({
   return (
     <>
       {open && <button className="sim-cache-scrim" aria-label="Close Sim Cache menu" onClick={onClose} />}
-      <aside className="floating-sim-cache">
+      <aside className="floating-sim-cache" ref={dock}>
         <button className={`sim-cache-button ${available > 0 ? "ready" : ""}`} onClick={onToggle} aria-expanded={open}>
           <span>SIM</span>
           <strong>{available}</strong>
@@ -1663,7 +1676,6 @@ function DistrictSkillWorkPanel({
         </div>
         <p className="muted">{skillDescriptions[skillId]}</p>
         <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
-        <p className="fine">Three training actions per skill in each district.</p>
       </article>
 
       {actions.length > 0 && (
@@ -2639,7 +2651,6 @@ function ActionCard({
   onStart: () => void;
   onStop?: () => void;
 }) {
-  const mastery = state.actionMastery[action.id] ?? { level: 1, xp: 0 };
   const requiredItemsMet = Object.entries(action.requiredItems ?? {}).every(([id, amount]) => {
     if (id in resourceNames) return state.resources[id as ResourceId] >= amount;
     return (state.inventory[id] ?? 0) >= amount;
@@ -2654,13 +2665,9 @@ function ActionCard({
   const positiveRewards = positiveRewardBundle(displayedRewards);
   const manuallyDone = Boolean(state.manualDiscovery.skillActions[action.id]);
   const active = state.activeAction?.actionId === action.id;
-  const nextMasteryMilestone = nextActionMasteryMilestone(mastery.level);
   const progress = active && state.activeAction ? activityProgress(state.activeAction.startedAt, state.activeAction.durationMs) : null;
-  const badges = actionRecommendationBadges(state, action, displayedRewards);
   const duration = adjustedActionDurationMs(state, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]);
   const displayedXpReward = actionXpRewardWithMastery(state, action);
-  const displayedMasteryXpReward = Math.round(actionMasteryXpReward(state, action) * (1 + getActiveModifiers(state).masteryXpGain));
-  const districtMasteryXp = action.districtReq ? Math.max(4, Math.round(action.xpReward * 0.55 + displayedMasteryXpReward * 0.35)) : 0;
   return (
     <article className={`action-card action-mission-card ${active ? "active-card" : ""} ${locked ? "locked-card" : ""}`}>
       <div className="mission-card-frame">
@@ -2671,13 +2678,11 @@ function ActionCard({
           </div>
           <div className="mission-header-tools">
             <StatusBadge locked={locked} active={active} />
-            <RiskBadge action={action} />
             <ActionIconPlaceholder action={action} />
           </div>
         </header>
 
         <p className="mission-description">{action.description}</p>
-        <RecommendationBadges badges={badges} />
 
         <div className="mission-section-stack">
           <InfoSectionRow icon={<Target size={22} />} title="Requirements">
@@ -2697,16 +2702,8 @@ function ActionCard({
             <div className="mission-gain-grid">
               <strong>+{displayedXpReward}</strong>
               <span>{skillNames[action.skillId]} XP</span>
-              <strong>+{displayedMasteryXpReward}</strong>
-              <span>Mastery XP</span>
             </div>
           </InfoSectionRow>
-
-          <MissionProgressSummary
-            mastery={mastery}
-            nextMasteryMilestone={nextMasteryMilestone}
-            districtMasteryXp={districtMasteryXp}
-          />
 
           <InfoSectionRow icon={<Gift size={22} />} title="Rewards">
             <div className="reward-chip-grid">
