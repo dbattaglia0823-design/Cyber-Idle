@@ -1,7 +1,7 @@
 import type { RewardPopupGroup } from "../types";
 
-export function RewardPopupContainer({ popups, now, onDismiss }: { popups: RewardPopupGroup[]; now: number; onDismiss: (id: string) => void }) {
-  const visible = popups.filter((popup) => popup.expiresAt > now).slice(0, 2);
+export function RewardPopupContainer({ popups, now, onDismiss, combatActive = false }: { combatActive?: boolean; popups: RewardPopupGroup[]; now: number; onDismiss: (id: string) => void }) {
+  const visible = popups.filter((popup) => popup.expiresAt > now && (!combatActive || ["rare", "level", "warning", "blueprint"].includes(popup.category))).slice(0, combatActive ? 1 : 2);
   if (!visible.length) return null;
   return (
     <aside className="reward-popup-stack" aria-live="polite" aria-label="Reward notifications">
@@ -10,7 +10,7 @@ export function RewardPopupContainer({ popups, now, onDismiss }: { popups: Rewar
           {popup.skill ? <span className="reward-popup-skill-heading">{popup.skill.name} <b>Lv {popup.skill.level}</b></span> : <span className="reward-popup-badge">{labelForCategory(popup.category)}</span>}
           <strong>{popup.title}</strong>
           <span className="reward-popup-lines">
-            {popup.lines.map((line) => (
+            {[...popup.lines].sort((a, b) => Number(["rare", "level", "blueprint"].includes(b.category)) - Number(["rare", "level", "blueprint"].includes(a.category))).slice(0, 3).map((line) => (
               <em className={`reward-line reward-line-${line.category}`} key={line.id}>
                 {line.label}
               </em>

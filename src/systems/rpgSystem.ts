@@ -190,7 +190,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   }
   if (action === "aim") { e.aimed = true; cover = true; }
   if (action === "cover") { cover = true; if (next.rpg.perks["vanishing-point"]) e.aimed = true; }
-  if (action === "heal") { e.meds--; next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * stats.heal)); }
+  if (action === "heal") { const beforeHp = next.health.currentHp; e.meds--; next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * stats.heal)); e.log.push(`Field injector restored ${next.health.currentHp - beforeHp} HP.`); }
   if (action === "overclock") { e.ram = Math.min(maxRam(next), e.ram + 3); cover = true; }
   if (e.turn <= (next.rpg.perks["ghost-protocol"] ? 1 : 0) && next.rpg.perks.ambush) damage *= 1.6;
   damage = Math.round(damage);

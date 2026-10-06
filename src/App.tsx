@@ -1,3 +1,5 @@
+import { DistrictJourney } from "./screens/District/DistrictJourney";
+import { StartingPathScreen, StartingPathBadge, startingPathImages } from "./screens/Start/StartingPathScreen";
 import { NextGoal } from "./components/NextGoal";
 import { PlayerNavigation, usePlayerNavigation, revealDetail } from "./components/PlayerNavigation";
 import { BackToTop } from "./components/BackToTop";
@@ -47,9 +49,6 @@ import {
   X,
 } from "lucide-react";
 import cyberwareBackgroundImage from "./assets/cyberware/CyberwareBackground.png";
-import corporateDefectorPathImage from "./assets/starting-paths/CorporateDefector.png";
-import outriderPathImage from "./assets/starting-paths/Outrider.png";
-import streetbornPathImage from "./assets/starting-paths/Streetborn.png";
 import { companions } from "./data/companions";
 import { combatZones } from "./data/combat";
 import { districtEvents } from "./data/districtEvents";
@@ -232,11 +231,7 @@ const characterSections: Array<{ id: CharacterSectionId; label: string }> = [
 
 const isDevBuild = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
 
-const startingPathImages: Record<StartingPathId, string> = {
-  outrider: outriderPathImage,
-  streetborn: streetbornPathImage,
-  corporateDefector: corporateDefectorPathImage,
-};
+
 
 function App() {
   const [activeSaveSlot, setActiveSaveSlotState] = useState<SaveSlotId>(() => getActiveSaveSlot());
@@ -551,7 +546,7 @@ function App() {
         }}
       />
 
-      <RewardPopupContainer
+      <RewardPopupContainer combatActive={state.rpg.active?.phase === "combat"}
         popups={state.rewardPopups ?? []}
         now={now}
         onDismiss={(id) => setState((current) => ({ ...current, rewardPopups: (current.rewardPopups ?? []).filter((popup) => popup.id !== id) }))}
@@ -653,91 +648,6 @@ function loadTabNoticesEnabled() {
 
 function saveTabNoticesEnabled(enabled: boolean) {
   localStorage.setItem("neon-idle-tab-notices-enabled", String(enabled));
-}
-
-function StartingPathScreen({
-  activeSaveSlot,
-  saveSlots,
-  onChoose,
-  onSwitchSave,
-  onNewSave,
-}: {
-  activeSaveSlot: SaveSlotId;
-  saveSlots: SaveSlotSummary[];
-  onChoose: (pathId: StartingPathId) => void;
-  onSwitchSave: (slot: SaveSlotId) => void;
-  onNewSave: (slot: SaveSlotId) => void;
-}) {
-  const [selectedPath, setSelectedPath] = useState<StartingPathId>("streetborn");
-  const selected = startingPaths.find((path) => path.id === selectedPath) ?? startingPaths[0];
-  return (
-    <div className="app-shell path-screen">
-      <main className="path-select-main">
-        <section className="path-save-slots">
-          {saveSlots.map((slot) => (
-            <button key={slot.slot} className={activeSaveSlot === slot.slot ? "active" : ""} onClick={() => (slot.exists ? onSwitchSave(slot.slot) : onNewSave(slot.slot))}>
-              <span>Slot {slot.slot}{activeSaveSlot === slot.slot ? " / Active" : ""}</span>
-              <strong>{slot.exists ? startingPaths.find((path) => path.id === slot.startingPath)?.name ?? "No Path" : "Empty"}</strong>
-            </button>
-          ))}
-        </section>
-        <section className="path-hero">
-          <div>
-            <p className="eyebrow">01 / CHOOSE YOUR ORIGIN</p>
-            <h1>Choose Your Lifepath</h1>
-            <p className="muted">Choose the background you like. Every lifepath can use weapons, quickhacks and crafting. Your origin adds bonuses and special story approaches, and is permanent for this save.</p>
-          </div>
-          <div className="path-selected-chip">
-            <StartingPathBadge pathId={selected.id} name={selected.name} />
-            <span>{selected.name}</span>
-          </div>
-        </section>
-        <div className="start-roadmap" aria-label="First steps"><span><b>1</b> Choose an origin</span><span><b>2</b> Collect your free field kit</span><span><b>3</b> Prepare for Dead Drop</span></div>
-        <section className="path-choice-grid">
-          {startingPaths.map((path) => (
-            <article className={`path-choice-card ${selectedPath === path.id ? "selected" : ""}`} key={path.id} onClick={() => setSelectedPath(path.id)}>
-              <button className="path-image-button" type="button" aria-label={`Select ${path.name}`} aria-pressed={selectedPath === path.id}>
-                <img src={startingPathImages[path.id]} alt="" />
-                <span className="path-image-vignette" />
-                <strong>{path.name}</strong>
-              </button>
-              <div className="path-choice-copy">
-                <p className="eyebrow">Origin Profile</p>
-                <h2>{path.name}</h2>
-                <p className="muted">{path.theme}</p>
-                <div className="path-trait-list">
-                  <div>
-                    <span>Advantages</span>
-                    {path.bonuses.map((bonus) => <p key={bonus}>{bonus}</p>)}
-                  </div>
-                  <div>
-                    <span>Complications</span>
-                    {path.penalties.map((penalty) => <p key={penalty}>{penalty}</p>)}
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
-        <section className="path-lockbar">
-          <div>
-            <p className="eyebrow">Selected</p>
-            <h2>{selected.name}</h2>
-            <p className="muted">{selected.theme}</p>
-          </div>
-          <button className="primary-button" onClick={() => onChoose(selected.id)}>Lock In {selected.name}</button>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-function StartingPathBadge({ pathId, name }: { pathId: StartingPathId; name: string }) {
-  return (
-    <span className="starting-path-badge" title={name} aria-label={name}>
-      <img src={startingPathImages[pathId]} alt="" />
-    </span>
-  );
 }
 
 function FloatingSimCacheButton({
@@ -1048,7 +958,7 @@ export function DistrictHub({
       </details>
       {category === "overview" ? (
         <>
-          <DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
+          <DistrictJourney state={state} districtId={districtId} /><DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
           <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
         </>
       ) : (
@@ -3867,10 +3777,10 @@ function InventoryTab({
                 <span>Qty {count}</span>
               </button>
             );
-          }) : <p className="muted">No matching items. Try another category or clear your search.</p>}
+          }) : <p className="muted">No matching items. Try another category or clear your search.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setGearSlot(null); }}>Reset filters</button></p>}
         </div>
       </article>
-      <article className="panel runner-item-inspector" aria-label="Selected item" tabIndex={-1}><button className="detail-back secondary-button" onClick={() => revealDetail(".runner-stash")}>Back to inventory</button>
+      <article className="panel runner-item-inspector" aria-label="Selected item" tabIndex={-1}><button className="detail-back secondary-button" onClick={() => revealDetail(".runner-stash .inventory-slot.active, .runner-stash")}>Back to inventory</button>
         {activeId && selectedItem ? (
           <div className={`inventory-detail rarity-${selectedItem.rarity.toLowerCase()}`}>
             <div className="panel-heading">
@@ -3881,11 +3791,31 @@ function InventoryTab({
               <EquipmentTypeIconBadge item={selectedItem} />
             </div>
             <p className="muted">{selectedItem.description}</p>
-            {selectedItem.slot && <p className="fine">Equip requirement: {itemAttributeRequirement(selectedItem).label}</p>}
+            {selectedItem.slot && <p className="fine">{selectedIsEquipped ? "Equipped" : "Equip requirement"}: {itemAttributeRequirement(selectedItem).label} / Yours: {state.rpg.attributes[itemAttributeRequirement(selectedItem).attribute]}</p>}
             <p className="fine">Used for: {itemUseSummary(selectedItem.id)}</p>
             <p className="fine">Source: {selectedItem.sourceHint}</p>
             <p className="fine">Market value: {selectedItem.sellValue} / Quick sell: {selectedQuickSellValue.toLocaleString()} Credits</p>
             {selectedItem.stats && <StatComparisonLine state={state} itemId={activeId} compareItemId={selectedComparisonItemId} />}
+              {(selectedItem.type === "Weapon" || selectedItem.type === "Armor" || selectedItem.type === "Cyberware") && (
+                <button
+                  className="primary-button full"
+                  disabled={Boolean(state.rpg.active && selectedItem.slot === "operatingSystem") || (!selectedIsEquipped && !meetsItemAttributeRequirement(state, selectedItem))}
+                  title={selectedIsEquipped ? "Unequip item" : `Requires ${itemAttributeRequirement(selectedItem).label}`}
+                  onClick={() => {
+                    if (selectedEquippedGearSlot) {
+                      onUnequipGear(selectedEquippedGearSlot);
+                      return;
+                    }
+                    if (selectedEquippedCyberwareSlot) {
+                      onUnequipCyberware(selectedEquippedCyberwareSlot);
+                      return;
+                    }
+                    onEquip(activeId);
+                  }}
+                >
+                  {selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
+                </button>
+              )}
             {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
             {selectedItem.maxUpgradeLevel && (
               <div className="upgrade-cost-box">
@@ -3913,26 +3843,6 @@ function InventoryTab({
             {selectedItem.type === "WeaponMod" && <p className="fine">Mod: {selectedItem.specialEffect} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
             {selectedItem.type === "Cyberware" ? <p className="fine">Equipped Instability {formatSigned(cyberwareInstabilityLoad(selectedItem))}</p> : null}
             <div className="inventory-actions">
-              {(selectedItem.type === "Weapon" || selectedItem.type === "Armor" || selectedItem.type === "Cyberware") && (
-                <button
-                  className="primary-button full"
-                  disabled={Boolean(state.rpg.active && selectedItem.slot === "operatingSystem") || (!selectedIsEquipped && !meetsItemAttributeRequirement(state, selectedItem))}
-                  title={selectedIsEquipped ? "Unequip item" : `Requires ${itemAttributeRequirement(selectedItem).label}`}
-                  onClick={() => {
-                    if (selectedEquippedGearSlot) {
-                      onUnequipGear(selectedEquippedGearSlot);
-                      return;
-                    }
-                    if (selectedEquippedCyberwareSlot) {
-                      onUnequipCyberware(selectedEquippedCyberwareSlot);
-                      return;
-                    }
-                    onEquip(activeId);
-                  }}
-                >
-                  {selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
-                </button>
-              )}
               {selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
               <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>
                 Sell 1 for {selectedQuickSellValue.toLocaleString()} Credits
@@ -4175,9 +4085,9 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
               </button>
             );
           })}
-          {!sortedRecipes.length && <p className="muted">No recipes match. Try another category, clear your search, or turn off Ready to craft.</p>}
+          {!sortedRecipes.length && <p className="muted">No recipes match. Try another category, clear your search, or turn off Ready to craft.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setReadyOnly(false); }}>Reset filters</button></p>}
         </div>
-        <aside tabIndex={-1} aria-label="Selected recipe" className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}><button className="detail-back secondary-button" onClick={() => revealDetail(".crafting-recipe-list")}>Back to recipes</button>
+        <aside tabIndex={-1} aria-label="Selected recipe" className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}><button className="detail-back secondary-button" onClick={() => revealDetail(".crafting-recipe-tile.active")}>Back to recipes</button>
           {selectedRecipe ? (
             <>
               <div className="panel-heading">
@@ -5508,7 +5418,7 @@ function ItemIndexPanel({ state }: { state: GameState }) {
         <button className={`secondary-button ${showIds ? "active" : ""}`} onClick={() => setShowIds((value) => !value)}>IDs</button>
       </div>
       <div className="item-index-layout">
-        <div className="item-slot-grid item-index-grid">
+        <div className="item-slot-grid item-index-grid" tabIndex={-1}>
           {sorted.length ? sorted.map((item) => (
             <ItemIndexCard key={item.id} item={item} state={state} active={activeId === item.id} showIds={showIds} onSelect={() => { setSelectedId(item.id); revealDetail(".item-index-detail"); }} />
           )) : <p className="muted">No discovered items match. Clear your search, choose another category, or include undiscovered items.</p>}
@@ -5546,7 +5456,7 @@ function ItemIndexDetailPanel({ state, item, showIds, showHidden }: { state: Gam
   return (
     <article tabIndex={-1} aria-label="Selected item details" className={`panel item-index-detail rarity-${item.rarity.toLowerCase()}`}>
       {sourceOpen && <ItemSourcePopover state={state} itemId={item.id} usedAmount={1} onClose={() => setSourceOpen(false)} />}
-      <button className="secondary-button" onClick={() => setSourceOpen(true)}>Find sources</button>
+      <button className="detail-back secondary-button" onClick={() => revealDetail(".item-index-grid")}>Back to item list</button><button className="secondary-button" onClick={() => setSourceOpen(true)}>Find sources</button>
       <div className="panel-heading">
         <div>
           <p className="eyebrow">{item.rarity} / {item.type} / Owned {owned.toLocaleString()}</p>

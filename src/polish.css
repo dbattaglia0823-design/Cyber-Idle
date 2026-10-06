@@ -73,3 +73,60 @@
  .journey-checklist li:nth-child(2) span, .journey-checklist li:nth-child(3) span { flex-basis:100%; }
  .journey-checklist li:last-child { color:#aabfcc; }
 }
+
+/* Neon Row vertical-slice patterns, shared by every district. */
+.journey-preparation { align-self:center; border:1px solid #354953; background:#0b141c; padding:12px; }
+.journey-preparation summary { min-height:44px; display:list-item; cursor:pointer; line-height:1.5; font-weight:650; font-size:13px; color:#d5e8ef; }
+.journey-skip { background:none; border:0; color:#9cdae5; margin:8px; min-height:44px; text-decoration:underline; }
+.journey-actions { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+.journey-actions button { min-height:44px; }
+.district-journey, .mission-preparation { padding:18px; border:1px solid #37505a; border-left:3px solid #f1e660; background:#0f1d24; }
+.district-journey h2 { margin:8px 0; }
+.district-journey p, .mission-preparation p { line-height:1.6; margin:8px 0; }
+.mission-preparation { margin:20px 0; }
+.mission-debrief { padding:clamp(18px,4vw,40px); max-width:900px; margin:auto; scroll-margin-top:130px; }
+.mission-debrief h2 { font-size:clamp(28px,4vw,46px); margin:12px 0; color:#f1e660; }
+.mission-debrief p { line-height:1.65; }
+.debrief-rewards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:22px 0; }
+.debrief-rewards > div { display:grid; gap:8px; padding:14px; border:1px solid #3d535c; background:#12222b; }
+.debrief-rewards span { font-size:12px; color:#b5c9d6; }
+.debrief-rewards strong { color:#7be6bd; font-size:19px; }
+.debrief-loot { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.debrief-loot h3 { flex-basis:100%; margin-bottom:8px; }
+.debrief-loot > span { padding:10px; border:1px solid #3e4d5c; background:#111b25; font-size:13px; }
+.debrief-loot b { margin-left:8px; }
+.district-unlocked { background:linear-gradient(120deg,#293221,#13282b); border:1px solid #8b914c; padding:20px; margin:22px 0; }
+.district-unlocked h3 { font-size:26px; color:#f1e660; margin:8px 0; }
+.encounter-track { display:flex; list-style:none; padding:0; margin:14px 0; gap:6px; }
+.encounter-track li { flex:1; min-width:0; border-top:3px solid #3b4350; padding:8px; background:#121820; }
+.encounter-track span { display:block; font-size:11px; text-transform:uppercase; color:#b8c6d6; }
+.encounter-track small { display:block; margin-top:5px; font-size:11px; line-height:1.4; }
+.encounter-track .current { border-color:#f1e660; background:#282922; }
+.encounter-track .cleared { border-color:#6be0b1; }
+.boss-banner { padding:12px; border:1px solid #c86b7c; background:#482130; color:#ffbac6; font-weight:750; font-size:13px; }
+.combat-guidance.charged { border-color:#ff637b; background:#381e2b; }
+.combat-guidance.charged strong { color:#ffc0cd; }
+.combat-guidance p { margin-top:6px; }
+.encounter-art { object-fit:contain; }
+.rpg-combat-log .feedback-damage { color:#ffb2bd; }
+.rpg-combat-log .feedback-success { color:#82e8c1; }
+.reward-dismiss-hint { grid-column:1/-1; color:#b3c5d3; font-size:10px; text-align:right; }
+.app-shell .reward-popup-stack { bottom:calc(var(--navigation-height, 86px) + 64px); }
+@media(max-width:760px) {
+ .next-goal { gap:8px; }
+ .journey-preparation { padding:8px 12px; }
+ .next-goal .journey-checklist { display:block; }
+ .next-goal .journey-checklist li { flex-wrap:wrap; }
+ .encounter-track { gap:4px; }
+ .encounter-track li { padding:7px 4px; }
+ .encounter-track small { display:none; }
+ .rpg-combat .combat-guidance { padding:10px; }
+ .mission-debrief { padding:16px; }
+ .district-unlocked { padding:14px; }
+ .debrief-rewards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .debrief-rewards > div:last-child:nth-child(3) { grid-column:1/-1; }
+ .debrief-rewards strong { font-size:17px; }
+ .journey-actions button { flex:1 1 140px; }
+ .app-shell .reward-popup-stack { max-height:24dvh; overflow:auto; }
+ .app-shell .rpg-shell[data-section="journal"] > .rpg-hero { display:none; }
+}
