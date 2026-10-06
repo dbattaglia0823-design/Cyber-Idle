@@ -72,7 +72,7 @@ export function ProgressionGuide({ state, onStartSkill, onCraft, onOpenDistrict 
         <button disabled={!supply || state.activeAction?.actionId === supply.id} onClick={() => supply && onStartSkill(supply.id)}>{state.activeAction?.actionId === supply?.id ? "Gathering…" : "Gather components"}<ArrowRight size={15} /></button>
       </article>
       <article><div className="runner-guide-card-label"><Wrench size={18} /><span>02 / PREPARE</span><em>{ready ? "Ready to craft" : "Collect materials"}</em></div>
-        <h3>{craft.name}</h3><p>Build a weapon and armor, then stock medicine. Equip gear and enable auto-healing before combat.</p>
+        <h3>{craft.name}</h3><p>Build a weapon and armor, then stock medicine. Equip crafted gear before deploying. Auto-healing helps idle combat; main jobs use field injectors.</p>
         <div className="runner-guide-tags">{costs.map(([id, amount]) => {
           const owned = id in state.resources ? state.resources[id as keyof GameState["resources"]] : state.inventory[id] ?? 0;
           return <span className={owned < amount ? "is-missing" : ""} key={id}>{getItem(id)?.name ?? id} {Math.floor(owned)}/{amount}</span>;

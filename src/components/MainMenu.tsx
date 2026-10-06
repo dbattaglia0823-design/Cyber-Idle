@@ -1,3 +1,4 @@
+import { usePlayerNavigation } from "./PlayerNavigation";
 import { ArrowUpRight, Backpack, Cpu, HeartPulse, MessageSquare, SlidersHorizontal, Terminal, TrendingUp, UserRound, Zap } from "lucide-react";
 
 export type CharacterTool = "gear" | "cyberware" | "quickhacks" | "attributes" | "health" | "presets";
@@ -7,6 +8,7 @@ export function MainMenu({ onOpen, onCharacter, activeMission, points }: {
   activeMission?: string;
   points: number;
 }) {
+  const navigation = usePlayerNavigation();
   const tools = [
     { id: "gear", label: "Inventory & loadout", description: "Equip, upgrade and manage your gear.", Icon: Backpack },
     { id: "cyberware", label: "Cyberware", description: "Manage implants and your cyberdeck.", Icon: Cpu },
@@ -16,7 +18,8 @@ export function MainMenu({ onOpen, onCharacter, activeMission, points }: {
     { id: "presets", label: "Loadout presets", description: "Save and switch equipment sets.", Icon: SlidersHorizontal },
   ] as const;
   return <div className="main-menu">
-    <header><p className="eyebrow">RUNNER NETWORK</p><h1>Main</h1><p>Choose a section to get started.</p></header>
+    <header><p className="eyebrow">RUNNER NETWORK</p><h1>Main</h1><p>Your next objective and everything you need to prepare.</p></header>
+    <div className="main-shortcuts">{navigation.openCrafting && <button className="secondary-button" onClick={() => navigation.openCrafting?.()}>Craft gear</button>}{navigation.openIndex && <button className="secondary-button" onClick={navigation.openIndex}>Browse item index</button>}</div>
     <nav className="main-menu-grid" aria-label="Main section selection">
       <button className="main-menu-card main-menu-missions" onClick={() => onOpen("journal")}><MessageSquare /><span><strong>{activeMission ? "Continue mission" : "Missions"}</strong><small>{activeMission ?? "Main jobs, replayable local gigs and fixer services."}</small></span><ArrowUpRight /></button>
       {tools.map(({ id, label, description, Icon }) => <button className="main-menu-card" key={id} onClick={() => onCharacter(id)}><Icon /><span><strong>{label}</strong><small>{description}</small></span><ArrowUpRight /></button>)}

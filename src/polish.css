@@ -1,0 +1,75 @@
+
+/* Shared presentation for the start > prepare > deploy journey. */
+.next-goal { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:28px; padding:28px; border:1px solid #344b55; border-left:3px solid #f0e956; background:linear-gradient(120deg,#14232b,#0d1119); }
+.next-goal h2 { font-size:clamp(22px,3vw,34px); margin:8px 0 12px; line-height:1.15; }
+.next-goal p { color:#c0d0de; line-height:1.6; max-width:65ch; }
+.next-goal .primary-button { display:inline-flex; align-items:center; gap:16px; margin-top:8px; min-height:44px; }
+.journey-checklist { list-style:none; padding:0; margin:0; align-self:center; }
+.journey-checklist li { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid #293640; font-size:13px; line-height:1.5; }
+.journey-checklist li span { flex:1; }
+.journey-checklist button { padding:8px 10px; min-height:44px; border:1px solid #37505a; background:#12232b; color:#6ce6ef; border-radius:4px; }
+.main-shortcuts { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+.main-shortcuts button { min-height:44px; }
+.start-roadmap { display:flex; gap:12px; flex-wrap:wrap; margin:18px 0; }
+.start-roadmap span { display:flex; align-items:center; gap:8px; font-size:13px; color:#c9d5e0; }
+.start-roadmap b { display:grid; place-items:center; width:26px; height:26px; color:#f0e956; border:1px solid #6b682e; border-radius:50%; }
+.location-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border:1px solid #30414b; background:#101820; }
+.location-bar > div { display:grid; gap:4px; text-align:right; }
+.location-bar span { font-size:12px; color:#aabfcc; }
+.location-bar button { min-height:44px; }
+.crafting-search { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:16px 0; }
+.crafting-search > input { flex:1; min-width:140px; min-height:44px; background:#0b131b; color:#e7f0f8; border:1px solid #3c515e; padding:10px 12px; border-radius:4px; font:inherit; }
+.crafting-search label { display:flex; gap:8px; align-items:center; min-height:44px; font-size:13px; }
+.crafting-search label input { width:18px; height:18px; accent-color:#f0e956; }
+.runner-item-inspector, .crafting-detail-panel, .item-index-detail, .cyberware-details-drawer, .runner-stash, .crafting-recipe-list { scroll-margin-top:140px; min-width:0; }
+.detail-back { display:none; }
+.combat-guidance { margin:12px 0; padding:12px 14px; background:#13232b; border-left:3px solid #6ce6ef; color:#c9dce8; line-height:1.55; font-size:13px; }
+.combat-guidance strong { color:#fff; }
+.rpg-tactics button:disabled { opacity:.68; }
+.rpg-tactics .tactic-unavailable { color:#ffc4c4; margin-top:5px; }
+.rpg-combat-log p { line-height:1.55; }
+.source-popover { z-index:200; place-items:center; padding:24px; }
+.source-popover .sim-cache-scrim { inset:0; z-index:0; pointer-events:auto; }
+.source-popover-panel { z-index:1; width:min(640px,100%); max-height:85dvh; overscroll-behavior:contain; padding:20px; }
+.source-popover-panel .panel-heading { position:sticky; top:-20px; background:#080a0f; padding:12px 0; z-index:2; }
+.source-entry { border:1px solid #2b3c48; padding:14px; border-radius:5px; }
+.source-entry strong { color:#e8f0f6; }
+.source-entry span { line-height:1.5; }
+.source-entry .secondary-button { min-height:44px; margin-top:8px; }
+:where(button,input,select,summary,a):focus-visible { outline:2px solid #6ce6ef; outline-offset:3px; }
+@media(min-width:1000px) {
+ .app-shell .crafting-detail-panel, .app-shell .runner-item-inspector, .app-shell .item-index-detail { position:sticky; top:100px; align-self:start; max-height:calc(100dvh - 200px); overflow:auto; }
+}
+@media(max-width:760px) {
+ .next-goal { grid-template-columns:minmax(0,1fr); gap:12px; padding:16px; }
+ .next-goal h2 { font-size:24px; }
+ .next-goal p { font-size:13px; margin:8px 0; }
+ .journey-checklist li { padding:7px 0; }
+ .start-roadmap { gap:8px; flex-direction:column; }
+ .location-bar { padding:10px; gap:8px; }
+ .location-bar > div { min-width:0; }
+ .location-bar span { display:none; }
+ .detail-back { display:inline-flex; margin-bottom:12px; min-height:44px; }
+ .source-popover { padding:8px; padding-bottom:max(8px,env(safe-area-inset-bottom)); align-items:end; }
+ .source-popover .source-popover-panel { width:100%; max-height:calc(100dvh - 24px - env(safe-area-inset-top)); padding:14px; }
+ .source-popover-panel .panel-heading { top:-14px; }
+ .source-popover-panel .inventory-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .crafting-search > input { width:100%; font-size:16px; }
+ .crafting-recipe-tile strong, .inventory-slot strong, .item-index-detail h2, .runner-item-inspector h2, .crafting-detail-panel h2 { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; }
+ .rpg-tactics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .rpg-tactics button { min-width:0; padding:12px 9px; }
+ .rpg-tactics button span { min-width:0; }
+ .rpg-tactics small { white-space:normal; overflow-wrap:anywhere; }
+}
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+
+.app-shell button.topbar-activity-progress { appearance:none; border:0; border-radius:0; background:transparent; color:inherit; text-align:left; font:inherit; padding:0; cursor:pointer; }
+.app-shell button.topbar-activity-progress .eyebrow { white-space:normal; overflow-wrap:normal; }
+.app-shell .main-shortcuts .secondary-button { padding:10px 14px; }
+@media(max-width:760px) {
+ .next-goal .journey-checklist { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+ .journey-checklist li { font-size:12px; }
+ .journey-checklist li:nth-child(2), .journey-checklist li:nth-child(3) { flex-wrap:wrap; }
+ .journey-checklist li:nth-child(2) span, .journey-checklist li:nth-child(3) span { flex-basis:100%; }
+ .journey-checklist li:last-child { color:#aabfcc; }
+}

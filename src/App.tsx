@@ -1,3 +1,5 @@
+import { NextGoal } from "./components/NextGoal";
+import { PlayerNavigation, usePlayerNavigation, revealDetail } from "./components/PlayerNavigation";
 import { BackToTop } from "./components/BackToTop";
 import { MobileSectionMenu } from "./components/MobileSectionMenu";
 import { rpgMissions, rpgSideGigs } from "./data/rpgCampaign";
@@ -74,7 +76,7 @@ import {
   processActionCompletion,
 } from "./systems/actionProcessing";
 import { canFightEnemy, getEnemy, processCombat, startCombat, stopCombat } from "./systems/combatProcessing";
-import { processCrafting, startCraft, stopCraft } from "./systems/craftingProcessing";
+import { canCraft, processCrafting, startCraft, stopCraft } from "./systems/craftingProcessing";
 import { chooseStartingPath, cloneState, createInitialState } from "./systems/gameState";
 import { canAttemptJob, jobRequirementDetails, processJobCompletion, startJob, stopJob } from "./systems/jobProcessing";
 import { jobs } from "./data/jobs";
@@ -244,6 +246,7 @@ function App() {
   const [reviewedNoticeKeys, setReviewedNoticeKeys] = useState<Set<string>>(() => loadReviewedNoticeKeys(getActiveSaveSlot()));
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
   const [tab, setTab] = useState<TabId>("field");
+  const [recipeRequest, setRecipeRequest] = useState<{ id: string | null; token: number }>({ id: null, token: 0 });
   const [mainSection, setMainSection] = useState<MainSection>("home");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
@@ -379,6 +382,15 @@ function App() {
   }
 
   return (
+    <PlayerNavigation.Provider value={{
+      recipeId: recipeRequest.id,
+      recipeRequest: recipeRequest.token,
+      openDistrict: (districtId, category) => { setTab("city"); setCityOpenRequest({ districtId, category: category as DistrictHubCategory, token: Date.now() }); window.scrollTo(0, 0); },
+      openCrafting: recipeId => { setRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("city"); setCityOpenRequest({ districtId: state.selectedDistrict, category: "crafting", token: Date.now() }); window.scrollTo(0, 0); },
+      openMissions: () => { setTab("field"); setMainSection("journal"); window.scrollTo(0, 0); },
+      openCharacter: section => { setCharacterSection(section); setTab("field"); setMainSection("character"); window.scrollTo(0, 0); },
+      openIndex: () => { setTab("more"); setMoreSection("itemIndex"); window.scrollTo(0, 0); },
+    }}>
     <div className="app-shell">
       <header className="topbar">
         {state.rpg.active ? <button className="topbar-activity-progress" onClick={() => { setTab("field"); setMainSection("journal"); }}><p className="eyebrow">Field Mission / Awaiting Your Move</p><h1>{missionById(state.rpg.active.missionId)?.title ?? "Active mission"}</h1></button> : <TopbarActivityProgress activity={active} onOpen={openCityTab} onStop={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))} />}
@@ -390,7 +402,7 @@ function App() {
           <span>Runner Lv {runnerProgress.level}</span>
           <strong>
             {perkPointsAvailable > 0
-              ? `${perkPointsAvailable} RPG build point${perkPointsAvailable === 1 ? "" : "s"} available`
+              ? `${perkPointsAvailable} attribute / perk point${perkPointsAvailable === 1 ? "" : "s"} available`
               : `${runnerProgress.currentTotalLevel} / ${runnerProgress.nextMilestone} character XP`}
           </strong>
           <i aria-hidden="true">
@@ -555,6 +567,7 @@ function App() {
         ))}
       </nav>
     </div>
+    </PlayerNavigation.Provider>
   );
 }
 
@@ -670,19 +683,20 @@ function StartingPathScreen({
         </section>
         <section className="path-hero">
           <div>
-            <p className="eyebrow">Permanent origin</p>
+            <p className="eyebrow">01 / CHOOSE YOUR ORIGIN</p>
             <h1>Choose Your Lifepath</h1>
-            <p className="muted">Your origin opens unique mission approaches and shapes your contacts, rewards, and risks. Build your attributes, answer your fixer's call, and decide what the city remembers. Your lifepath is permanent for this save.</p>
+            <p className="muted">Choose the background you like. Every lifepath can use weapons, quickhacks and crafting. Your origin adds bonuses and special story approaches, and is permanent for this save.</p>
           </div>
           <div className="path-selected-chip">
             <StartingPathBadge pathId={selected.id} name={selected.name} />
             <span>{selected.name}</span>
           </div>
         </section>
+        <div className="start-roadmap" aria-label="First steps"><span><b>1</b> Choose an origin</span><span><b>2</b> Collect your free field kit</span><span><b>3</b> Prepare for Dead Drop</span></div>
         <section className="path-choice-grid">
           {startingPaths.map((path) => (
             <article className={`path-choice-card ${selectedPath === path.id ? "selected" : ""}`} key={path.id} onClick={() => setSelectedPath(path.id)}>
-              <button className="path-image-button" type="button" aria-label={`Select ${path.name}`}>
+              <button className="path-image-button" type="button" aria-label={`Select ${path.name}`} aria-pressed={selectedPath === path.id}>
                 <img src={startingPathImages[path.id]} alt="" />
                 <span className="path-image-vignette" />
                 <strong>{path.name}</strong>
@@ -1009,6 +1023,7 @@ export function DistrictHub({
   }, [openCategoryRequest?.token]);
   return (
     <section className="district-hub rpg-shell">
+      <div className="location-bar"><button className="secondary-button" onClick={onBack}>Back to districts</button><div><strong>{district.name}</strong><span>Train skills, craft gear and visit services</span></div></div>
       <NetworkHero title={[district.name.split(" ")[0].toUpperCase(), district.name.split(" ").slice(1).join(" ").toUpperCase()]} eyebrow="YOUR DISTRICT. YOUR CONTACTS. YOUR OPPORTUNITIES." description={district.description} status={`${threatTier(threat).toUpperCase()} THREAT / STANDING ${localStanding}`} progress={{ label: "DISTRICT / COMPLETION", value: completion.total, maximum: 100, suffix: "%", note: activeActivity?.districtId === districtId ? `LIVE: ${activeActivity.name.toUpperCase()}` : `${factions.find(faction => faction.id === dominantFaction)?.name.toUpperCase() ?? "CONTESTED TERRITORY"}` }} actions={<><button className="rpg-primary" onClick={() => setCategory(skillTabs[0]?.id ?? "overview")}>Find local work <ArrowUpRight size={17} /></button><button className="rpg-text-button" onClick={onBack}>Back to city <ChevronRight size={15} /></button></>} />
       <nav className="rpg-section-nav district-primary-tabs" aria-label="District activities">
         <button className={category === "overview" ? "selected" : ""} aria-current={category === "overview" ? "page" : undefined} onClick={() => setCategory("overview")}><MapPin size={16} />Overview</button>
@@ -3805,7 +3820,7 @@ function InventoryTab({
         onReviewAll={onReviewAllNotices}
       />
       <div className="runner-stash-layout">
-      <article className="panel runner-stash">
+      <article className="panel runner-stash" tabIndex={-1}>
         <div className="panel-heading">
           <div>
             <p className="eyebrow">STASH / {sorted.length} ITEMS</p>
@@ -3845,7 +3860,7 @@ function InventoryTab({
             const active = activeId === id;
             const equippedLabel = equippedItemLabel(state, id);
             return (
-              <button key={id} className={`inventory-slot ${active ? "active" : ""} ${item ? `rarity-${item.rarity.toLowerCase()}` : ""}`} onClick={() => setSelectedId(id)}>
+              <button key={id} className={`inventory-slot ${active ? "active" : ""} ${item ? `rarity-${item.rarity.toLowerCase()}` : ""}`} aria-pressed={active} onClick={() => { setSelectedId(id); revealDetail(".runner-item-inspector"); }}>
                 {item ? <EquipmentTypeIconBadge item={item} /> : <span className="slot-fallback">{itemInitials(id)}</span>}
                 {equippedLabel && <span className="equipped-marker">{equippedLabel}</span>}
                 <strong>{item?.name ?? itemNames[id] ?? id}</strong>
@@ -3855,7 +3870,7 @@ function InventoryTab({
           }) : <p className="muted">No matching items. Try another category or clear your search.</p>}
         </div>
       </article>
-      <article className="panel runner-item-inspector" aria-label="Selected item">
+      <article className="panel runner-item-inspector" aria-label="Selected item" tabIndex={-1}><button className="detail-back secondary-button" onClick={() => revealDetail(".runner-stash")}>Back to inventory</button>
         {activeId && selectedItem ? (
           <div className={`inventory-detail rarity-${selectedItem.rarity.toLowerCase()}`}>
             <div className="panel-heading">
@@ -4056,7 +4071,11 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
   const [sortMode, setSortMode] = useState<CraftingSortMode>("level");
   const [sortDirection, setSortDirection] = useState<InventorySortDirection>("asc");
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
-  const filteredRecipes = recipes.filter((recipe) => filter === "All" || recipe.category === filter);
+  const navigation = usePlayerNavigation();
+  const [query, setQuery] = useState("");
+  const [readyOnly, setReadyOnly] = useState(false);
+  useEffect(() => { if (navigation.recipeId) { setFilter("All"); setQuery(""); setReadyOnly(false); setSelectedRecipeId(navigation.recipeId); revealDetail(".crafting-detail-panel"); } }, [navigation.recipeId, navigation.recipeRequest]);
+  const filteredRecipes = recipes.filter(recipe => (filter === "All" || recipe.category === filter) && recipe.name.toLowerCase().includes(query.trim().toLowerCase()) && (!readyOnly || canCraft(state, recipe)));
   const sortedRecipes = [...filteredRecipes].sort((left, right) => {
     const leftItem = getItem(left.outputItemId);
     const rightItem = getItem(right.outputItemId);
@@ -4106,7 +4125,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
         />
       )}
       {sourceItem && <ItemSourcePopover state={state} itemId={sourceItem.itemId} usedAmount={sourceItem.usedAmount} onClose={() => setSourceItem(null)} />}
-      <div className="inventory-sort-row crafting-sort-row">
+      <p className="muted">Choose a recipe, compare its stats, then tap any material to find a source. Completed gear goes to your inventory; equip it from Main.</p><div className="crafting-search"><input aria-label="Search recipes" placeholder="Search recipes" value={query} onChange={event => setQuery(event.target.value)} /><label><input type="checkbox" checked={readyOnly} onChange={event => setReadyOnly(event.target.checked)} /> Ready to craft</label></div><div className="inventory-sort-row crafting-sort-row">
         <button
           className="inventory-sort-cycle"
           onClick={() => setSortMode((current) => craftingSortModes[(craftingSortModes.indexOf(current) + 1) % craftingSortModes.length])}
@@ -4130,7 +4149,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
         ))}
       </div>
       <div className="crafting-workbench-layout">
-        <div className="crafting-recipe-list">
+        <div className="crafting-recipe-list" tabIndex={-1}>
           {sortedRecipes.map((recipe) => {
             const output = getItem(recipe.outputItemId);
             const levelLocked = state.skills[recipe.requiredSkill].level < recipe.requiredLevel;
@@ -4147,7 +4166,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                 type="button"
                 className={`crafting-recipe-tile rarity-${(output?.rarity ?? "Common").toLowerCase()} ${selected ? "active" : ""} ${active ? "running" : ""} ${craftable ? "craftable-card" : ""} ${locked ? "locked-card" : ""} ${missing ? "missing-card" : ""}`}
                 key={recipe.id}
-                onClick={() => setSelectedRecipeId(recipe.id)}
+                aria-pressed={selected} onClick={() => { setSelectedRecipeId(recipe.id); revealDetail(".crafting-detail-panel"); }}
               >
                 {output ? <EquipmentTypeIconBadge item={output} /> : <span className="slot-fallback">{itemInitials(recipe.outputItemId)}</span>}
                 <span className="eyebrow">{output?.rarity ?? "Common"} / {recipe.category} / {formatDuration(adjustedDurationMs(state, recipe.durationMs, recipe.tags))}</span>
@@ -4156,9 +4175,9 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
               </button>
             );
           })}
-          {!sortedRecipes.length && <p className="muted">No recipes in this filter yet.</p>}
+          {!sortedRecipes.length && <p className="muted">No recipes match. Try another category, clear your search, or turn off Ready to craft.</p>}
         </div>
-        <aside className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}>
+        <aside tabIndex={-1} aria-label="Selected recipe" className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}><button className="detail-back secondary-button" onClick={() => revealDetail(".crafting-recipe-list")}>Back to recipes</button>
           {selectedRecipe ? (
             <>
               <div className="panel-heading">
@@ -4188,7 +4207,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                   </span>
                 </RequirementBulletList>
               )}
-              <RequirementBulletList title="Required Materials" warning={selectedMissing}>
+              <p className="fine">Materials show owned / needed. Tap to find sources.</p><RequirementBulletList title="Required Materials" warning={selectedMissing}>
                 {Object.entries(selectedCosts).map(([id, amount]) => (
                   <ClickableItemRequirement key={id} state={state} itemId={id} required={amount} warning={getOwnedCount(state, id) < amount} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
                 ))}
@@ -4204,7 +4223,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                 progress={selectedProgress}
                 locked={selectedLocked}
                 disabled={selectedMissing}
-                startLabel={selectedLocked ? "Locked" : selectedMissing ? "Missing" : "Start"}
+                startLabel={selectedLocked ? "Requirements not met" : selectedMissing ? "Missing materials" : "Start crafting"}
                 stopLabel="Stop Craft"
                 onStart={() => onCraft(selectedRecipe.id)}
                 onStop={onStopCraft}
@@ -4515,6 +4534,7 @@ function CyberwareScreen({
   onUpgrade: (id: string) => void;
 }) {
   const [debugAlign, setDebugAlign] = useState(false);
+  const navigation = usePlayerNavigation();
   const selectedOverlay = selectedSlot ? cyberwareOverlaySlots.find((slot) => slot.slotId === selectedSlot) ?? null : null;
   const installedItems = Object.values(state.equippedCyberware).map((id) => id ? getItem(id) : undefined).filter(Boolean) as NonNullable<ReturnType<typeof getItem>>[];
   const modifierSummary = installedItems
@@ -4534,13 +4554,13 @@ function CyberwareScreen({
           </button>
         )}
       </div>
-      <div className="cyberware-frame">
+      <p className="muted">Select a body slot to inspect compatible implants. Owning cyberware does not install it. Cyberdecks use the Operating System slot.</p>{navigation.openCharacter && <button className="secondary-button" onClick={() => navigation.openCharacter?.("quickhacks")}>Manage cyberdeck programs</button>}<div className="cyberware-frame">
         <CyberwareBackgroundLayer />
         <CyberwareOverlayLayer
           state={state}
           selectedSlot={selectedSlot}
           debugAlign={debugAlign}
-          onSelectSlot={onSelectSlot}
+          onSelectSlot={slot => { onSelectSlot(slot); revealDetail(".cyberware-details-drawer"); }}
         />
         <div className="cyberware-summary-panel cyberware-summary-risk">
           <span>IN {effectiveNeuralInstability(state)}%</span>
@@ -4682,7 +4702,7 @@ function CyberwareDetailsDrawer({
   );
 
   return (
-    <aside className="cyberware-details-drawer">
+    <aside className="cyberware-details-drawer" tabIndex={-1} aria-label="Selected cyberware slot">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">{overlay.label}</p>
@@ -5367,6 +5387,7 @@ function ProgressTab({ state, onUpdate }: { state: GameState; onUpdate: UpdateGa
 
   return (
     <section className="stack progress-stack">
+      <NextGoal state={state} />
       <CampaignPanel state={state} />
       <ProgressDropdown id="endgame" title="Street Legend" eyebrow="Long-term account progression" open={openSections.endgame} onOpenChange={setSectionOpen}>
         <EndgameSection state={state} activeTab={endgameTab} onTab={setEndgameTab} onUpdate={onUpdate} />
@@ -5430,7 +5451,7 @@ function ItemIndexPanel({ state }: { state: GameState }) {
   const [sortMode, setSortMode] = useState<ItemIndexSortMode>("rarity");
   const [sortDirection, setSortDirection] = useState<ItemIndexSortDirection>("desc");
   const [query, setQuery] = useState("");
-  const [showHidden, setShowHidden] = useState(isDevBuild);
+  const [showHidden, setShowHidden] = useState(false);
   const [showIds, setShowIds] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const categoryItems = items.filter((item) => itemIndexCategoryFor(item) === category);
@@ -5451,7 +5472,7 @@ function ItemIndexPanel({ state }: { state: GameState }) {
     <NeonPanel>
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Database / Balancing Review</p>
+          <p className="eyebrow">DISCOVER / COMPARE / FIND SOURCES</p>
           <h2>Item Index</h2>
         </div>
         <FileText size={22} />
@@ -5474,7 +5495,7 @@ function ItemIndexPanel({ state }: { state: GameState }) {
       </div>
       <div className="item-index-controls">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, slot, rarity, tags, source..." aria-label="Search item index" />
-        <select value={secondary} onChange={(event) => { setSecondary(event.target.value); setSelectedId(null); }}>
+        <select aria-label="Item type filter" value={secondary} onChange={(event) => { setSecondary(event.target.value); setSelectedId(null); }}>
           {secondaryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
         <button className="inventory-sort-cycle" onClick={() => setSortMode((current) => itemIndexSortModes[(itemIndexSortModes.indexOf(current) + 1) % itemIndexSortModes.length])}>
@@ -5483,14 +5504,14 @@ function ItemIndexPanel({ state }: { state: GameState }) {
         <button className="inventory-sort-direction" aria-label="Reverse item index sort" onClick={() => setSortDirection((current) => current === "asc" ? "desc" : "asc")}>
           {sortDirection === "asc" ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
         </button>
-        <button className={`secondary-button ${showHidden ? "active" : ""}`} onClick={() => setShowHidden((value) => !value)}>Hidden Data</button>
+        <button className={`secondary-button ${showHidden ? "active" : ""}`} onClick={() => setShowHidden((value) => !value)} aria-pressed={showHidden}>Include undiscovered</button>
         <button className={`secondary-button ${showIds ? "active" : ""}`} onClick={() => setShowIds((value) => !value)}>IDs</button>
       </div>
       <div className="item-index-layout">
         <div className="item-slot-grid item-index-grid">
           {sorted.length ? sorted.map((item) => (
-            <ItemIndexCard key={item.id} item={item} state={state} active={activeId === item.id} showIds={showIds} onSelect={() => setSelectedId(item.id)} />
-          )) : <p className="muted">No items match this filter.</p>}
+            <ItemIndexCard key={item.id} item={item} state={state} active={activeId === item.id} showIds={showIds} onSelect={() => { setSelectedId(item.id); revealDetail(".item-index-detail"); }} />
+          )) : <p className="muted">No discovered items match. Clear your search, choose another category, or include undiscovered items.</p>}
         </div>
         <ItemIndexDetailPanel state={state} item={selectedItem} showIds={showIds} showHidden={showHidden} />
       </div>
@@ -5514,7 +5535,8 @@ function ItemIndexCard({ item, state, active, showIds, onSelect }: { item: ItemD
 }
 
 function ItemIndexDetailPanel({ state, item, showIds, showHidden }: { state: GameState; item?: ItemDefinition; showIds: boolean; showHidden: boolean }) {
-  if (!item) return <article className="panel item-index-detail"><p className="muted">Select an item to inspect full database details.</p></article>;
+  const [sourceOpen, setSourceOpen] = useState(false);
+  if (!item) return <article className="panel item-index-detail"><p className="muted">Select an item to compare stats, check requirements and find sources.</p></article>;
   const sources = getItemSources(item.id, state);
   const craftRecipes = recipes.filter((recipe) => recipe.outputItemId === item.id);
   const usedIn = recipes.filter((recipe) => Object.prototype.hasOwnProperty.call(recipe.inputCosts, item.id));
@@ -5522,7 +5544,9 @@ function ItemIndexDetailPanel({ state, item, showIds, showHidden }: { state: Gam
   const discovered = itemDiscoveredForIndex(state, item);
   const owned = getOwnedCount(state, item.id);
   return (
-    <article className={`panel item-index-detail rarity-${item.rarity.toLowerCase()}`}>
+    <article tabIndex={-1} aria-label="Selected item details" className={`panel item-index-detail rarity-${item.rarity.toLowerCase()}`}>
+      {sourceOpen && <ItemSourcePopover state={state} itemId={item.id} usedAmount={1} onClose={() => setSourceOpen(false)} />}
+      <button className="secondary-button" onClick={() => setSourceOpen(true)}>Find sources</button>
       <div className="panel-heading">
         <div>
           <p className="eyebrow">{item.rarity} / {item.type} / Owned {owned.toLocaleString()}</p>
