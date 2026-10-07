@@ -1,3 +1,6 @@
+import { DistrictSkillGrid, DistrictActivityGrid, type DistrictHubCategory } from "./screens/District/DistrictNavigation";
+import { districtAccents } from "./data/districtPresentation";
+import type { CSSProperties } from "react";
 import { DistrictJourney } from "./screens/District/DistrictJourney";
 import { StartingPathScreen, StartingPathBadge, startingPathImages } from "./screens/Start/StartingPathScreen";
 import { NextGoal } from "./components/NextGoal";
@@ -873,7 +876,7 @@ function ActivityPill({ label, title, dimmed = false, active = false }: { label:
   return <b className={`activity-pill ${dimmed ? "dimmed" : ""} ${active ? "active" : ""}`} title={title}>{label}</b>;
 }
 
-type DistrictHubCategory = DistrictActivityCategory | `skill-${SkillId}`;
+
 
 export function DistrictHub({
   state,
@@ -936,7 +939,7 @@ export function DistrictHub({
     if (openCategoryRequest?.category) setCategory(openCategoryRequest.category);
   }, [openCategoryRequest?.token]);
   return (
-    <section className="district-hub rpg-shell">
+    <section className="district-hub rpg-shell campaign-district" style={{"--district-accent":districtAccents[districtId]} as CSSProperties}>
       <div className="location-bar"><button className="secondary-button" onClick={onBack}>Back to districts</button><div><strong>{district.name}</strong><span>Train skills, craft gear and visit services</span></div></div>
       <NetworkHero title={[district.name.split(" ")[0].toUpperCase(), district.name.split(" ").slice(1).join(" ").toUpperCase()]} eyebrow="YOUR DISTRICT. YOUR CONTACTS. YOUR OPPORTUNITIES." description={district.description} status={`${threatTier(threat).toUpperCase()} THREAT / STANDING ${localStanding}`} progress={{ label: "DISTRICT / COMPLETION", value: completion.total, maximum: 100, suffix: "%", note: activeActivity?.districtId === districtId ? `LIVE: ${activeActivity.name.toUpperCase()}` : `${factions.find(faction => faction.id === dominantFaction)?.name.toUpperCase() ?? "CONTESTED TERRITORY"}` }} actions={<><button className="rpg-primary" onClick={() => setCategory(skillTabs[0]?.id ?? "overview")}>Find local work <ArrowUpRight size={17} /></button><button className="rpg-text-button" onClick={onBack}>Back to city <ChevronRight size={15} /></button></>} />
       <nav className="rpg-section-nav district-primary-tabs" aria-label="District activities">
@@ -1409,46 +1412,9 @@ function nextUnlockTargets(state: GameState) {
   return [...lockedDistricts, ...nextActions];
 }
 
-function DistrictSkillGrid({ state, tabs, onOpen }: { state: GameState; tabs: ReturnType<typeof districtSkillTabs>; onOpen: (category: DistrictHubCategory) => void }) {
-  if (!tabs.length) return null;
-  return (
-    <article className="panel district-skill-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="eyebrow">Skill Work</p>
-          <h2>Train by Specialty</h2>
-        </div>
-        <BrainCircuit size={22} />
-      </div>
-      <div className="activity-category-grid">
-        {tabs.map((tab) => (
-          <button className="category-card skill-category-card" key={tab.id} onClick={() => onOpen(tab.id)}>
-            <span className="eyebrow">Level {state.skills[tab.skillId].level}</span>
-            <strong>{tab.label}</strong>
-            <small>{skillDescriptions[tab.skillId]}</small>
-            <span>{tab.available} available / {tab.count} total</span>
-          </button>
-        ))}
-      </div>
-    </article>
-  );
-}
 
-function DistrictActivityGrid({ summaries, onOpen }: { summaries: DistrictCategorySummary[]; onOpen: (category: DistrictHubCategory) => void }) {
-  return (
-    <div className="activity-category-grid">
-      {summaries.map((summary) => (
-        <button className="category-card" key={summary.id} onClick={() => onOpen(summary.id)}>
-          <span className="eyebrow">{summary.reward}</span>
-          <strong>{summary.label}</strong>
-          <small>{summary.summary}</small>
-          <span>{summary.available} available / {summary.locked} locked</span>
-          {summary.warning && <b className="warning-badge">{summary.warning}</b>}
-        </button>
-      ))}
-    </div>
-  );
-}
+
+
 
 function DistrictActivityMenu({
   state,
@@ -2694,45 +2660,7 @@ function InfoSectionRow({ icon, title, tone = "cyan", children }: { icon: ReactN
   );
 }
 
-function MissionProgressSummary({
-  mastery,
-  nextMasteryMilestone,
-  districtMasteryXp,
-}: {
-  mastery: { level: number; xp: number };
-  nextMasteryMilestone?: ReturnType<typeof nextActionMasteryMilestone>;
-  districtMasteryXp: number;
-}) {
-  return (
-    <section className="mission-section mission-progress-summary">
-      <div className="mission-section-label">
-        <span className="mission-section-icon"><Star size={22} /></span>
-        <strong>Progress</strong>
-      </div>
-      <div className="mission-section-content mission-progress-summary-content">
-        <div className="mission-progress-row">
-          <span className="mission-progress-label"><Star size={15} /> Mastery</span>
-          <MasteryProgressBar mastery={mastery} />
-        </div>
-        <div className="mission-progress-row mission-progress-row-gold">
-          <span className="mission-progress-label"><Shield size={15} /> Next</span>
-          {nextMasteryMilestone ? (
-            <div className="mission-copy-block">
-              <strong>Mastery {nextMasteryMilestone.level}: {nextMasteryMilestone.name}</strong>
-              <span>{nextMasteryMilestone.description}</span>
-            </div>
-          ) : (
-            <span className="muted">All listed mastery milestones unlocked.</span>
-          )}
-        </div>
-        <div className="mission-progress-row">
-          <span className="mission-progress-label"><MapPinned size={15} /> District</span>
-          <span>District Mastery XP: <strong>{districtMasteryXp ? `+${districtMasteryXp}` : "None"}</strong></span>
-        </div>
-      </div>
-    </section>
-  );
-}
+
 
 function StatusBadge({ locked, active }: { locked: boolean; active: boolean }) {
   return (
@@ -2743,20 +2671,7 @@ function StatusBadge({ locked, active }: { locked: boolean; active: boolean }) {
   );
 }
 
-function RiskBadge({ action }: { action: SkillAction }) {
-  const heat = Math.max(0, action.heatChange ?? 0);
-  const trace = action.traceChance ?? 0;
-  const instability = 0;
-  const score = heat + trace * 100 + instability * 2;
-  const label = score >= 35 ? "High Risk" : score >= 14 ? "Med Risk" : "Low Risk";
-  const tone = score >= 35 ? "high" : score >= 14 ? "medium" : "low";
-  return (
-    <span className={`mission-badge risk-badge risk-${tone}`}>
-      <ShieldAlert size={15} />
-      {label}
-    </span>
-  );
-}
+
 
 function ActionIconPlaceholder({ action }: { action: SkillAction }) {
   const initials = skillNames[action.skillId].split(/\s+/).map((word) => word[0]).join("").slice(0, 2);
@@ -2982,25 +2897,9 @@ function ActionStartStopButton({
   );
 }
 
-function RecommendationBadges({ badges }: { badges: string[] }) {
-  if (!badges.length) return null;
-  return (
-    <div className="recommendation-row">
-      {badges.map((badge) => <span key={badge}>{badge}</span>)}
-    </div>
-  );
-}
 
-function actionRecommendationBadges(state: GameState, action: SkillAction, rewards: RewardBundle) {
-  const badges: string[] = [];
-  if (!state.manualDiscovery.skillActions[action.id]) badges.push("New");
-  if (action.xpReward >= 100 || action.levelReq >= state.skills[action.skillId].level - 2) badges.push("Best XP");
-  if ((rewards.credits ?? 0) >= 50) badges.push("Credits");
-  if (action.requiredUnlocks?.length || action.rareDrops?.some((drop) => drop.id.includes("bp") || drop.id.includes("blueprint"))) badges.push("Unlock");
-  if ((action.heatChange ?? 0) <= 0 && (action.traceChance ?? 0) <= 0.12) badges.push("Low Risk");
-  if (action.rareDrops?.some((drop) => !state.discoveredItems[drop.id])) badges.push("New Drop");
-  return badges.slice(0, 3);
-}
+
+
 
 function positiveRewardBundle(rewards: RewardBundle): RewardBundle {
   return Object.fromEntries(Object.entries(rewards).filter(([, amount]) => (amount ?? 0) > 0)) as RewardBundle;

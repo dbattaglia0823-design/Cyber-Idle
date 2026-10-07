@@ -142,3 +142,44 @@
  .mission-debrief .district-unlocked { margin:14px 0; }
  .mission-debrief .journey-actions { margin:12px 0; }
 }
+
+/* District identity is configured once, shared by hubs and missions. */
+.campaign-district { --district-accent:#f1e660; }
+.campaign-district .district-journey, .campaign-district .mission-preparation { border-left-color:var(--district-accent); }
+.campaign-district .location-bar strong, .campaign-district .district-lesson strong, .campaign-district .rpg-mission-heading h2 { color:var(--district-accent); }
+.campaign-district .rpg-section-nav button.selected { color:var(--district-accent); border-bottom-color:var(--district-accent); }
+.campaign-district .rpg-hero { box-shadow:inset 3px 0 var(--district-accent); }
+.encounter-intel { padding:10px 12px; border:1px solid #3c4c59; background:#131c25; font-size:12px; line-height:1.6; }
+.encounter-intel .enemy-phase { color:#d6e4f0; }
+.encounter-intel details { margin-top:6px; }
+.encounter-intel summary { cursor:pointer; min-height:44px; padding:10px 0; color:var(--district-accent,#a6e7ee); }
+.encounter-intel details p { padding:5px 0; }
+.player-status { color:#ffafb9; font-size:12px; padding:8px; border:1px solid #82384f; background:#2e1622; }
+.rpg-intent small { display:block; color:#d2c7dc; font-size:11px; margin-top:4px; }
+.enemy-portrait { position:relative; min-width:0; display:grid; place-items:center; }
+.enemy-portrait .rpg-enemy-silhouette { position:static; width:100%; max-width:220px; transform:none; }
+.enemy-portrait-code { font:10px Consolas,monospace; padding:6px; text-align:center; border-bottom:1px solid currentColor; }
+.enemy-portrait-rustYards svg { filter:sepia(.3); }
+.enemy-portrait-blacknetQuarter svg { filter:hue-rotate(265deg); }
+.enemy-portrait-helixWard svg { filter:hue-rotate(120deg); }
+.enemy-portrait-glasslineDistrict svg { filter:saturate(.4); }
+.enemy-portrait-skylineCore svg { filter:sepia(.7); }
+.campaign-finale { padding:24px; margin:20px 0; border:1px solid #c8b171; background:radial-gradient(ellipse at top right,#63512655,transparent 70%),#121b24; }
+.campaign-finale h2 { color:#f1dfad; margin:12px 0; font-size:clamp(24px,4vw,42px); }
+.campaign-finale p { line-height:1.65; }
+.campaign-finale summary { cursor:pointer; min-height:44px; padding:12px 0; }
+.campaign-finale ol { padding-left:20px; }
+.campaign-finale li { margin:12px 0; }
+.campaign-finale li span { display:block; color:#b9cddd; margin-top:4px; }
+.finale-score { color:#efd6a0; font-weight:750; padding:12px 0; }
+@media(max-width:760px) {
+ .rpg-battle-stage { position:relative; }
+ .rpg-battle-stage .enemy-portrait { position:absolute; inset:15px 25%; opacity:.13; pointer-events:none; }
+ .enemy-portrait-code { display:none; }
+ .rpg-runner-vitals, .rpg-enemy-vitals { position:relative; z-index:1; }
+ .encounter-intel { padding:8px 10px; }
+ .rpg-tactics { gap:6px; }
+ .campaign-finale { padding:16px; }
+ .mission-preparation .journey-actions button { white-space:normal; overflow-wrap:anywhere; }
+ .rpg-combat .rpg-battle-stage { padding-block:14px; min-height:0; }
+}

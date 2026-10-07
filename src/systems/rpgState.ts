@@ -28,7 +28,8 @@ export function normalizeRpgState(state?: RpgState): RpgState {
       e.enemyIndex = integer(e.enemyIndex, 0, e.phase === "decision" ? mission.enemies.length : mission.enemies.length - 1);
       e.enemyMaxHp = integer(e.enemyMaxHp, 1, 100000); e.enemyHp = integer(e.enemyHp, 0, e.enemyMaxHp);
       e.turn = integer(e.turn, 0, 100000); e.ram = integer(e.ram, 0, 40); e.meds = integer(e.meds, 0, 4);
-      e.burnDamage = integer(e.burnDamage ?? 0, 0, 100000); e.burnTurns = integer(e.burnTurns ?? 0, 0, 4);
+      e.playerBleedTurns = integer(e.playerBleedTurns ?? 0, 0, 2); e.playerBleedDamage = integer(e.playerBleedDamage ?? 0, 0, 100000);
+    e.burnDamage = integer(e.burnDamage ?? 0, 0, 100000); e.burnTurns = integer(e.burnTurns ?? 0, 0, 4);
       e.weaken = Number.isFinite(e.weaken) ? Math.max(0, Math.min(.75, e.weaken!)) : 0; e.weakenTurns = integer(e.weakenTurns ?? 0, 0, 3);
       e.log = e.log.filter(line => typeof line === "string").slice(-12);
     }

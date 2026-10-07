@@ -1,3 +1,4 @@
+import { encounterTraits, tacticalIntent } from "./tacticalTraits";
 import { mainJobBalance } from "../data/mainJobBalance";
 import { meetsItemAttributeRequirement } from "./runnerProgression";
 import { factions } from "../data/factions";
@@ -157,13 +158,14 @@ export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk:
 
 export function enemyIntent(state: GameState) {
   const active = state.rpg.active;
-  return active && active.turn % 3 === 2 ? "Charged burst" : active && active.turn % 3 === 1 ? "Suppressing fire" : "Direct shot";
+  const mission = active && missionById(active.missionId);
+  return active && mission ? tacticalIntent(mission, active).attack : "Direct shot";
 }
 export function canUseTactic(state: GameState, action: TacticalAction) {
   const e = state.rpg.active;
   if (!e || e.phase !== "combat") return false;
   if (action.startsWith("quickhack:") || ["hack", "disrupt", "burnout"].includes(action)) { const hack = quickhackForAction(state, action); return Boolean(hack && e.ram >= quickhackRamCost(state, hack)); }
-  if (action === "heal") return e.meds > 0 && state.health.currentHp < calculateMaxHP(state);
+  if (action === "heal") return e.meds > 0 && (state.health.currentHp < calculateMaxHP(state) || (e.playerBleedTurns ?? 0) > 0);
   if (action === "overclock") return e.ram < maxRam(state);
   return ["attack", "aim", "cover"].includes(action);
 }
@@ -172,6 +174,9 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if (!canUseTactic(state, action)) return state;
   const next = cloneState(state), e = next.rpg.active!, mission = missionById(e.missionId)!;
   const stats = tacticalStats(next), maxHp = calculateMaxHP(next);
+  const traits = encounterTraits(mission, e.enemyIndex, e.turn);
+  const aimedAttack = action === "attack" && e.aimed;
+  const wasBurning = (e.burnTurns ?? 0) > 0;
   let damage = 0, stun = false, cover = false;
   const hack = quickhackForAction(next, action);
   if (action === "attack") {
@@ -190,9 +195,13 @@ export function performTactic(state: GameState, action: TacticalAction) {
   }
   if (action === "aim") { e.aimed = true; cover = true; }
   if (action === "cover") { cover = true; if (next.rpg.perks["vanishing-point"]) e.aimed = true; }
-  if (action === "heal") { const beforeHp = next.health.currentHp; e.meds--; next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * stats.heal)); e.log.push(`Field injector restored ${next.health.currentHp - beforeHp} HP.`); }
+  if (action === "heal") { e.playerBleedTurns = 0; e.playerBleedDamage = 0; const beforeHp = next.health.currentHp; e.meds--; next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * stats.heal)); e.log.push(`Field injector restored ${next.health.currentHp - beforeHp} HP.`); }
   if (action === "overclock") { e.ram = Math.min(maxRam(next), e.ram + 3); cover = true; }
   if (e.turn <= (next.rpg.perks["ghost-protocol"] ? 1 : 0) && next.rpg.perks.ambush) damage *= 1.6;
+  if (action === "attack" && !(next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * .25)) {
+    if (traits.armor && !aimedAttack) { damage *= 1 - traits.armor; e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
+    if (traits.shield) { damage *= 1 - traits.shield; e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
+  }
   damage = Math.round(damage);
   if (hack?.effect === "siphon") {
     const healing = Math.min(maxHp - next.health.currentHp, Math.round(Math.min(e.enemyHp, damage) * (hack.potency ?? 0)));
@@ -209,13 +218,24 @@ export function performTactic(state: GameState, action: TacticalAction) {
     if (e.enemyIndex >= mission.enemies.length) { e.phase = "decision"; e.log.push("Area clear. Your contact is waiting for your decision."); }
     else { setupEnemy(next, mission); if (action === "attack" && next.rpg.perks["chain-reaction"]) e.aimed = true; }
   } else {
-    if (!stun) {
-      const charged = e.turn % 3 === 2;
-      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+    if (traits.regeneration && !stun && !wasBurning && hack?.effect !== "burn") {
+      const repaired = Math.min(e.enemyMaxHp - e.enemyHp, Math.round(e.enemyMaxHp * traits.regeneration));
+      e.enemyHp += repaired; if (repaired > 0) e.log.push(`Repair system restored ${repaired} enemy HP. Interrupt or Overheat to stop recovery.`);
+    } else if (traits.regeneration) e.log.push("Repair system suppressed.");
+    if ((e.playerBleedTurns ?? 0) > 0) {
+      const bleeding = Math.min(next.health.currentHp, e.playerBleedDamage ?? 0);
+      next.health.currentHp -= bleeding; next.healthStatistics.totalDamageTaken += bleeding; e.playerBleedTurns!--; e.log.push(`Bleeding: ${bleeding} damage. Injector clears bleeding.`);
+    }
+    if (!stun && next.health.currentHp > 0) {
+      const charged = traits.charged;
+      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
       next.health.currentHp = Math.max(0, next.health.currentHp - incoming);
       next.healthStatistics.totalDamageTaken += incoming;
+      if (traits.ramDrain && !cover) { const drained = Math.min(e.ram, traits.ramDrain); e.ram -= drained; e.log.push(`Network disruption drained ${drained} RAM. Cover blocks the drain.`); }
+      if (traits.bleed && !cover) { e.playerBleedTurns = 2; e.playerBleedDamage = Math.max(1, Math.round(incoming * .12)); e.log.push("Bleeding applied for two turns. Use an injector to clear it."); }
+      if (cover && (traits.bleed || traits.ramDrain)) e.log.push("Cover blocked the enemy status effect.");
       e.log.push(`${charged ? "Charged burst" : "Enemy fire"}: ${incoming} damage${cover ? " through cover" : ""}.`);
-    } else e.log.push("Counterattack interrupted.");
+    } else if (stun) e.log.push("Counterattack interrupted.");
     e.weakenTurns = Math.max(0, (e.weakenTurns ?? 0) - 1);
     e.turn++;
     e.ram = Math.min(maxRam(next), e.ram + ramRecovery(next));
@@ -228,6 +248,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
 function setupEnemy(state: GameState, mission: RpgMission) {
   const e = state.rpg.active!;
   e.phase = "combat"; e.turn = 0; e.aimed = false;
+  e.playerBleedDamage = 0; e.playerBleedTurns = 0;
   e.burnDamage = 0; e.burnTurns = 0; e.weaken = 0; e.weakenTurns = 0;
   e.enemyMaxHp = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).health * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
   e.enemyHp = e.enemyMaxHp; e.ram = maxRam(state);

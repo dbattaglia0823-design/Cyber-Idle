@@ -1,3 +1,4 @@
+import { CampaignFinale } from "./CampaignFinale";
 import { useState } from "react";
 import { recipes } from "../../data/recipes";
 import { getItem } from "../../data/items";
@@ -22,6 +23,7 @@ export function MissionDebrief({ before, after, onContinue }: { before: GameStat
  return <section className="mission-debrief" aria-label="Mission rewards" tabIndex={-1}>
   <p className="eyebrow">{mission.sideGig ? "GIG COMPLETE" : "BOSS DEFEATED / MAIN JOB COMPLETE"}</p><h2>{mission.title}</h2>
   <p>{mission.choices.find(choice => choice.id === result?.outcome)?.response}</p>
+  {!mission.sideGig && mission.act === 7 && <CampaignFinale state={after} />}
   <div className="debrief-rewards"><div><span>Credits received</span><strong>+{(after.resources.credits - before.resources.credits).toLocaleString()}</strong></div><div><span>Character XP</span><strong>+{before.rpg.completed[mission.id] ? Math.round(mission.xp * .5) : mission.xp}</strong></div>{levels > 0 && <div><span>Runner level {after.rpg.level}</span><strong>+{levels * 2} attribute / +{levels} perk points</strong></div>}</div>
 
   {district && <div className="district-unlocked"><p className="eyebrow">DISTRICT UNLOCKED</p><h3>{district.name}</h3><p>Your main job opened the route. Your previous districts remain available for training, crafting and local gigs.</p></div>}

@@ -1,5 +1,5 @@
 import type { DistrictId } from "../types";
-// Editorial direction, not combat modifiers. Future mechanics belong in combat systems.
+// Shared editorial identity. Combat tuning lives in tacticalTraits.ts.
 export const districtPresentation: Record<DistrictId, { focus: string; futureEncounterTheme: string }> = {
  neonRow: { focus: "Learn the city", futureEncounterTheme: "Core mechanics" },
  rustYards: { focus: "Industrial territory", futureEncounterTheme: "Armor and heavy enemies" },
@@ -12,3 +12,8 @@ export const districtPresentation: Record<DistrictId, { focus: string; futureEnc
 };
 // Optional asset slot keyed by stable mission ID and encounter index. No new art required.
 export const encounterArtwork: Partial<Record<string, { src: string; alt: string }>> = {};
+
+export const districtAccents: Record<DistrictId, string> = {
+ neonRow: "#f1e660", rustYards: "#edab69", underpassMarket: "#ed839e", blacknetQuarter: "#a29afb",
+ helixWard: "#82e5b4", glasslineDistrict: "#9fd9f2", redlineBlocks: "#ff817b", skylineCore: "#e4c78c",
+};

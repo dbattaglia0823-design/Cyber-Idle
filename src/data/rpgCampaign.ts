@@ -126,11 +126,22 @@ export const rpgMissions: RpgMission[] = cases.map(entry => ({
   ],
 }));
 
+const gigAssignments = [
+ { briefing: "A courier missed the Lowglow pickup. Find them under the tracks and clear the collection crew off their route.", objective: "Get the missing courier to Sable's pickup." },
+ { briefing: "A repo driver is trapped behind a yard loader. Their pursuer wears salvage plating. Aim for a clean opening or use your deck to bypass the armor.", objective: "Extract the repo driver through the salvage yard." },
+ { briefing: "A broker's runner took the wrong delivery. The pursuer uses lacerating rounds. Keep to cover and bring an injector for bleeding.", objective: "Escort the delivery runner out of the market." },
+ { briefing: "A signal thief needs a way out of the relay station. Security is draining deck memory. Protect your RAM and get them off the network.", objective: "Break the trace and extract the signal thief." },
+ { briefing: "A night-shift medic is carrying evidence out of a clinic. The recovery unit behind them can repair itself. Interrupt the system or keep it overheated.", objective: "Get the medic and the clinic evidence to safety." },
+ { briefing: "An archive clerk has a paper trail worth killing for. Their escort is now their jailer. Wait out the cycle shield or send a quickhack through it.", objective: "Recover the archive clerk from corporate custody." },
+ { briefing: "A shelter volunteer is pinned at the barricade. The pursuer fires in aggressive bursts. Use the recovery window and keep an escape route open.", objective: "Bring the volunteer back through the Redline barricade." },
+ { briefing: "An executive witness is ready to leave the penthouse. The security detail uses layered armor and shields. Combine what the city taught you and extract them.", objective: "Extract the witness through executive security." },
+];
+
 export const rpgSideGigs: RpgMission[] = cases.map(entry => ({
   ...entry, id: `gig-${entry.id}`, title: ["Missing in Lowglow", "Repo Midnight", "A Quiet Delivery", "Signal Thief", "Clinic Night Shift", "Paper Trail", "Shelter Run", "Penthouse Exit"][entry.act],
   sideGig: true, tagline: "Local work. Immediate consequences.",
-  briefing: `${entry.fixer}: "A local contact needs an extraction from ${entry.location.split(" / ")[1]}. Clear their pursuer and get them to a safe pickup. The field kit is on me."`,
-  objective: "Clear the pursuit and extract your contact.", enemies: [entry.enemies[0]],
+  briefing: `${entry.fixer}: "${gigAssignments[entry.act].briefing}"`,
+  objective: gigAssignments[entry.act].objective, enemies: [entry.enemies[0]],
   reveal: "Your contact reaches the pickup. The fixer confirms the transfer. The district has one less missing-person report tonight.",
   reward: 250 + entry.act * 150, xp: 180 + entry.act * 50,
   choices: [{ id: "extract", label: "Confirm safe extraction", detail: "+4 reputation. Collect payment, field supplies, and reduce Heat by 15. This gig can be replayed.", response: "Another name crossed off the missing list. Your fixer leaves the channel open for the next call.", reputation: 4, bonusCredits: 0 }],
