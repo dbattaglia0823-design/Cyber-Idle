@@ -252,6 +252,10 @@ function App() {
   const [cityOpenRequest, setCityOpenRequest] = useState<{ districtId: DistrictId | null; category?: DistrictHubCategory; token: number } | null>(null);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [tab, mainSection, characterSection, moreSection]);
+
+  useEffect(() => {
     if (isDevBuild) reportContentValidation();
   }, []);
 
@@ -554,7 +558,7 @@ function App() {
 
       <nav className="bottom-nav" aria-label="Primary">
         {tabs.map(({ id, label, Icon }) => (
-          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setSimMenuOpen(false); setTab(id); }}>
+          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setSimMenuOpen(false); setTab(id); window.scrollTo({ top: 0, behavior: "instant" }); }}>
             <Icon size={20} />
             <span>{label}</span>
             {tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled) && <b className="tab-indicator">{tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled)}</b>}
@@ -3714,7 +3718,7 @@ function InventoryTab({
         <div className="slot-grid">{gearSlots.map(slot => {
           const id = state.equippedGear[slot.id];
           const item = id ? getItem(id) : undefined;
-          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setSelectedId(id ?? null); }}>
+          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setSelectedId(id ?? null); revealDetail(".runner-item-inspector"); }}>
             <EquipmentTypeIconBadge item={item} fallbackSlot={slot.id} fallbackKind="gear" /><span>{slot.label}</span><strong>{item?.name ?? "Empty slot"}{id && state.upgradeLevels[id] ? " +" + state.upgradeLevels[id] : ""}</strong><small>{item ? "Inspect / replace" : "Find equipment"}</small>
           </button>;
         })}</div>
@@ -4102,6 +4106,8 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
               {selectedOutput?.stats && <StatComparisonLine state={state} itemId={selectedRecipe.outputItemId} compareItemId={selectedComparisonItemId} />}
               {selectedOutput?.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedOutput.modifiers)}</p>}
               {selectedOutput && <p className="fine">Used for: {itemUseSummary(selectedOutput.id)}</p>}
+              {selectedLevelLocked && <button className="secondary-button" onClick={() => navigation.openDistrict?.(selectedRecipe.requiredDistrict && state.districts[selectedRecipe.requiredDistrict]?.unlocked ? selectedRecipe.requiredDistrict : state.selectedDistrict ?? "neonRow", "skill-" + selectedRecipe.requiredSkill)}>Train {skillNames[selectedRecipe.requiredSkill]} to level {selectedRecipe.requiredLevel}</button>}
+              {selectedDistrictLocked && <button className="secondary-button" onClick={navigation.openMissions}>Complete main jobs to open this district</button>}
               <RequirementBulletList title="Skill Requirement">
                 <span className={selectedLevelLocked ? "requirement-row missing" : "requirement-row met"}>{skillNames[selectedRecipe.requiredSkill]} Level {state.skills[selectedRecipe.requiredSkill].level} / {selectedRecipe.requiredLevel}</span>
               </RequirementBulletList>

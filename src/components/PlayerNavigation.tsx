@@ -16,7 +16,7 @@ export const usePlayerNavigation = () => useContext(PlayerNavigation);
 export function revealDetail(selector: string) {
   if (!window.matchMedia("(max-width: 760px)").matches) return;
   requestAnimationFrame(() => {
-    const panel = document.querySelector<HTMLElement>(selector);
+    const panel = selector.split(",").map(candidate => document.querySelector<HTMLElement>(candidate.trim())).find(Boolean);
     panel?.scrollIntoView({ block: "start", behavior: "auto" });
     panel?.focus({ preventScroll: true });
   });

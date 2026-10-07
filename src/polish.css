@@ -130,3 +130,15 @@
  .app-shell .reward-popup-stack { max-height:24dvh; overflow:auto; }
  .app-shell .rpg-shell[data-section="journal"] > .rpg-hero { display:none; }
 }
+
+/* A mission receipt already presents these rewards; avoid duplicate overlays. */
+.app-shell:has(.mission-debrief) .reward-popup-stack { display:none; }
+.debrief-loot, .debrief-recipes { display:block; border-top:1px solid #354852; padding:12px 0; margin:12px 0; }
+.debrief-loot summary, .debrief-recipes summary { min-height:44px; padding:10px 0; cursor:pointer; color:#cce2ec; font-weight:650; }
+.debrief-loot > div { display:flex; flex-wrap:wrap; gap:8px; }
+.debrief-loot > div > span { padding:10px; border:1px solid #3e4d5c; background:#111b25; font-size:13px; }
+@media(max-width:760px) {
+ .mission-debrief .debrief-rewards { margin:14px 0; }
+ .mission-debrief .district-unlocked { margin:14px 0; }
+ .mission-debrief .journey-actions { margin:12px 0; }
+}
