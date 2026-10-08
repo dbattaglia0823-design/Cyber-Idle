@@ -32,6 +32,6 @@ export function encounterTraits(mission: RpgMission, enemyIndex: number, turn = 
 export function tacticalIntent(mission: RpgMission, encounter: RpgEncounter) {
  const t = encounterTraits(mission, encounter.enemyIndex, encounter.turn);
  const attack = t.charged ? "Charged burst" : t.recovery ? "Recovery shot" : encounter.turn % 3 === 1 ? "Suppressing fire" : "Direct shot";
- const details = [t.bleed ? "Bleed on hit" : "", t.ramDrain ? "RAM drain " + t.ramDrain : "", t.regeneration ? "Repairs after turn" : "", t.shield ? "Shield raised" : ""].filter(Boolean);
+ const details = [t.bleed ? "Bleed on hit" : "", t.ramDrain ? "RAM drain " + t.ramDrain : "", t.regeneration ? "Repairs after turn" : "", t.armor ? "Plating: " + Math.round(t.armor * 100) + "% · aim bypasses" : "", t.traits.includes("shield") ? t.shield ? "Shield raised · hack bypasses" : "Shield down · fire now" : ""].filter(Boolean);
  return { attack, details, ...t };
 }

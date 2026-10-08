@@ -8,7 +8,7 @@ import { calculateMaxHP } from '../src/systems/healthSystem.ts';
 import { normalizeSave } from '../src/systems/saveSystem.ts';
 import { applyOfflineProgress } from '../src/systems/offlineProgress.ts';
 import { rpgMissions, rpgSideGigs } from '../src/data/rpgCampaign.ts';
-import { encounterTraits } from '../src/systems/tacticalTraits.ts';
+import { encounterTraits, tacticalIntent } from '../src/systems/tacticalTraits.ts';
 import { districtEncounterProfiles } from '../src/data/tacticalTraits.ts';
 import { prepareMainJob } from './main-job-fixture.mjs';
 import { CampaignFinale } from '../src/screens/Missions/CampaignFinale.tsx';
@@ -99,3 +99,9 @@ test('status edge cases preserve Finisher, allow bleed treatment at full HP, and
  const lethal=combat(2);lethal.health.currentHp=1;lethal.rpg.active.playerBleedTurns=1;lethal.rpg.active.playerBleedDamage=2;const dead=performTactic(lethal,'cover');assert.equal(dead.rpg.active.phase,'failed');assert.equal(dead.health.currentHp,0);assert.doesNotMatch(dead.rpg.active.log.at(-2),/Counterattack interrupted/);
  const open=encounterTraits(rpgMissions[1],3,0),sealed=encounterTraits(rpgMissions[1],3,2);assert.ok(sealed.armor>open.armor);assert.notEqual(sealed.phase,open.phase);
 });
+
+ test("active defenses stay visible in the compact enemy intent beside combat controls",()=>{
+ const rust=combat(1);assert.match(tacticalIntent(rpgMissions[1],rust.rpg.active).details.join(" "),/Plating: 18%.*aim bypasses/);
+ const glass=combat(5);assert.match(tacticalIntent(rpgMissions[5],glass.rpg.active).details.join(" "),/Shield raised.*hack bypasses/);
+ glass.rpg.active.turn=1;assert.match(tacticalIntent(rpgMissions[5],glass.rpg.active).details.join(" "),/Shield down.*fire now/);
+ });
