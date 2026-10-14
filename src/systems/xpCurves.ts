@@ -33,7 +33,7 @@ function idleTierMultiplier(level: number, curveType: XpCurveType) {
   if (curveType === "mastery") return tier * 1.25;
   if (curveType === "districtMastery") return tier * 1.65;
   if (curveType === "weaponClass") return tier * 1.1;
-  return tier;
+  return tier * (curveType === "skill" ? .15 + .85 * (1 - Math.exp(-(Math.max(1, level) - 1) / 2)) : 1);
 }
 
 export function getTotalXpForLevel(level: number, curveType: XpCurveType) {

@@ -152,7 +152,7 @@ export function applyNeuralModifier(state: GameState, amount: number, tags: stri
 export function adjustedDurationMs(state: GameState, durationMs: number, tags: string[] = []) {
   const modifiers = getActiveModifiers(state);
   const speed = modifiers.actionSpeed + (tags.some((tag) => tag === "smuggling" || tag === "vehicle") ? vehicleSpeedBonus(state) : 0);
-  return Math.max(250, Math.round(durationMs * Math.max(0.05, 1 - speed)));
+  return Math.max(1, Math.round(durationMs * Math.exp(-speed)));
 }
 
 export function actionMasterySpeedBonus(state: GameState, actionId: string) {
@@ -162,7 +162,7 @@ export function actionMasterySpeedBonus(state: GameState, actionId: string) {
 
 export function adjustedActionDurationMs(state: GameState, durationMs: number, actionId: string, tags: string[] = []) {
   const baseDuration = adjustedDurationMs(state, durationMs, tags);
-  return Math.max(250, Math.round(baseDuration * Math.max(0.05, 1 - actionMasterySpeedBonus(state, actionId))));
+  return Math.max(1, Math.round(baseDuration * Math.exp(-actionMasterySpeedBonus(state, actionId))));
 }
 
 export function jobSuccessChance(state: GameState, baseChance: number, tags: string[] = []) {

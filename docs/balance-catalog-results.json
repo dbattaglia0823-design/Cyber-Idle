@@ -1,0 +1,552 @@
+{
+  "assumptions": "Skill benchmarks use base times, no mastery or speed/XP buffs, and supplied inputs. Idle combat uses an explicitly prepared district loadout, assumes healing is supplied, and includes the one-second respawn. These are rate benchmarks, not earned campaign runs.",
+  "skills": [
+    {
+      "skill": "scavenging",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 7.5,
+          "hoursForLastLevel": 2.36
+        },
+        {
+          "level": 20,
+          "baseHours": 10.39,
+          "hoursForLastLevel": 0.41
+        },
+        {
+          "level": 40,
+          "baseHours": 21.75,
+          "hoursForLastLevel": 0.76
+        },
+        {
+          "level": 60,
+          "baseHours": 41.79,
+          "hoursForLastLevel": 1.28
+        },
+        {
+          "level": 80,
+          "baseHours": 74.02,
+          "hoursForLastLevel": 1.97
+        },
+        {
+          "level": 100,
+          "baseHours": 121.95,
+          "hoursForLastLevel": 2.85
+        },
+        {
+          "level": 120,
+          "baseHours": 190.83,
+          "hoursForLastLevel": 3.9
+        },
+        {
+          "level": 140,
+          "baseHours": 280.85,
+          "hoursForLastLevel": 5.12
+        },
+        {
+          "level": 150,
+          "baseHours": 335.06,
+          "hoursForLastLevel": 5.81
+        }
+      ]
+    },
+    {
+      "skill": "hacking",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 7.5,
+          "hoursForLastLevel": 2.36
+        },
+        {
+          "level": 20,
+          "baseHours": 10.39,
+          "hoursForLastLevel": 0.41
+        },
+        {
+          "level": 40,
+          "baseHours": 21.75,
+          "hoursForLastLevel": 0.76
+        },
+        {
+          "level": 60,
+          "baseHours": 41.79,
+          "hoursForLastLevel": 1.28
+        },
+        {
+          "level": 80,
+          "baseHours": 74.02,
+          "hoursForLastLevel": 1.97
+        },
+        {
+          "level": 100,
+          "baseHours": 121.95,
+          "hoursForLastLevel": 2.85
+        },
+        {
+          "level": 120,
+          "baseHours": 189.16,
+          "hoursForLastLevel": 3.9
+        },
+        {
+          "level": 140,
+          "baseHours": 279.19,
+          "hoursForLastLevel": 5.12
+        },
+        {
+          "level": 150,
+          "baseHours": 333.39,
+          "hoursForLastLevel": 5.81
+        }
+      ]
+    },
+    {
+      "skill": "cyberware",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 6.43,
+          "hoursForLastLevel": 2.03
+        },
+        {
+          "level": 20,
+          "baseHours": 10.55,
+          "hoursForLastLevel": 0.73
+        },
+        {
+          "level": 40,
+          "baseHours": 21.9,
+          "hoursForLastLevel": 0.76
+        },
+        {
+          "level": 60,
+          "baseHours": 41.95,
+          "hoursForLastLevel": 1.28
+        },
+        {
+          "level": 80,
+          "baseHours": 74.17,
+          "hoursForLastLevel": 1.97
+        },
+        {
+          "level": 100,
+          "baseHours": 122.11,
+          "hoursForLastLevel": 2.85
+        },
+        {
+          "level": 120,
+          "baseHours": 189.32,
+          "hoursForLastLevel": 3.9
+        },
+        {
+          "level": 140,
+          "baseHours": 279.34,
+          "hoursForLastLevel": 5.12
+        },
+        {
+          "level": 150,
+          "baseHours": 333.55,
+          "hoursForLastLevel": 5.81
+        }
+      ]
+    },
+    {
+      "skill": "vehicleTuning",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 7.49,
+          "hoursForLastLevel": 2.36
+        },
+        {
+          "level": 20,
+          "baseHours": 10.38,
+          "hoursForLastLevel": 0.41
+        },
+        {
+          "level": 40,
+          "baseHours": 21.74,
+          "hoursForLastLevel": 0.76
+        },
+        {
+          "level": 60,
+          "baseHours": 43.39,
+          "hoursForLastLevel": 1.28
+        },
+        {
+          "level": 80,
+          "baseHours": 77.1,
+          "hoursForLastLevel": 1.97
+        },
+        {
+          "level": 100,
+          "baseHours": 125.04,
+          "hoursForLastLevel": 2.85
+        },
+        {
+          "level": 120,
+          "baseHours": 192.25,
+          "hoursForLastLevel": 3.9
+        },
+        {
+          "level": 140,
+          "baseHours": 284.1,
+          "hoursForLastLevel": 5.12
+        },
+        {
+          "level": 150,
+          "baseHours": 339.29,
+          "hoursForLastLevel": 6.01
+        }
+      ]
+    },
+    {
+      "skill": "medical",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 4.5,
+          "hoursForLastLevel": 1.42
+        },
+        {
+          "level": 20,
+          "baseHours": 7.39,
+          "hoursForLastLevel": 0.41
+        },
+        {
+          "level": 40,
+          "baseHours": 18.75,
+          "hoursForLastLevel": 0.76
+        },
+        {
+          "level": 60,
+          "baseHours": 38.79,
+          "hoursForLastLevel": 1.28
+        },
+        {
+          "level": 80,
+          "baseHours": 71.01,
+          "hoursForLastLevel": 1.97
+        },
+        {
+          "level": 100,
+          "baseHours": 123.12,
+          "hoursForLastLevel": 3.39
+        },
+        {
+          "level": 120,
+          "baseHours": 190.33,
+          "hoursForLastLevel": 3.9
+        },
+        {
+          "level": 140,
+          "baseHours": 280.36,
+          "hoursForLastLevel": 5.12
+        },
+        {
+          "level": 150,
+          "baseHours": 334.56,
+          "hoursForLastLevel": 5.81
+        }
+      ]
+    },
+    {
+      "skill": "combat",
+      "checkpoints": [
+        {
+          "level": 10,
+          "baseHours": 0.87,
+          "hoursForLastLevel": 0.14
+        },
+        {
+          "level": 20,
+          "baseHours": 5.34,
+          "hoursForLastLevel": 0.79
+        },
+        {
+          "level": 40,
+          "baseHours": 15.4,
+          "hoursForLastLevel": 0.88
+        },
+        {
+          "level": 60,
+          "baseHours": 29.43,
+          "hoursForLastLevel": 1.06
+        },
+        {
+          "level": 80,
+          "baseHours": 47.41,
+          "hoursForLastLevel": 1.22
+        },
+        {
+          "level": 100,
+          "baseHours": 76.9,
+          "hoursForLastLevel": 1.92
+        },
+        {
+          "level": 120,
+          "baseHours": 115.92,
+          "hoursForLastLevel": 2.44
+        },
+        {
+          "level": 140,
+          "baseHours": 162.33,
+          "hoursForLastLevel": 2.79
+        },
+        {
+          "level": 150,
+          "baseHours": 184.22,
+          "hoursForLastLevel": 2.38
+        }
+      ]
+    }
+  ],
+  "equipment": [
+    {
+      "district": "neonRow",
+      "classes": {
+        "pistols": {
+          "item": "copperhead-revolver",
+          "rarity": "Common",
+          "power": 12.14
+        },
+        "smgs": {
+          "item": "neon-hail",
+          "rarity": "Common",
+          "power": 10.09
+        },
+        "assaultRifles": {
+          "item": "watchman-rifle",
+          "rarity": "Common",
+          "power": 12.74
+        },
+        "shotguns": {
+          "item": "scrap-breacher",
+          "rarity": "Common",
+          "power": 14.63
+        },
+        "blades": {
+          "item": "street-shock-baton",
+          "rarity": "Common",
+          "power": 12.56
+        }
+      }
+    },
+    {
+      "district": "rustYards",
+      "classes": {
+        "pistols": {
+          "item": "jackal-sidearm",
+          "rarity": "Uncommon",
+          "power": 17.37
+        },
+        "smgs": {
+          "item": "yard-dog-smg",
+          "rarity": "Uncommon",
+          "power": 14.87
+        },
+        "assaultRifles": {
+          "item": "hauler-carbine",
+          "rarity": "Uncommon",
+          "power": 19.57
+        },
+        "shotguns": {
+          "item": "yardbreaker",
+          "rarity": "Uncommon",
+          "power": 20.84
+        },
+        "blades": {
+          "item": "jackal-wrenchblade",
+          "rarity": "Uncommon",
+          "power": 19.64
+        }
+      }
+    },
+    {
+      "district": "underpassMarket",
+      "classes": {
+        "pistols": {
+          "item": "market-enforcer",
+          "rarity": "Uncommon",
+          "power": 20.24
+        },
+        "smgs": {
+          "item": "underpass-viper",
+          "rarity": "Uncommon",
+          "power": 18.26
+        },
+        "assaultRifles": {
+          "item": "contraband-lancer",
+          "rarity": "Uncommon",
+          "power": 22.76
+        },
+        "shotguns": {
+          "item": "tollkeeper",
+          "rarity": "Uncommon",
+          "power": 24.48
+        },
+        "blades": {
+          "item": "silk-wire",
+          "rarity": "Uncommon",
+          "power": 21.84
+        }
+      }
+    },
+    {
+      "district": "blacknetQuarter",
+      "classes": {
+        "pistols": {
+          "item": "cipher-pistol",
+          "rarity": "Rare",
+          "power": 29.14
+        },
+        "smgs": {
+          "item": "daemon-swarm",
+          "rarity": "Rare",
+          "power": 26.66
+        },
+        "assaultRifles": {
+          "item": "null-choir-rifle",
+          "rarity": "Rare",
+          "power": 34.27
+        },
+        "shotguns": {
+          "item": "packet-loss",
+          "rarity": "Rare",
+          "power": 33.5
+        },
+        "blades": {
+          "item": "logic-edge",
+          "rarity": "Rare",
+          "power": 35.1
+        }
+      }
+    },
+    {
+      "district": "helixWard",
+      "classes": {
+        "pistols": {
+          "item": "helix-mender",
+          "rarity": "Rare",
+          "power": 33.07
+        },
+        "smgs": {
+          "item": "sterile-vector",
+          "rarity": "Rare",
+          "power": 29.85
+        },
+        "assaultRifles": {
+          "item": "helix-pulse-rifle",
+          "rarity": "Rare",
+          "power": 37.3
+        },
+        "shotguns": {
+          "item": "trauma-response",
+          "rarity": "Rare",
+          "power": 37.19
+        },
+        "blades": {
+          "item": "helix-bonesaw",
+          "rarity": "Rare",
+          "power": 39.67
+        }
+      }
+    },
+    {
+      "district": "glasslineDistrict",
+      "classes": {
+        "pistols": {
+          "item": "glassline-executive",
+          "rarity": "Epic",
+          "power": 46.26
+        },
+        "smgs": {
+          "item": "glassline-needle",
+          "rarity": "Epic",
+          "power": 43.99
+        },
+        "assaultRifles": {
+          "item": "corporate-verdict",
+          "rarity": "Epic",
+          "power": 55.15
+        },
+        "shotguns": {
+          "item": "hostile-takeover",
+          "rarity": "Epic",
+          "power": 53.57
+        },
+        "blades": {
+          "item": "golden-parachute",
+          "rarity": "Epic",
+          "power": 58.14
+        }
+      }
+    },
+    {
+      "district": "redlineBlocks",
+      "classes": {
+        "pistols": {
+          "item": "saintmaker",
+          "rarity": "Epic",
+          "power": 53.27
+        },
+        "smgs": {
+          "item": "redline-tempest",
+          "rarity": "Epic",
+          "power": 51.63
+        },
+        "assaultRifles": {
+          "item": "redline-dominion",
+          "rarity": "Epic",
+          "power": 60.81
+        },
+        "shotguns": {
+          "item": "redline-riot",
+          "rarity": "Epic",
+          "power": 61.38
+        },
+        "blades": {
+          "item": "redline-crown",
+          "rarity": "Epic",
+          "power": 65.89
+        }
+      }
+    },
+    {
+      "district": "skylineCore",
+      "classes": {
+        "pistols": {
+          "item": "last-word-protocol",
+          "rarity": "Legendary",
+          "power": 79.91
+        },
+        "smgs": {
+          "item": "city-of-static",
+          "rarity": "Legendary",
+          "power": 77.26
+        },
+        "assaultRifles": {
+          "item": "skyline-zero",
+          "rarity": "Legendary",
+          "power": 96.16
+        },
+        "shotguns": {
+          "item": "event-horizon",
+          "rarity": "Legendary",
+          "power": 90.36
+        },
+        "blades": {
+          "item": "neon-eclipse",
+          "rarity": "Legendary",
+          "power": 105.55
+        }
+      }
+    }
+  ],
+  "content": {
+    "items": 513,
+    "recipes": 280,
+    "actions": 150
+  }
+}

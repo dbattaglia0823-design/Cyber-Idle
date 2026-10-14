@@ -59,7 +59,7 @@ test('training cash is incidental and exceptional component duplication is remov
   assert.equal(skillActions.find(a => a.id === 'scav-prototype-recovery-zone').rewards.armorPlating, undefined);
 });
 
-test('local gig supplies rotate one component per clear instead of bypassing every profession', () => {
+test('local gig supplies rotate one component type per clear instead of bypassing every profession', () => {
   let state = claimFieldKit(chooseStartingPath(createInitialState(), 'streetborn'));
   const gig = rpgSideGigs[0], materials = districtSupplyItems(gig.district);
   for (let i = 0; i < materials.length; i++) {
@@ -67,7 +67,7 @@ test('local gig supplies rotate one component per clear instead of bypassing eve
     state = chooseMissionApproach(startRpgMission(state, gig.id), 'assault');
     state.rpg.active.phase = 'decision';
     state = resolveRpgMission(state, 'extract');
-    for (const material of materials) assert.equal((state.inventory[material] ?? 0) - (before[material] ?? 0), material === materials[i] ? 1 : 0);
+    for (const material of materials) assert.equal((state.inventory[material] ?? 0) - (before[material] ?? 0), material === materials[i] ? 3 + Math.floor(gig.act / 2) : 0);
   }
 });
 

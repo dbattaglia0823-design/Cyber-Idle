@@ -1,3 +1,4 @@
+import { mainJobXp } from "./campaignBalance";
 import type { AttributeId } from "../rpgTypes";
 import type { ActiveModifiers, DistrictId, StartingPathId } from "../types";
 
@@ -115,7 +116,7 @@ const mainJobPatrols = [
 ];
 
 export const rpgMissions: RpgMission[] = cases.map(entry => ({
-  ...entry, enemies: [entry.enemies[0], ...mainJobPatrols[entry.act], entry.enemies[1]], reward: 1500 + entry.act * 2500 + (entry.act === 7 ? 30000 : 0), xp: 350 + entry.act * 160,
+  ...entry, enemies: [entry.enemies[0], ...mainJobPatrols[entry.act], entry.enemies[1]], reward: 1500 + entry.act * 2500 + (entry.act === 7 ? 30000 : 0), xp: mainJobXp(entry.act),
   choices: entry.act === 7 ? [
     { id: "free", label: "Free the identities", detail: "+20 reputation. Return control to the people inside the network.", response: "For one impossible second, every screen in the city shows a different face. Then the voices go quiet. They finally belong to themselves.", reputation: 20, bonusCredits: 0 },
     { id: "own", label: "Take the throne", detail: "+2,000 credits. Keep the system and become its new operator.", response: "The skyline opens its doors. Your name replaces the old administrator. Far below, the city keeps moving. You can feel every heartbeat.", reputation: -10, bonusCredits: 2000 },

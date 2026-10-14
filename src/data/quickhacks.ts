@@ -7,7 +7,7 @@ export interface Quickhack {
 }
 const program = (id: string, name: string, family: string, rarity: ItemRarity, stage: number, ram: number, multiplier: number, technical: number, credits: number, data: number, description: string, effect?: Quickhack["effect"], potency = 0): Quickhack => ({
   id: `quickhack-${id}`, name, family, action: family, rarity, stage, ram, multiplier, technical,
-  interrupt: family === "disrupt", cost: { credits, encryptedData: data }, price: credits * 3, description, effect, potency,
+  interrupt: family === "disrupt", cost: { credits, encryptedData: data }, price: credits * 3, description: description + (family === "disrupt" ? " Interrupting pauses passive RAM recovery for that turn." : ""), effect, potency,
 });
 export const quickhacks: Quickhack[] = [
   program("short-circuit", "Short Circuit", "hack", "Common", 0, 2, 1, 3, 120, 5, "Electrical damage with a low RAM cost."),

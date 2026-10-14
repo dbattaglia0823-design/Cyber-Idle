@@ -19,7 +19,7 @@ export function TacticalEncounter({ state, mission, onUpdate }: { state: GameSta
     { id:"attack",name:e.aimed ? "Aimed shot" : "Fire weapon", detail:`${stats.damage} base damage${e.aimed ? " · aim bonus ready" : ""}`,Icon:Crosshair },
     { id:"aim",name:"Aim from cover",detail:"Prime next shot · reduce incoming damage",Icon:Target },
     { id:"cover",name:"Take cover",detail:"Absorb a burst · regenerate RAM",Icon:Shield },
-    ...installedQuickhacks(state).map(h => ({ id: `quickhack:${h.id}` as TacticalAction, name: h.name, detail: quickhackRamCost(state, h) + " RAM / " + Math.round(stats.hack * h.multiplier * (e.approach === "netrunner" ? 1.35 : 1)) + " damage / " + h.rarity + (h.effect ? " / " + h.effect : "") + (h.interrupt ? " / interrupts" : ""), Icon: Cpu })),
+    ...installedQuickhacks(state).map(h => ({ id: `quickhack:${h.id}` as TacticalAction, name: h.name, detail: quickhackRamCost(state, h) + " RAM / " + Math.round(stats.hack * h.multiplier * (e.approach === "netrunner" ? 1.35 : 1)) + " damage / " + h.rarity + (h.effect ? " / " + h.effect : "") + (h.interrupt ? " / interrupts · pauses RAM recovery" : ""), Icon: Cpu })),
     { id:"heal",name:"Field injector",detail:`${e.meds} left · restore ${Math.round(stats.heal*100)}% HP · clears bleed`,Icon:HeartPulse },
     { id:"overclock",name:"Recover RAM",detail:"+3 RAM · take cover",Icon:Terminal },
   ];

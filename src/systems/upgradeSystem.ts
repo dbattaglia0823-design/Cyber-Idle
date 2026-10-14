@@ -1,3 +1,5 @@
+import { upgradeCost } from "./itemFormulas";
+import { progressionBalance } from "../data/campaignBalance";
 import { upgradeTechnicalRequirement } from "./runnerProgression";
 import { getItem } from "../data/items";
 import { recipes } from "../data/recipes";
@@ -46,13 +48,13 @@ export function itemUpgradeCost(state: GameState, itemId: string) {
   };
 
   if (recipe) {
-    const multiplier = 0.75 * Math.pow(step, 1.15);
+    const multiplier = progressionBalance.upgradeRecipeBase * Math.pow(step, progressionBalance.upgradeRecipeExponent);
     Object.entries(scaledCraftingCosts(state, recipe)).forEach(([id, amount]) => {
       if (amount <= 0) return;
       cost[id] = (cost[id] ?? 0) + Math.max(1, Math.ceil(amount * multiplier));
     });
   } else {
-    cost[itemId] = Math.ceil(step * 1.5);
+    Object.assign(cost, upgradeCost(itemId, current));
   }
 
   return Object.fromEntries(Object.entries(cost).filter(([, amount]) => amount > 0));

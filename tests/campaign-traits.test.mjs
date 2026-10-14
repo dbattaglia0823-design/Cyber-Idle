@@ -22,7 +22,7 @@ function combat(act, keepPerks = false) {
 test('Rust Yards plating reduces ordinary shots; aim and quickhacks bypass plating',()=>{
  const s=combat(1),base=tacticalStats(s).damage;
  const normal=performTactic(s,'attack');
- assert.equal(s.rpg.active.enemyHp-normal.rpg.active.enemyHp,Math.round(base*1.15*.82));
+ assert.equal(s.rpg.active.enemyHp-normal.rpg.active.enemyHp,Math.round(base*1.15*(.82+tacticalStats(s).armorPenetration)));
  const aimed=cloneState(s);aimed.rpg.active.aimed=true;
  const result=performTactic(aimed,'attack');
  assert.equal(aimed.rpg.active.enemyHp-result.rpg.active.enemyHp,Math.round(base*1.15*1.8));

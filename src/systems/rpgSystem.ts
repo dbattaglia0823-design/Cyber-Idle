@@ -1,3 +1,5 @@
+import { tacticalWeaponPower, tacticalWeaponStats } from "./tacticalEquipment";
+import { runnerXpNeeded, progressionBalance } from "../data/campaignBalance";
 import { encounterTraits, tacticalIntent } from "./tacticalTraits";
 import { mainJobBalance } from "../data/mainJobBalance";
 import { meetsItemAttributeRequirement } from "./runnerProgression";
@@ -22,7 +24,7 @@ import { scaledStats } from "./itemFormulas";
 import type { AttributeId, MissionApproach, TacticalAction, GigRisk } from "../rpgTypes";
 import type { GameState } from "../types";
 
-export const rpgXpNeeded = (level: number) => 100 + level * 60;
+export const rpgXpNeeded = runnerXpNeeded;
 export const missionById = (id: string) => allRpgMissions.find(mission => mission.id === id);
 export const mainChaptersCleared = (state: GameState) => rpgMissions.filter(mission => state.rpg.completed[mission.id]).length;
 export const communityDecisions = (state: GameState) => rpgMissions.filter(mission => state.rpg.completed[mission.id]?.outcome === "protect").length;
@@ -133,21 +135,21 @@ export function chooseMissionApproach(state: GameState, approach: MissionApproac
 
 export function maxRam(state: GameState) { const deck = equippedDeck(state); return deck ? 5 + Math.floor(state.rpg.attributes.intelligence / 2) + deckBonuses(state).ram + (state.rpg.perks["expanded-memory"] ? 3 : 0) : 0; }
 export function tacticalStats(state: GameState) {
-  const a = state.rpg.attributes, weapon = state.equippedGear.weapon && getItem(state.equippedGear.weapon);
-  const weaponDamage = weapon ? scaledStats(state, weapon.id).damage ?? 0 : 0;
-  const gear = Math.sqrt(Math.max(0, weaponDamage)) * 2 + weaponDamage * 0.9;
-  const armor = Object.values(state.equippedGear).reduce((sum, id) => sum + (scaledStats(state, id).armor ?? 0), 0);
+  const a = state.rpg.attributes;
+  const gear = tacticalWeaponPower(state);
+  const armor = [...Object.values(state.equippedGear), ...Object.values(state.equippedCyberware)].reduce((sum, id) => sum + (scaledStats(state, id).armor ?? 0), 0);
   const modifiers = getActiveModifiers(state);
   return {
+    armorPenetration: Math.min(.8, Math.max(0, tacticalWeaponStats(state).armorPenetration ?? 0) / 100),
     damage: Math.round((20 + a.body * 0.8 + a.reflexes + state.rpg.level * 1.5 + gear) * (1 + Math.min(0.5, modifiers.combatDamage))),
     hack: Math.round((19 + a.intelligence * 3 + state.rpg.level) * (state.rpg.perks.synapse ? 1.4 : 1) * (1 + deckBonuses(state).damage + (state.rpg.perks["neural-sovereign"] ? .2 : 0))),
-    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + Math.min(0.2, armor * (1 + modifiers.combatDefense) * 0.004) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
+    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + 0.35 * (armor * (1 + modifiers.combatDefense)) / (60 + armor * (1 + modifiers.combatDefense)) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
     heal: Math.min(0.75, (0.35 + a.technical * 0.015) * (1 + modifiers.healingReceived)),
   };
 }
 export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk: GigRisk = "standard") {
   const boss = !mission.sideGig && enemyIndex === mission.enemies.length - 1;
-  if (mission.sideGig) return { boss: false, health: Math.round((80 + mission.act * 24 + enemyIndex * 18) * gigRisks[risk].health), damage: (10 + mission.act * 2 + enemyIndex * 2) * gigRisks[risk].damage };
+  if (mission.sideGig) return { boss: false, health: Math.round(Math.max(80, mainJobBalance[mission.district].health * progressionBalance.gigHealthRatio) * gigRisks[risk].health), damage: Math.max(10, mainJobBalance[mission.district].damage * progressionBalance.gigDamageRatio) * gigRisks[risk].damage };
   const tier = mainJobBalance[mission.district];
   return {
     boss,
@@ -199,7 +201,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if (action === "overclock") { e.ram = Math.min(maxRam(next), e.ram + 3); cover = true; }
   if (e.turn <= (next.rpg.perks["ghost-protocol"] ? 1 : 0) && next.rpg.perks.ambush) damage *= 1.6;
   if (action === "attack" && !(next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * .25)) {
-    if (traits.armor && !aimedAttack) { damage *= 1 - traits.armor; e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
+    if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - stats.armorPenetration); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
     if (traits.shield) { damage *= 1 - traits.shield; e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
   }
   damage = Math.round(damage);
@@ -235,10 +237,10 @@ export function performTactic(state: GameState, action: TacticalAction) {
       if (traits.bleed && !cover) { e.playerBleedTurns = 2; e.playerBleedDamage = Math.max(1, Math.round(incoming * .12)); e.log.push("Bleeding applied for two turns. Use an injector to clear it."); }
       if (cover && (traits.bleed || traits.ramDrain)) e.log.push("Cover blocked the enemy status effect.");
       e.log.push(`${charged ? "Charged burst" : "Enemy fire"}: ${incoming} damage${cover ? " through cover" : ""}.`);
-    } else if (stun) e.log.push("Counterattack interrupted.");
+    } else if (stun) e.log.push("Counterattack interrupted. Passive RAM recovery paused.");
     e.weakenTurns = Math.max(0, (e.weakenTurns ?? 0) - 1);
     e.turn++;
-    e.ram = Math.min(maxRam(next), e.ram + ramRecovery(next));
+    e.ram = Math.min(maxRam(next), e.ram + (stun ? 0 : ramRecovery(next)));
     if (next.health.currentHp <= 0) { e.phase = "failed"; next.health.lifeState = "downed"; e.log.push("Your fixer pulled you out. Retry with a refreshed field kit, or leave and change your build."); }
   }
   e.log = e.log.slice(-12);
@@ -251,7 +253,9 @@ function setupEnemy(state: GameState, mission: RpgMission) {
   e.playerBleedDamage = 0; e.playerBleedTurns = 0;
   e.burnDamage = 0; e.burnTurns = 0; e.weaken = 0; e.weakenTurns = 0;
   e.enemyMaxHp = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).health * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
-  e.enemyHp = e.enemyMaxHp; e.ram = maxRam(state);
+  e.enemyHp = e.enemyMaxHp;
+  // RAM carries through patrols; kills no longer refill an entire cyberdeck.
+  e.ram = Math.min(e.ram, maxRam(state));
   e.log.push(`${missionEnemyStats(mission, e.enemyIndex).boss ? "Boss contact" : "Contact"}: ${mission.enemies[e.enemyIndex]}. Read the enemy intent before choosing your move.`);
 }
 
@@ -291,7 +295,7 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
     next.fixerTrust[fixer.id] = { ...progress, trust: progress.trust + (mission.sideGig ? 3 : 12), completedJobs: progress.completedJobs + 1 };
   }
   addDistrictMasteryXp(next, mission.district, "action", mission.sideGig ? 40 + mission.act * 25 : 250 + mission.act * 100);
-  const unique = rollGigUnique(mission, random);
+  const unique = rollGigUnique(mission, random, state.inventory);
   if (unique) loot[unique] = (loot[unique] ?? 0) + 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
   if (!mission.sideGig) {

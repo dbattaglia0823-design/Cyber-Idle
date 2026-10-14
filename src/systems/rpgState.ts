@@ -1,8 +1,9 @@
+import { mainJobXp, runnerXpNeeded } from "../data/campaignBalance";
 import type { RpgState } from "../rpgTypes";
-import { allRpgMissions } from "../data/rpgCampaign";
+import { allRpgMissions, rpgMissions } from "../data/rpgCampaign";
 
 export function createRpgState(): RpgState {
-  return { attributeProgressionVersion: 1, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
+  return { campaignXpVersion: 2, attributeProgressionVersion: 1, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
     attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
 }
 
@@ -15,9 +16,18 @@ export function cloneRpgState(state?: RpgState): RpgState {
 
 export function normalizeRpgState(state?: RpgState): RpgState {
   const next = cloneRpgState(state);
+  const migrateCampaignXp = (state?.campaignXpVersion ?? 1) < 2;
   const integer = (value: number, min: number, max: number) => Number.isFinite(value) ? Math.max(min, Math.min(max, Math.floor(value))) : min;
   next.level = integer(next.level, 1, 30); next.xp = integer(next.xp, 0, 100000);
   next.attributePoints = integer(next.attributePoints, 0, 65); next.perkPoints = integer(next.perkPoints, 0, 31);
+  if (migrateCampaignXp) {
+    for (const mission of rpgMissions) if (next.completed[mission.id]) next.xp += Math.max(0, mainJobXp(mission.act) - (350 + mission.act * 160));
+    while (next.level < 30 && next.xp >= runnerXpNeeded(next.level)) {
+      next.xp -= runnerXpNeeded(next.level); next.level++; next.attributePoints += 2; next.perkPoints++;
+    }
+    if (next.level === 30) next.xp = 0;
+  }
+  next.campaignXpVersion = 2;
   next.streetCred = integer(next.streetCred, 0, 1000000);
   for (const key of Object.keys(next.attributes) as Array<keyof RpgState["attributes"]>) next.attributes[key] = integer(next.attributes[key], 3, 20);
   if (next.active) {

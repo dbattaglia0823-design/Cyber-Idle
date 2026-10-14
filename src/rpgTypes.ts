@@ -25,6 +25,7 @@ export interface RpgEncounter {
 export interface RpgState {
   quickhackVersion?: number;
   quickhackLoadouts?: Record<string, string[]>;
+  campaignXpVersion?: number;
   attributeProgressionVersion?: number;
   level: number;
   xp: number;

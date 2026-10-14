@@ -1,0 +1,1001 @@
+[
+  {
+    "approach": "assault",
+    "style": "story",
+    "completed": 8,
+    "credits": 277960,
+    "activeCombatMinutes": 97.1,
+    "craftingHours": 0.6,
+    "trainingHours": 164.61,
+    "totalHours": 166.84,
+    "gigs": 125,
+    "crafts": 222,
+    "cycles": 63407,
+    "skills": {
+      "scavenging": 95,
+      "hacking": 26,
+      "cyberware": 144,
+      "vehicleTuning": 1,
+      "medical": 1,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 2,
+        "runnerLevel": 5,
+        "hours": 0.88,
+        "gigs": 3,
+        "damage": 56,
+        "turns": 19,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 6,
+        "runnerLevel": 10,
+        "hours": 11.68,
+        "gigs": 3,
+        "damage": 75,
+        "turns": 23,
+        "injectors": 1,
+        "minHp": 42
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 14,
+        "runnerLevel": 17,
+        "hours": 9.15,
+        "gigs": 25,
+        "damage": 97,
+        "turns": 29,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 20,
+        "runnerLevel": 22,
+        "hours": 13,
+        "gigs": 17,
+        "damage": 138,
+        "turns": 33,
+        "injectors": 0,
+        "minHp": 59
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 25,
+        "runnerLevel": 28,
+        "hours": 19.5,
+        "gigs": 22,
+        "damage": 159,
+        "turns": 34,
+        "injectors": 1,
+        "minHp": 47
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 29.18,
+        "gigs": 24,
+        "damage": 205,
+        "turns": 38,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 37.05,
+        "gigs": 14,
+        "damage": 235,
+        "turns": 42,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 46.39,
+        "gigs": 17,
+        "damage": 297,
+        "turns": 44,
+        "injectors": 3,
+        "minHp": 42
+      }
+    ]
+  },
+  {
+    "approach": "netrunner",
+    "style": "story",
+    "completed": 8,
+    "credits": 277834,
+    "activeCombatMinutes": 74.7,
+    "craftingHours": 0.6,
+    "trainingHours": 164.43,
+    "totalHours": 166.28,
+    "gigs": 125,
+    "crafts": 222,
+    "cycles": 62940,
+    "skills": {
+      "scavenging": 95,
+      "hacking": 29,
+      "cyberware": 144,
+      "vehicleTuning": 1,
+      "medical": 1,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 2,
+        "runnerLevel": 5,
+        "hours": 0.88,
+        "gigs": 3,
+        "damage": 46,
+        "turns": 19,
+        "injectors": 2,
+        "minHp": 18
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 6,
+        "runnerLevel": 10,
+        "hours": 11.68,
+        "gigs": 3,
+        "damage": 64,
+        "turns": 22,
+        "injectors": 2,
+        "minHp": 48
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 14,
+        "runnerLevel": 17,
+        "hours": 9.13,
+        "gigs": 25,
+        "damage": 89,
+        "turns": 19,
+        "injectors": 1,
+        "minHp": 49
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 20,
+        "runnerLevel": 22,
+        "hours": 12.96,
+        "gigs": 17,
+        "damage": 121,
+        "turns": 18,
+        "injectors": 0,
+        "minHp": 72
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 25,
+        "runnerLevel": 28,
+        "hours": 19.44,
+        "gigs": 22,
+        "damage": 139,
+        "turns": 32,
+        "injectors": 0,
+        "minHp": 61
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 28.95,
+        "gigs": 24,
+        "damage": 193,
+        "turns": 21,
+        "injectors": 0,
+        "minHp": 62
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 36.92,
+        "gigs": 14,
+        "damage": 223,
+        "turns": 24,
+        "injectors": 1,
+        "minHp": 50
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 46.3,
+        "gigs": 17,
+        "damage": 287,
+        "turns": 28,
+        "injectors": 1,
+        "minHp": 46
+      }
+    ]
+  },
+  {
+    "approach": "ghost",
+    "style": "story",
+    "completed": 8,
+    "credits": 277834,
+    "activeCombatMinutes": 91.8,
+    "craftingHours": 0.6,
+    "trainingHours": 164.61,
+    "totalHours": 166.75,
+    "gigs": 125,
+    "crafts": 222,
+    "cycles": 63407,
+    "skills": {
+      "scavenging": 95,
+      "hacking": 26,
+      "cyberware": 144,
+      "vehicleTuning": 1,
+      "medical": 1,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 2,
+        "runnerLevel": 5,
+        "hours": 0.87,
+        "gigs": 3,
+        "damage": 46,
+        "turns": 13,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 6,
+        "runnerLevel": 10,
+        "hours": 11.68,
+        "gigs": 3,
+        "damage": 64,
+        "turns": 24,
+        "injectors": 1,
+        "minHp": 47
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 14,
+        "runnerLevel": 17,
+        "hours": 9.14,
+        "gigs": 25,
+        "damage": 89,
+        "turns": 27,
+        "injectors": 1,
+        "minHp": 45
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 20,
+        "runnerLevel": 22,
+        "hours": 12.99,
+        "gigs": 17,
+        "damage": 126,
+        "turns": 30,
+        "injectors": 0,
+        "minHp": 71
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 25,
+        "runnerLevel": 28,
+        "hours": 19.49,
+        "gigs": 22,
+        "damage": 151,
+        "turns": 34,
+        "injectors": 0,
+        "minHp": 73
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 29.17,
+        "gigs": 24,
+        "damage": 208,
+        "turns": 31,
+        "injectors": 1,
+        "minHp": 45
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 37.03,
+        "gigs": 14,
+        "damage": 237,
+        "turns": 32,
+        "injectors": 0,
+        "minHp": 71
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 46.37,
+        "gigs": 17,
+        "damage": 301,
+        "turns": 38,
+        "injectors": 1,
+        "minHp": 49
+      }
+    ]
+  },
+  {
+    "approach": "assault",
+    "style": "balanced",
+    "completed": 8,
+    "credits": 489867,
+    "activeCombatMinutes": 40.3,
+    "craftingHours": 0.82,
+    "trainingHours": 526.06,
+    "totalHours": 527.55,
+    "gigs": 40,
+    "crafts": 344,
+    "cycles": 168392,
+    "skills": {
+      "scavenging": 142,
+      "hacking": 141,
+      "cyberware": 144,
+      "vehicleTuning": 141,
+      "medical": 141,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 6,
+        "runnerLevel": 8,
+        "hours": 9.93,
+        "gigs": 16,
+        "damage": 64,
+        "turns": 12,
+        "injectors": 0,
+        "minHp": 73
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 10,
+        "runnerLevel": 13,
+        "hours": 19.54,
+        "gigs": 12,
+        "damage": 83,
+        "turns": 24,
+        "injectors": 1,
+        "minHp": 47
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 13,
+        "runnerLevel": 16,
+        "hours": 27.99,
+        "gigs": 2,
+        "damage": 98,
+        "turns": 30,
+        "injectors": 2,
+        "minHp": 49
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 17,
+        "runnerLevel": 20,
+        "hours": 40.89,
+        "gigs": 2,
+        "damage": 136,
+        "turns": 33,
+        "injectors": 0,
+        "minHp": 50
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 20,
+        "runnerLevel": 24,
+        "hours": 61.91,
+        "gigs": 2,
+        "damage": 152,
+        "turns": 34,
+        "injectors": 1,
+        "minHp": 47
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 24,
+        "runnerLevel": 28,
+        "hours": 88.48,
+        "gigs": 2,
+        "damage": 198,
+        "turns": 41,
+        "injectors": 3,
+        "minHp": 46
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 119.22,
+        "gigs": 2,
+        "damage": 237,
+        "turns": 39,
+        "injectors": 1,
+        "minHp": 46
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 159.6,
+        "gigs": 2,
+        "damage": 313,
+        "turns": 46,
+        "injectors": 3,
+        "minHp": 47
+      }
+    ]
+  },
+  {
+    "approach": "netrunner",
+    "style": "balanced",
+    "completed": 8,
+    "credits": 477540,
+    "activeCombatMinutes": 33.9,
+    "craftingHours": 0.82,
+    "trainingHours": 512.98,
+    "totalHours": 514.36,
+    "gigs": 41,
+    "crafts": 344,
+    "cycles": 164220,
+    "skills": {
+      "scavenging": 142,
+      "hacking": 141,
+      "cyberware": 144,
+      "vehicleTuning": 141,
+      "medical": 141,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 6,
+        "runnerLevel": 8,
+        "hours": 9.94,
+        "gigs": 16,
+        "damage": 53,
+        "turns": 16,
+        "injectors": 1,
+        "minHp": 37
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 10,
+        "runnerLevel": 13,
+        "hours": 19.13,
+        "gigs": 13,
+        "damage": 76,
+        "turns": 18,
+        "injectors": 1,
+        "minHp": 50
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 13,
+        "runnerLevel": 16,
+        "hours": 27.51,
+        "gigs": 2,
+        "damage": 90,
+        "turns": 22,
+        "injectors": 2,
+        "minHp": 45
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 17,
+        "runnerLevel": 20,
+        "hours": 40.08,
+        "gigs": 2,
+        "damage": 119,
+        "turns": 18,
+        "injectors": 0,
+        "minHp": 69
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 20,
+        "runnerLevel": 24,
+        "hours": 60.52,
+        "gigs": 2,
+        "damage": 134,
+        "turns": 34,
+        "injectors": 1,
+        "minHp": 50
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 24,
+        "runnerLevel": 28,
+        "hours": 86.26,
+        "gigs": 2,
+        "damage": 187,
+        "turns": 21,
+        "injectors": 0,
+        "minHp": 56
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 115.9,
+        "gigs": 2,
+        "damage": 224,
+        "turns": 24,
+        "injectors": 1,
+        "minHp": 49
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 155.01,
+        "gigs": 2,
+        "damage": 302,
+        "turns": 28,
+        "injectors": 1,
+        "minHp": 48
+      }
+    ]
+  },
+  {
+    "approach": "ghost",
+    "style": "balanced",
+    "completed": 8,
+    "credits": 489966,
+    "activeCombatMinutes": 37.3,
+    "craftingHours": 0.82,
+    "trainingHours": 526.06,
+    "totalHours": 527.51,
+    "gigs": 41,
+    "crafts": 344,
+    "cycles": 168393,
+    "skills": {
+      "scavenging": 142,
+      "hacking": 141,
+      "cyberware": 144,
+      "vehicleTuning": 141,
+      "medical": 141,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 6,
+        "runnerLevel": 8,
+        "hours": 9.91,
+        "gigs": 16,
+        "damage": 53,
+        "turns": 10,
+        "injectors": 0,
+        "minHp": 69
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 10,
+        "runnerLevel": 13,
+        "hours": 19.55,
+        "gigs": 13,
+        "damage": 76,
+        "turns": 23,
+        "injectors": 0,
+        "minHp": 55
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 13,
+        "runnerLevel": 16,
+        "hours": 27.98,
+        "gigs": 2,
+        "damage": 90,
+        "turns": 27,
+        "injectors": 1,
+        "minHp": 49
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 17,
+        "runnerLevel": 20,
+        "hours": 40.89,
+        "gigs": 2,
+        "damage": 124,
+        "turns": 30,
+        "injectors": 0,
+        "minHp": 68
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 20,
+        "runnerLevel": 24,
+        "hours": 61.9,
+        "gigs": 2,
+        "damage": 145,
+        "turns": 35,
+        "injectors": 0,
+        "minHp": 60
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 24,
+        "runnerLevel": 28,
+        "hours": 88.48,
+        "gigs": 2,
+        "damage": 202,
+        "turns": 35,
+        "injectors": 1,
+        "minHp": 45
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 119.21,
+        "gigs": 2,
+        "damage": 239,
+        "turns": 32,
+        "injectors": 0,
+        "minHp": 69
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 159.59,
+        "gigs": 2,
+        "damage": 317,
+        "turns": 35,
+        "injectors": 1,
+        "minHp": 43
+      }
+    ]
+  },
+  {
+    "approach": "assault",
+    "style": "gatherer",
+    "completed": 8,
+    "credits": 508458,
+    "activeCombatMinutes": 66.5,
+    "craftingHours": 1.12,
+    "trainingHours": 604.04,
+    "totalHours": 606.27,
+    "gigs": 95,
+    "crafts": 518,
+    "cycles": 183228,
+    "skills": {
+      "scavenging": 150,
+      "hacking": 150,
+      "cyberware": 150,
+      "vehicleTuning": 150,
+      "medical": 150,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 9,
+        "runnerLevel": 11,
+        "hours": 21.01,
+        "gigs": 38,
+        "damage": 69,
+        "turns": 11,
+        "injectors": 0,
+        "minHp": 84
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 15,
+        "runnerLevel": 17,
+        "hours": 19.11,
+        "gigs": 33,
+        "damage": 93,
+        "turns": 23,
+        "injectors": 0,
+        "minHp": 60
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 18,
+        "runnerLevel": 20,
+        "hours": 31.64,
+        "gigs": 4,
+        "damage": 108,
+        "turns": 25,
+        "injectors": 1,
+        "minHp": 50
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 21,
+        "runnerLevel": 23,
+        "hours": 49.07,
+        "gigs": 4,
+        "damage": 147,
+        "turns": 30,
+        "injectors": 0,
+        "minHp": 64
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 24,
+        "runnerLevel": 27,
+        "hours": 71.57,
+        "gigs": 4,
+        "damage": 163,
+        "turns": 34,
+        "injectors": 1,
+        "minHp": 48
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 101.12,
+        "gigs": 4,
+        "damage": 214,
+        "turns": 38,
+        "injectors": 1,
+        "minHp": 47
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 134.35,
+        "gigs": 4,
+        "damage": 248,
+        "turns": 39,
+        "injectors": 1,
+        "minHp": 34
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 178.41,
+        "gigs": 4,
+        "damage": 327,
+        "turns": 41,
+        "injectors": 3,
+        "minHp": 39
+      }
+    ]
+  },
+  {
+    "approach": "netrunner",
+    "style": "gatherer",
+    "completed": 8,
+    "credits": 492700,
+    "activeCombatMinutes": 58.3,
+    "craftingHours": 1.12,
+    "trainingHours": 588.92,
+    "totalHours": 591.01,
+    "gigs": 95,
+    "crafts": 518,
+    "cycles": 178817,
+    "skills": {
+      "scavenging": 150,
+      "hacking": 150,
+      "cyberware": 150,
+      "vehicleTuning": 150,
+      "medical": 150,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 9,
+        "runnerLevel": 11,
+        "hours": 20.83,
+        "gigs": 38,
+        "damage": 58,
+        "turns": 16,
+        "injectors": 1,
+        "minHp": 44
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 15,
+        "runnerLevel": 17,
+        "hours": 18.81,
+        "gigs": 33,
+        "damage": 86,
+        "turns": 12,
+        "injectors": 0,
+        "minHp": 61
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 18,
+        "runnerLevel": 20,
+        "hours": 31.07,
+        "gigs": 4,
+        "damage": 100,
+        "turns": 18,
+        "injectors": 1,
+        "minHp": 45
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 21,
+        "runnerLevel": 23,
+        "hours": 48.06,
+        "gigs": 4,
+        "damage": 129,
+        "turns": 18,
+        "injectors": 0,
+        "minHp": 74
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 24,
+        "runnerLevel": 27,
+        "hours": 69.9,
+        "gigs": 4,
+        "damage": 144,
+        "turns": 32,
+        "injectors": 0,
+        "minHp": 61
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 98.5,
+        "gigs": 4,
+        "damage": 202,
+        "turns": 21,
+        "injectors": 0,
+        "minHp": 62
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 130.55,
+        "gigs": 4,
+        "damage": 236,
+        "turns": 25,
+        "injectors": 1,
+        "minHp": 36
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 173.28,
+        "gigs": 4,
+        "damage": 316,
+        "turns": 28,
+        "injectors": 1,
+        "minHp": 49
+      }
+    ]
+  },
+  {
+    "approach": "ghost",
+    "style": "gatherer",
+    "completed": 8,
+    "credits": 508458,
+    "activeCombatMinutes": 61.1,
+    "craftingHours": 1.12,
+    "trainingHours": 604.04,
+    "totalHours": 606.18,
+    "gigs": 95,
+    "crafts": 518,
+    "cycles": 183228,
+    "skills": {
+      "scavenging": 150,
+      "hacking": 150,
+      "cyberware": 150,
+      "vehicleTuning": 150,
+      "medical": 150,
+      "combat": 1
+    },
+    "rows": [
+      {
+        "district": "neonRow",
+        "entryLevel": 9,
+        "runnerLevel": 11,
+        "hours": 20.97,
+        "gigs": 38,
+        "damage": 58,
+        "turns": 10,
+        "injectors": 0,
+        "minHp": 76
+      },
+      {
+        "district": "rustYards",
+        "entryLevel": 15,
+        "runnerLevel": 17,
+        "hours": 19.11,
+        "gigs": 33,
+        "damage": 86,
+        "turns": 21,
+        "injectors": 0,
+        "minHp": 68
+      },
+      {
+        "district": "underpassMarket",
+        "entryLevel": 18,
+        "runnerLevel": 20,
+        "hours": 31.63,
+        "gigs": 4,
+        "damage": 100,
+        "turns": 23,
+        "injectors": 0,
+        "minHp": 61
+      },
+      {
+        "district": "blacknetQuarter",
+        "entryLevel": 21,
+        "runnerLevel": 23,
+        "hours": 49.06,
+        "gigs": 4,
+        "damage": 134,
+        "turns": 25,
+        "injectors": 0,
+        "minHp": 75
+      },
+      {
+        "district": "helixWard",
+        "entryLevel": 24,
+        "runnerLevel": 27,
+        "hours": 71.57,
+        "gigs": 4,
+        "damage": 156,
+        "turns": 34,
+        "injectors": 0,
+        "minHp": 74
+      },
+      {
+        "district": "glasslineDistrict",
+        "entryLevel": 28,
+        "runnerLevel": 30,
+        "hours": 101.1,
+        "gigs": 4,
+        "damage": 218,
+        "turns": 30,
+        "injectors": 0,
+        "minHp": 50
+      },
+      {
+        "district": "redlineBlocks",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 134.33,
+        "gigs": 4,
+        "damage": 251,
+        "turns": 30,
+        "injectors": 0,
+        "minHp": 51
+      },
+      {
+        "district": "skylineCore",
+        "entryLevel": 30,
+        "runnerLevel": 30,
+        "hours": 178.4,
+        "gigs": 4,
+        "damage": 331,
+        "turns": 36,
+        "injectors": 1,
+        "minHp": 42
+      }
+    ]
+  }
+]

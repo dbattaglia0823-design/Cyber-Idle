@@ -67,7 +67,7 @@ test('combat spends exact RAM, interrupts fire, regenerates, and rejects unaffor
   const hp = state.health.currentHp, ram = state.rpg.active.ram;
   let next = performTactic(state, 'disrupt');
   assert.equal(next.health.currentHp, hp);
-  assert.equal(next.rpg.active.ram, ram - 4 + 1);
+  assert.equal(next.rpg.active.ram, ram - 4);
   assert.ok(next.rpg.active.enemyHp < 1000);
   next.rpg.active.ram = 1;
   assert.equal(performTactic(next, 'hack'), next);

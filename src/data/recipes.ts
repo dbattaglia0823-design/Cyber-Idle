@@ -120,7 +120,7 @@ for (let pass = 0; pass < recipes.length; pass += 1) {
 }
 // Crafting grants 60% of the same-level training rate, plus the crafted item.
 // Keep mastery rewards independent of this skill-XP rebalance.
-for (const entry of recipes) entry.xpReward = Math.max(entry.xpReward, Math.round(trainingXpPerSecond(entry.requiredLevel) * entry.durationMs / 1000 * 0.6));
+for (const entry of recipes) { entry.durationMs = Math.max(2000, Math.min(30000, entry.durationMs)); entry.xpReward = Math.max(entry.xpReward, Math.round(trainingXpPerSecond(entry.requiredLevel) * entry.durationMs / 1000 * 0.6)); }
 recipes.sort(sortRecipes);
 
 function blueprintRecipes(): CraftingRecipe[] {

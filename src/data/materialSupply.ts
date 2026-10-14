@@ -44,7 +44,7 @@ export const materialSupplyActions: SkillAction[] = routes.map(([district, skill
   const index = districtIds.indexOf(district), part = seen.get(district) ?? 0;
   seen.set(district, part + 1);
   const specialized = outputs.some(id => /prototype|apex|legendary|relic|boss-data|blueprint/.test(id));
-  const durationMs = (specialized ? 40000 : 24000) + index * 3000;
+  const durationMs = (specialized ? 27000 : 24000) + Math.min(3, index) * 1000;
   const costs: Partial<Record<SkillId, RewardBundle>> = {
     scavenging: {},
     cyberware: { scrap: -(6 + index * 2), circuitBoards: -(1 + Math.floor(index / 2)) },

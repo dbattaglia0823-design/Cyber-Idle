@@ -53,15 +53,10 @@ test('all eight districts provide combat at their entry level with proper access
 
 
 
-test('skill XP is higher at every level and the multiplier increases smoothly', () => {
-  const previousCost = level => Math.floor(42 * Math.pow(level, 1.90) * (0.72 + (level - 1) * 0.012));
-  assert.ok(xpForNextLevel(1) >= previousCost(1) * 20);
-  let lastIncrease = 0;
-  for (let level = 1; level < 150; level++) {
-    const increase = xpForNextLevel(level) / previousCost(level);
-    assert.ok(increase > lastIncrease, 'relative cost must rise with level ' + level);
-    lastIncrease = increase;
-  }
+test('introductory levels cost less while midgame and endgame retain the long-term curve', () => {
+ const original = level => Math.floor(840 * Math.pow(level, 2.1) * (.72 + (level - 1) * .012));
+ assert.ok(xpForNextLevel(1) < original(1) / 2);
+ for (const level of [20, 40, 80, 100, 149]) assert.ok(xpForNextLevel(level) >= original(level) * .99);
 });
 
 test('12 hours of the first Scavenging action stays within the opening skill tier', async () => {

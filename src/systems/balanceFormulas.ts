@@ -258,7 +258,12 @@ export function calculateRarityAdjustedShopBasePrice(item: ItemDefinition | unde
 
 export function calculateSellValue(state: GameState, item: ItemDefinition, modifier = 1) {
   const marketBonus = item.tags.some((tag) => ["illegal", "prototype", "blacknet"].includes(tag)) ? Math.min(0.15, Math.max(0, state.resources.reputation / 4) * 0.002) : 0;
-  return Math.max(balanceConfig.economy.sellMinValue, Math.round(item.sellValue * modifier * (1 + marketBonus)));
+  const nominal = Math.round(item.sellValue * modifier * (1 + marketBonus));
+  const base = calculateRarityShopBasePrice(item);
+  // Resale cannot exceed the cheapest discounted shop floor, even when a
+  // different district offers the sale bonus. Resources use their own market.
+  const floor = base > 0 ? Math.min(...(Object.keys(state.districts) as DistrictId[]).map(id => calculateVendorPrice(state, base, id))) : Infinity;
+  return Math.max(balanceConfig.economy.sellMinValue, Math.min(nominal, Math.floor(floor * .6)));
 }
 
 export function calculateUpgradeCost(state: GameState, item: ItemDefinition, level: number) {

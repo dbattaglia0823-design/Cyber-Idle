@@ -12,5 +12,5 @@ export const cyberdeckItems: ItemDefinition[] = cyberdecks.map(deck => ({
   id: deck.id, name: deck.name, description: deck.description, type: "Cyberware", rarity: deck.rarity, slot: "operatingSystem",
   requiredSkill: "cyberware", requiredLevel: 1, tier: deck.stage + 1, tags: ["cyberware", "cyberdeck", "hacking"], stackable: false,
   instabilityLoad: 3 + deck.stage, sellValue: Math.floor(deck.price / 5), modifiers: { skillXp: { hacking: .03 + deck.stage * .01 } },
-  sourceHint: "Guaranteed district main-job reward; buy in Character > Quickhacks after reaching its district. Local gigs provide replacements.",
+  sourceHint: "Buy in Character > Quickhacks after reaching its district. Local gigs fund deck purchases.",
 }));

@@ -1,6 +1,7 @@
+import { progressionBalance } from "./campaignBalance";
 import type { BlackMarketStrategy, ItemRarity, SkillId } from "../types";
 
-export const BALANCE_VERSION = 1;
+export const BALANCE_VERSION = 2;
 
 export const balanceConfig = {
   levels: {
@@ -12,7 +13,7 @@ export const balanceConfig = {
     companionRankMax: 10,
   },
   xpCurves: {
-    skill: { base: 840, exponent: 2.10, maxLevel: 150 },
+    skill: { base: progressionBalance.skillBase, exponent: progressionBalance.skillExponent, maxLevel: 150 },
     weaponClass: { base: 46, exponent: 1.78, maxLevel: 99 },
     mastery: { base: 10, exponent: 1.35, maxLevel: 99 },
     districtMastery: { base: 95, exponent: 2.02, maxLevel: 99 },

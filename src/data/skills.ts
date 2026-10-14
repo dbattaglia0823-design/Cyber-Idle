@@ -32,7 +32,7 @@ function action(input: SkillAction): SkillAction {
     sourceHint: "Skill action progression.",
     ...input,
     // Training pays incidental cash; repeatable fixer gigs are the income loop.
-    rewards: { ...input.rewards, ...(input.rewards.credits && input.rewards.credits > 0 ? { credits: Math.min(input.rewards.credits, Math.max(1, Math.floor((30 + input.levelReq) * input.durationMs / 60000))) } : {}) },
+    rewards: { ...input.rewards, ...(input.rewards.credits && input.rewards.credits > 0 ? { credits: Math.min(input.rewards.credits, Math.max(0, Math.floor((3 + input.levelReq * .15) * input.durationMs / 60000))) } : {}) },
     xpReward: pacedActionXp(input.levelReq, input.durationMs, input.xpReward),
     masteryXpReward,
     masteryPoolXpReward: Math.ceil(masteryXpReward * 0.25),

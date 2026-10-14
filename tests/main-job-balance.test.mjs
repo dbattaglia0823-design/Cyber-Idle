@@ -1,3 +1,4 @@
+import { mainJobBalance } from "../src/data/mainJobBalance.ts";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
@@ -26,7 +27,7 @@ test('every Main job has three patrols and a tougher final boss; gigs keep one e
   }
   for (const gig of rpgSideGigs) {
     assert.equal(gig.enemies.length, 1);
-    assert.deepEqual(missionEnemyStats(gig, 0), { boss: false, health: 80 + gig.act * 24, damage: 10 + gig.act * 2 });
+    assert.deepEqual(missionEnemyStats(gig, 0), { boss: false, health: Math.round(Math.max(80, mainJobBalance[gig.district].health * .45)), damage: Math.max(10, mainJobBalance[gig.district].damage * .45) });
   }
 });
 
