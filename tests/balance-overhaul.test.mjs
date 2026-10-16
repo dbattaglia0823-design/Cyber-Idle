@@ -159,3 +159,26 @@ for (const style of ['story', 'balanced', 'gatherer'])
             if (style === 'story')
                 assert.ok(result.rows[0].hours < 2);
         });
+
+test('credit lookup includes starting district gig income', async () => {
+    const { getItemSources } = await import('../src/systems/itemSourceLookup.ts');
+    const { sources } = await import('../scripts/audit-progression.mjs');
+    const state = fresh();
+    const gig = rpgSideGigs.find(m => m.district === 'neonRow');
+    const entry = getItemSources('credits', state).find(source => source.name === gig.title);
+    assert.ok(entry?.unlocked);
+    assert.ok(entry.detail.includes(String(gig.reward)));
+    assert.equal(sources.get('credits').level, 1);
+});
+test('unique source odds follow unowned priority and full-pool fallback', async () => {
+    const { getItemSources } = await import('../src/systems/itemSourceLookup.ts');
+    const gig = rpgSideGigs.find(m => gigUniquePools[m.district].length > 1);
+    const pool = gigUniquePools[gig.district];
+    const state = fresh();
+    for (const id of pool.slice(1)) state.inventory[id] = 1;
+    const source = id => getItemSources(id, state).find(entry => entry.name === gig.title);
+    assert.equal(source(pool[0]).chance, 0.05);
+    assert.equal(source(pool[1]).chance, 0);
+    state.inventory[pool[0]] = 1;
+    assert.equal(source(pool[0]).chance, 0.05 / pool.length);
+});

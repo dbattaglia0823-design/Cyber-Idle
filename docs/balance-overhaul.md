@@ -85,3 +85,14 @@ The separate catalog report covers every item, recipe and action, all six skill 
 - Maximum-standing cross-district purchases/resales cannot create credits.
 
 No changes were added to App.tsx. Existing offline, import/export, inventory, equipment, story and accessibility regression tests remain part of the full suite. Production builds retain the existing large-JavaScript-bundle advisory; this pass does not claim to resolve download performance or replace physical-device playtesting.
+
+## Final verification — October 16, 2026
+
+- Full test suite: 163 passed, 0 failed, including all nine earned campaign routes.
+- Production build: passed TypeScript and Vite; the existing large-bundle advisory remains.
+- Progression audit: 280 recipes and 150 actions; no missing references, duplicate IDs, premature skill rewards, crafting XP shortfalls or material timing problems.
+- Catalog balance audit: completed across 513 items, all recipes/actions and all skill paths.
+- Credit sources now include mission/gig payouts in both the progression audit and player source lookup. Early medical crafting no longer falsely appears to require level-30 income.
+- Unique-drop lookup shares the same ownership-aware candidate pool as actual loot rolls, including full-pool fallback once all district uniques are owned.
+
+These checks validate deterministic rules and reference routes, not human playtesting or physical-device performance. The simulation assumptions and remaining pacing tradeoffs above still apply.

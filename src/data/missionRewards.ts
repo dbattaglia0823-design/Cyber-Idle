@@ -76,10 +76,14 @@ export function missionItemRewards(mission: RpgMission, priorClears = 0): Record
   }
   return loot;
 }
-export function rollGigUnique(mission: RpgMission, random: () => number = Math.random, inventory: Record<string, number> = {}): string | undefined {
+export function gigUniqueCandidates(mission: RpgMission, inventory: Record<string, number> = {}): string[] {
   const candidates = gigUniquePools[mission.district];
   const unowned = candidates.filter(id => !(inventory[id] > 0));
-  const pool = unowned.length ? unowned : candidates;
+  return unowned.length ? unowned : candidates;
+}
+
+export function rollGigUnique(mission: RpgMission, random: () => number = Math.random, inventory: Record<string, number> = {}): string | undefined {
+  const pool = gigUniqueCandidates(mission, inventory);
   if (!mission.sideGig || !pool.length || random() >= GIG_UNIQUE_CHANCE) return undefined;
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }

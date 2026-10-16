@@ -2,7 +2,7 @@ import { quickhacks } from "../data/quickhacks";
 import { cyberdecks } from "../data/cyberdecks";
 import { districtProgressionOrder } from "../data/districtProgressionOrder";
 import { softwareStageUnlocked } from "./quickhackSystem";
-import { missionItemRewards, missionRewardPools, gigUniquePools, GIG_UNIQUE_CHANCE } from "../data/missionRewards";
+import { missionItemRewards, missionRewardPools, gigUniquePools, gigUniqueCandidates, GIG_UNIQUE_CHANCE } from "../data/missionRewards";
 import { bosses } from "../data/bosses";
 import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
 import { districtSupplyItems } from "../data/materialSupply";
@@ -60,8 +60,19 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   allRpgMissions.forEach(mission => {
     const supply = districtSupplyItems(mission.district);
     const rewards = missionItemRewards(mission);
-    if (rewards[itemId] || (mission.sideGig && [...supply, ...missionRewardPools[mission.district], ...gigUniquePools[mission.district]].includes(itemId))) {
-      sources.push({ type: "Mission reward", name: mission.title, detail: mission.sideGig ? gigUniquePools[mission.district].includes(itemId) ? `Rare unique drop: ${Number((GIG_UNIQUE_CHANCE * 100 / gigUniquePools[mission.district].length).toFixed(2))}% per clear for this item. At most one unique item per gig.` : "Guaranteed rotating crafting supplies. The mission preview shows the next payout." : "Guaranteed main-job reward. Open Missions > Main jobs.", districtId: mission.district, unlocked: missionAvailable(state, mission) });
+    const creditReward = itemId === "credits" && mission.reward > 0;
+    const unique = Boolean(mission.sideGig && gigUniquePools[mission.district].includes(itemId));
+    if (creditReward || rewards[itemId] || (mission.sideGig && [...supply, ...missionRewardPools[mission.district], ...gigUniquePools[mission.district]].includes(itemId))) {
+      const eligible = gigUniqueCandidates(mission, state.inventory);
+      const chance = unique ? (eligible.includes(itemId) ? GIG_UNIQUE_CHANCE / eligible.length : 0) : undefined;
+      const detail = creditReward
+        ? "Standard payout: " + mission.reward + " credits. " + (mission.sideGig ? "Higher gig risk increases payment." : "Choices can change the final payout.")
+        : unique
+          ? chance === 0
+            ? "Already owned. Other unique items drop first; this item becomes eligible again when you own the full district pool."
+            : "Rare unique drop: " + Number(((chance ?? 0) * 100).toFixed(2)) + "% per clear for this item with your current inventory. Unowned items take priority; at most one unique item per gig."
+          : mission.sideGig ? "Guaranteed rotating crafting supplies. The mission preview shows the next payout." : "Guaranteed main-job reward. Open Missions > Main jobs.";
+      sources.push({ type: "Mission reward", name: mission.title, detail, chance, districtId: mission.district, unlocked: missionAvailable(state, mission) });
     }
   });
   if (itemId === "iconic-reflex-spine" || itemId === "iconic-null-eye") {

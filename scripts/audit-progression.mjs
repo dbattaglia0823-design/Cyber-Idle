@@ -30,6 +30,7 @@ for (const e of combatZones.flatMap(z => z.enemies)) {
   for (const d of percentDropTables[e.id] ?? []) add(d.itemId, Math.max(e.requiredCombatLevel ?? 1, level(e.preferredDistrict)), e.name);
 }
 for (const mission of allRpgMissions) {
+  if (mission.reward > 0) add("credits", level(mission.district), mission.title);
   const ids = mission.sideGig ? [...missionRewardPools[mission.district], ...gigUniquePools[mission.district], ...districtSupplyItems(mission.district), ...Object.keys(missionItemRewards(mission))] : Object.keys(missionItemRewards(mission));
   for (const id of ids) add(id, level(mission.district), mission.title);
 }
