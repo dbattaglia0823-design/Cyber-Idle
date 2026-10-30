@@ -55,9 +55,9 @@ export function emitRewardPopupGroup(state: GameState, input: RewardPopupInput) 
     category,
     lines: lines.slice(0, 6),
     createdAt: now,
-    expiresAt: now + (input.durationMs ?? (skill && ["resource", "credits", "item"].includes(category) ? 2000 : categoryDuration[category])),
+    expiresAt: now + Math.min(2500, input.durationMs ?? (skill && ["resource", "credits", "item"].includes(category) ? 1500 : Math.round(categoryDuration[category] / 2))),
   };
-  state.rewardPopups = mergeRecentPopup(state.rewardPopups ?? [], popup).slice(0, 2);
+  state.rewardPopups = mergeRecentPopup(state.rewardPopups ?? [], popup).slice(0, 1);
 }
 
 export function emitSummaryPopup(state: GameState, title: string, lines: string[], category: RewardPopupCategory = "story") {
