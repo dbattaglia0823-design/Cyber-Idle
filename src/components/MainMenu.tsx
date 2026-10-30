@@ -10,21 +10,21 @@ export function MainMenu({ onOpen, onCharacter, activeMission, points }: {
 }) {
   const navigation = usePlayerNavigation();
   const tools = [
-    { id: "gear", label: "Inventory & loadout", description: "Equip, upgrade and manage your gear.", Icon: Backpack },
-    { id: "cyberware", label: "Cyberware", description: "Manage implants and your cyberdeck.", Icon: Cpu },
-    { id: "quickhacks", label: "Quickhacks", description: "Craft and install combat programs.", Icon: Zap },
-    { id: "attributes", label: "Attributes & perks", description: points ? points + " points available to spend." : "Shape your stats and abilities.", Icon: UserRound },
-    { id: "health", label: "Health & recovery", description: "Manage healing and recovery.", Icon: HeartPulse },
-    { id: "presets", label: "Loadout presets", description: "Save and switch equipment sets.", Icon: SlidersHorizontal },
+    { id: "gear", label: "Inventory & loadout", Icon: Backpack },
+    { id: "cyberware", label: "Cyberware", Icon: Cpu },
+    { id: "quickhacks", label: "Quickhacks", Icon: Zap },
+    { id: "attributes", label: "Attributes & perks", Icon: UserRound },
+    { id: "health", label: "Health & recovery", Icon: HeartPulse },
+    { id: "presets", label: "Loadout presets", Icon: SlidersHorizontal },
   ] as const;
   return <div className="main-menu">
-    <header><p className="eyebrow">RUNNER NETWORK</p><h1>Main</h1><p>Your next objective and everything you need to prepare.</p></header>
+    <header><p className="eyebrow">RUNNER NETWORK</p><h1>Main</h1></header>
     <div className="main-shortcuts">{navigation.openCrafting && <button className="secondary-button" onClick={() => navigation.openCrafting?.()}>Craft gear</button>}{navigation.openIndex && <button className="secondary-button" onClick={navigation.openIndex}>Browse item index</button>}</div>
     <nav className="main-menu-grid" aria-label="Main section selection">
-      <button className="main-menu-card main-menu-missions" onClick={() => onOpen("journal")}><MessageSquare /><span><strong>{activeMission ? "Continue mission" : "Missions"}</strong><small>{activeMission ?? "Main jobs, replayable local gigs and fixer services."}</small></span><ArrowUpRight /></button>
-      {tools.map(({ id, label, description, Icon }) => <button className="main-menu-card" key={id} onClick={() => onCharacter(id)}><Icon /><span><strong>{label}</strong><small>{description}</small></span><ArrowUpRight /></button>)}
-      <button className="main-menu-card" onClick={() => onOpen("progress")}><TrendingUp /><span><strong>Progress</strong><small>District goals, milestones and unlocks.</small></span><ArrowUpRight /></button>
-      <button className="main-menu-card" onClick={() => onOpen("intel")}><Terminal /><span><strong>Field manual</strong><small>Learn the city's systems and controls.</small></span><ArrowUpRight /></button>
+      <button className="main-menu-card main-menu-missions" onClick={() => onOpen("journal")}><MessageSquare /><span><strong>{activeMission ? "Continue mission" : "Missions"}</strong>{activeMission && <small>{activeMission}</small>}</span><ArrowUpRight /></button>
+      {tools.map(({ id, label, Icon }) => <button className="main-menu-card" key={id} onClick={() => onCharacter(id)}><Icon /><span><strong>{label}</strong>{id === "attributes" && points > 0 && <small>{points} points available</small>}</span><ArrowUpRight /></button>)}
+      <button className="main-menu-card" onClick={() => onOpen("progress")}><TrendingUp /><span><strong>Progress</strong></span><ArrowUpRight /></button>
+      <button className="main-menu-card" onClick={() => onOpen("intel")}><Terminal /><span><strong>Field manual</strong></span><ArrowUpRight /></button>
     </nav>
   </div>;
 }

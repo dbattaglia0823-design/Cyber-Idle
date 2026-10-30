@@ -3613,7 +3613,7 @@ function InventoryTab({
   return (
     <section className="stack gear-workspace">
       <article className="panel runner-equipment">
-        <div className="panel-heading"><div><p className="eyebrow">CURRENT LOADOUT</p><h2>Equipped gear</h2><p className="muted">Choose a slot to inspect it and compare replacements from your stash.</p></div><Shield size={22} /></div>
+        <div className="panel-heading"><div><p className="eyebrow">CURRENT LOADOUT</p><h2>Equipped gear</h2></div><Shield size={22} /></div>
         <div className="slot-grid">{gearSlots.map(slot => {
           const id = state.equippedGear[slot.id];
           const item = id ? getItem(id) : undefined;
@@ -3757,7 +3757,7 @@ function InventoryTab({
             </div>
           </div>
         ) : (
-          <p className="muted">Select an item slot to inspect its stats and options.</p>
+          <p className="muted">No item selected.</p>
         )}
       </article>
       </div>
@@ -3771,7 +3771,7 @@ function ResourceWallet({ state }: { state: GameState }) {
     <div className="resource-wallet">
       <div>
         <p className="eyebrow">Materials Wallet</p>
-        <p className="fine">Bulk resources used for crafting, services, upgrades, and district progression.</p>
+
       </div>
       <div className="resource-wallet-grid">
         {visibleResources.map((id) => {
@@ -4130,7 +4130,7 @@ export function CharacterTab({
   return (
     <section className="stack character-tab runner-workspace" aria-label="Character workspace">
       <header className="runner-summary">
-        <div className="runner-identity">{path && <img src={startingPathImages[path.id]} alt="" />}<div><p className="eyebrow">RUNNER / LEVEL {state.rpg.level}</p><h2>{path?.name ?? "Your character"}</h2><p className="muted">Equipment, progression and recovery in one place.</p></div></div>
+        <div className="runner-identity">{path && <img src={startingPathImages[path.id]} alt="" />}<div><p className="eyebrow">RUNNER / LEVEL {state.rpg.level}</p><h2>{path?.name ?? "Your character"}</h2></div></div>
         <div className="runner-vitals"><span>HEALTH<strong>{Math.ceil(state.health.currentHp)} / {maxHp}</strong></span><span>DAMAGE<strong>{stats.damage}</strong></span><span>ARMOR<strong>{stats.armor}</strong></span><span>ATTACK INTERVAL<strong>{(stats.attackSpeedMs / 1000).toFixed(2)}s</strong></span></div>
       </header>
       <MobileSectionMenu label="Character tools" value={section} options={characterSections} onChange={onSection} />
@@ -4206,7 +4206,7 @@ export function CharacterTab({
           <div className="action-row">
             <div>
               <strong>Auto Heal</strong>
-              <span className="muted">{state.autoHeal.unlocked ? "Consumes selected healing items in combat." : "Unlocks at Body 5, with Field Medic, or after finding healing items."}</span>
+              <span className="muted">{state.autoHeal.unlocked ? "Uses selected items below the HP threshold." : "Unlocks at Body 5, with Field Medic, or after finding healing items."}</span>
             </div>
             <button className="secondary-button" disabled={!state.autoHeal.unlocked} onClick={() => onAutoHealChange({ enabled: !state.autoHeal.enabled })}>{state.autoHeal.enabled ? "On" : "Off"}</button>
           </div>
@@ -4369,7 +4369,7 @@ function CyberwareScreen({
           </button>
         )}
       </div>
-      <p className="muted">Select a body slot to inspect compatible implants. Owning cyberware does not install it. Cyberdecks use the Operating System slot.</p>{navigation.openCharacter && <button className="secondary-button" onClick={() => navigation.openCharacter?.("quickhacks")}>Manage cyberdeck programs</button>}<div className="cyberware-frame">
+      {navigation.openCharacter && <button className="secondary-button" onClick={() => navigation.openCharacter?.("quickhacks")}>Manage cyberdeck programs</button>}<div className="cyberware-frame">
         <CyberwareBackgroundLayer />
         <CyberwareOverlayLayer
           state={state}
@@ -5581,7 +5581,7 @@ function CampaignPanel({ state }: { state: GameState }) {
   return <article className="panel">
     <p className="eyebrow">Main missions / Afterimage</p>
     <h2>{campaign.complete ? "Your story is complete" : "From Neon Row to Skyline Core"}</h2>
-    <p className="muted">Main jobs open districts and award major payouts and unique equipment. Replay local gigs for money, supplies, and rotating item rewards.</p>
+
     <Progress value={campaign.cleared / campaign.total * 100} label={`${campaign.cleared} / ${campaign.total} main jobs cleared`} />
     <div className="requirement-list">{rpgMissions.map(mission => <div className={`requirement-row ${state.rpg.completed[mission.id] ? "met" : "missing"}`} key={mission.id}><span>{mission.title} / {getDistrict(mission.district)?.name}</span><strong>{state.rpg.completed[mission.id] ? "Completed" : mission.id === campaign.next ? "Next objective" : "Pending"}</strong></div>)}</div>
   </article>;
