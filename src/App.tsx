@@ -3716,7 +3716,7 @@ function InventoryTab({
                     onEquip(activeId);
                   }}
                 >
-                  {selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
+                  {state.rpg.active && selectedItem.slot === "operatingSystem" ? "Locked during mission" : !selectedIsEquipped && !meetsItemAttributeRequirement(state, selectedItem) ? `Requires ${itemAttributeRequirement(selectedItem).label}` : selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
                 </button>
               )}
             {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
@@ -3753,7 +3753,7 @@ function InventoryTab({
               <button className="secondary-button full" disabled={!selectedCanSell || selectedBulkSellCount === 0} onClick={() => onSellAllButOne(activeId)}>
                 Sell all but 1 for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} Credits
               </button>
-              {selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : "Upgrade"}</button>}
+              {selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : state.rpg.attributes.technical < upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1) ? `Requires Technical ${upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)}` : !selectedCanUpgrade ? "Missing upgrade materials" : "Upgrade"}</button>}
             </div>
           </div>
         ) : (
@@ -3796,21 +3796,20 @@ const statComparisonOrder: Array<keyof ItemStats> = ["damage", "armor", "maxHp",
 function StatComparisonLine({ state, itemId, compareItemId }: { state: GameState; itemId: string; compareItemId?: string }) {
   const stats = scaledStats(state, itemId);
   const compareStats = compareItemId ? scaledStats(state, compareItemId) : {};
-  const keys = statComparisonOrder.filter((key) => stats[key]);
+  const keys = statComparisonOrder.filter((key) => stats[key] || compareStats[key]);
   if (!keys.length) return <p className="fine">Stats: None</p>;
   return (
     <p className="fine stat-comparison-line">
-      <span>Stats: </span>
-      {keys.map((key, index) => {
+      <span>{compareItemId ? "Compared with equipped gear" : "Item stats"}</span>
+      {keys.map((key) => {
         const value = Number(stats[key] ?? 0);
         const compareValue = Number(compareStats[key] ?? 0);
         const delta = value - compareValue;
         const trend = statComparisonTrend(key, delta);
         return (
           <span className="stat-comparison-entry" key={key}>
-            {index > 0 ? ", " : ""}
             {titleCase(key)} {formatStatValue(key, value)}{" "}
-            <b className={trend}>({formatDeltaValue(key, delta)})</b>
+            {compareItemId && <b className={trend}>{trend === "same" ? "＝" : trend === "better" ? "▲" : "▼"} {formatDeltaValue(key, delta)}<span className="sr-only"> {trend === "better" ? "improvement" : trend === "worse" ? "tradeoff" : "unchanged"}</span></b>}
           </span>
         );
       })}
@@ -4305,6 +4304,7 @@ function CharacterEquipmentTools({
             </div>
             <Activity size={22} />
           </div>
+          {state.rpg.active && <p className="rpg-choice-warning">Loading presets and auto-equipping are locked during a mission.</p>}
           <div className="card-list compact">
             <button className="primary-button full" disabled={Boolean(state.rpg.active)} onClick={() => onAutoEquip("combat")}>Best Combat</button>
             <button className="primary-button full" disabled={Boolean(state.rpg.active)} onClick={() => onAutoEquip("hacking")}>Best Hacking</button>
@@ -4537,7 +4537,7 @@ function CyberwareDetailsDrawer({
           {equippedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(equippedItem.modifiers)}</p>}
           <p className="fine">Source: {equippedItem.sourceHint}</p>
           <div className="inventory-actions">
-            <button className="secondary-button full" onClick={() => onUnequip(overlay.slotId)}>Unequip</button>
+            <button className="secondary-button full" disabled={Boolean(state.rpg.active && overlay.slotId === "operatingSystem")} onClick={() => onUnequip(overlay.slotId)}>{state.rpg.active && overlay.slotId === "operatingSystem" ? "Locked during mission" : "Unequip"}</button>
             {equippedItem.maxUpgradeLevel && (
               <button className="secondary-button full" title={`Requires Technical ${upgradeTechnicalRequirement(state, (state.upgradeLevels[equippedItem.id] ?? 0) + 1)} and upgrade materials`} disabled={!canAffordItemUpgrade(state, equippedItem.id)} onClick={() => onUpgrade(equippedItem.id)}>
                 {(state.upgradeLevels[equippedItem.id] ?? 0) >= equippedItem.maxUpgradeLevel
@@ -4568,7 +4568,7 @@ function CyberwareDetailsDrawer({
               </div>
               <div className="card-list compact">
                 <button className="primary-button full" disabled={installed || !canInstall} onClick={() => onEquip(itemId)}>
-                  {installed ? "Installed" : "Equip"}
+                  {installed ? "Installed" : state.rpg.active && item.slot === "operatingSystem" ? "Locked during mission" : !canInstall ? `Requires ${itemAttributeRequirement(item).label}` : "Equip"}
                 </button>
                 {item.maxUpgradeLevel && (
                   <button className="secondary-button full" title={`Requires Technical ${upgradeTechnicalRequirement(state, (state.upgradeLevels[itemId] ?? 0) + 1)} and upgrade materials`} disabled={!canAffordItemUpgrade(state, itemId)} onClick={() => onUpgrade(itemId)}>
@@ -4622,6 +4622,7 @@ function canEquipCyberwareFromInventory(state: GameState, itemId: string) {
   const item = getItem(itemId);
   if (!item || item.type !== "Cyberware" || (state.inventory[itemId] ?? 0) <= 0) return false;
   if (!meetsItemAttributeRequirement(state, item)) return false;
+  if (state.rpg.active && item.slot === "operatingSystem") return false;
   return true;
 }
 

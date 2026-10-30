@@ -202,11 +202,11 @@ test('Main keeps runner tools inside the shared Journal shell', () => {
     const html = renderToStaticMarkup(createElement(RpgHub, {
       state, page, onPage() {}, onUpdate() {}, onServices() {}, inventoryNoticeCount: 2,
     }, createElement('article', null, 'Runner tool content')));
-    assert.ok(html.includes('NEON CITY / MERCENARY NETWORK'));
+    assert.ok(html.includes('network-compact-header'));
     assert.match(html, /main-section-content/);
     assert.match(html, /Runner tool content/);
     assert.match(html, /2 inventory updates/);
-    assert.match(html, /Manage character/);
+    assert.match(html, /AFTERIMAGE \/ MAIN STORY/);
     assert.doesNotMatch(html, />Inventory<|>Loadout</);
     assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
     assert.doesNotMatch(html, /rpg-journal|Claim field kit/);

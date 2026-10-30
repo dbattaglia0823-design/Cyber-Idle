@@ -102,11 +102,11 @@ test('legacy character investment transfers once without deleting gear or progre
   assert.deepEqual(normalizeSave(migrated).rpg, migrated.rpg);
 });
 
-test('attributes screen shows live stats, per-point bonuses and the upgrade perk', () => {
+test('attributes screen shows live stats, per-point bonuses and next-point previews', () => {
   const html = renderToStaticMarkup(createElement(BuildPanel, { state: createInitialState(), onUpdate() {} }));
   assert.match(html, /Attribute-derived stats/);
   assert.match(html, /UPGRADE LIMIT/);
-  assert.match(html, /Tinkerer/);
+  assert.match(html, /Next point preview/);
   assert.match(html, /per point above 3/);
   assert.doesNotMatch(html, /NaN|undefined/);
 });

@@ -3,6 +3,7 @@ export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
 export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock" | `quickhack:${string}`;
 export type GigRisk = "standard" | "dangerous" | "elite";
 export interface RpgEncounter {
+  feedback?: { damage: number; taken: number; blocked: number; healing: number; interrupted: boolean; action: string };
   playerBleedTurns?: number;
   playerBleedDamage?: number;
   burnDamage?: number;

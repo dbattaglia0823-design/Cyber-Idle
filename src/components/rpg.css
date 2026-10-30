@@ -54,3 +54,31 @@
 .software-filter { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; margin-top: 16px; } .software-filter label { display: flex; align-items: center; gap: 8px; } .software-filter select { background: #122333; color: #d6e4f3; padding: 8px; border: 1px solid #3a5168; }
 .program-slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; } .program-slot { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px dashed #405d70; background: #10202b; } .program-slot > small { color: #90a8bb; letter-spacing: 1px; } .program-slot button { margin-top: auto; }
 @media(max-width: 720px) { .perk-tree { padding: 12px; } .perk-tree-tabs { grid-template-columns: repeat(3, 1fr); } .perk-tree-tier { grid-template-columns: 58px 1fr; gap: 10px; } .perk-tree .rpg-perk-grid { grid-template-columns: 1fr; } .perk-tree-heading { flex-wrap: wrap; } .perk-tier-marker { padding-left: 7px; } }
+/* Compact workspace headers and decision-focused feedback. */
+.network-compact-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 22px;border-bottom:1px solid #354052;background:#101722}
+.network-compact-header>div{display:grid;gap:7px;min-width:0}
+.network-compact-header strong{font-size:14px;letter-spacing:1px;color:#e4edf7}
+.network-compact-header small,.network-compact-progress>span{font-size:10px;color:#a2b1c6}
+.network-compact-progress{width:220px;max-width:45%}
+.attribute-preview{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:7px;font-size:11px;color:#a2b1c6}
+.attribute-preview li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px}
+.attribute-preview b{color:#77e4cf;font-variant-numeric:tabular-nums;font-weight:500}
+.preparation-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.prep-warning{color:#ffce7a;font-size:11px}.prep-ready{color:#77e4cf;font-size:11px}
+.preparation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mission-preparation .preparation-check{display:grid;text-align:left;gap:5px;padding:12px;background:#131e2b;border:1px solid #355361;min-width:0;color:#dce7f3}
+.preparation-check small{color:#a7bbce}.preparation-check strong{font-size:12px;overflow-wrap:anywhere}.preparation-check span{font-size:10px;color:#7cdddb}
+.mission-preparation .preparation-check.missing{border-color:#a17b43}.preparation-check.missing span{color:#ffce7a}
+.preparation-check:focus-visible{outline:2px solid #7cdddb;outline-offset:2px}
+.mission-preparation details{margin-top:12px}.mission-preparation summary{cursor:pointer;font-size:12px;color:#a7bbce}
+.turn-feedback{display:flex;flex-wrap:wrap;gap:10px;padding:12px;background:#142834;border:1px solid #3c6b78;margin-bottom:12px;animation:turn-result-in .22s ease-out}
+.turn-feedback>span{display:grid;gap:4px;min-width:65px;font-size:9px;color:#9bbccc}.turn-feedback b{font-size:22px;color:#8af4da;font-variant-numeric:tabular-nums}.turn-feedback .feedback-damage b{color:#ff9aa8}.turn-feedback>strong{align-self:center;font-size:11px;color:#8af4da}
+.rpg-combat .rpg-bar i{transition:width .25s ease-out}
+.runner-item-inspector .stat-comparison-line{display:grid;gap:6px}
+.runner-item-inspector .stat-comparison-line>span:first-child{color:#99aec6;margin-bottom:4px}
+.runner-item-inspector .stat-comparison-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 9px;background:#14202d;border-radius:4px}
+.runner-item-inspector .stat-comparison-entry b{white-space:nowrap}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@keyframes turn-result-in{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:520px){.network-compact-header{padding:12px;gap:10px}.network-compact-header strong{font-size:11px}.network-compact-progress{width:130px}.network-compact-progress>span{font-size:8px}.preparation-heading{flex-wrap:wrap}.preparation-grid{gap:6px}}
+@media(prefers-reduced-motion:reduce){.turn-feedback{animation:none}.rpg-combat .rpg-bar i{transition:none}}

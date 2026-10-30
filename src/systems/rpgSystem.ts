@@ -175,6 +175,7 @@ export function canUseTactic(state: GameState, action: TacticalAction) {
 export function performTactic(state: GameState, action: TacticalAction) {
   if (!canUseTactic(state, action)) return state;
   const next = cloneState(state), e = next.rpg.active!, mission = missionById(e.missionId)!;
+  const feedback = { damage: 0, taken: 0, blocked: 0, healing: 0, interrupted: false, action: action as string };
   const stats = tacticalStats(next), maxHp = calculateMaxHP(next);
   const traits = encounterTraits(mission, e.enemyIndex, e.turn);
   const aimedAttack = action === "attack" && e.aimed;
@@ -209,8 +210,9 @@ export function performTactic(state: GameState, action: TacticalAction) {
     const healing = Math.min(maxHp - next.health.currentHp, Math.round(Math.min(e.enemyHp, damage) * (hack.potency ?? 0)));
     next.health.currentHp += healing; e.log.push(`Memory siphon restored ${healing} HP.`);
   }
+  feedback.damage = Math.min(e.enemyHp, damage);
   e.enemyHp = Math.max(0, e.enemyHp - damage);
-  if ((e.burnTurns ?? 0) > 0) { e.enemyHp = Math.max(0, e.enemyHp - (e.burnDamage ?? 0)); e.burnTurns!--; e.log.push(`Overheat: ${e.burnDamage} damage.`); }
+  if ((e.burnTurns ?? 0) > 0) { feedback.damage += Math.min(e.enemyHp, e.burnDamage ?? 0); e.enemyHp = Math.max(0, e.enemyHp - (e.burnDamage ?? 0)); e.burnTurns!--; e.log.push(`Overheat: ${e.burnDamage} damage.`); }
   const labels: Partial<Record<TacticalAction, string>> = { attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", burnout: "Synapse Burnout", heal: "Used field injector", overclock: "Recovered RAM from cover" };
   e.log.push(`${hack?.name ?? labels[action]}${damage ? `: ${damage} damage` : ""}.`);
   if (e.enemyHp <= 0) {
@@ -226,11 +228,15 @@ export function performTactic(state: GameState, action: TacticalAction) {
     } else if (traits.regeneration) e.log.push("Repair system suppressed.");
     if ((e.playerBleedTurns ?? 0) > 0) {
       const bleeding = Math.min(next.health.currentHp, e.playerBleedDamage ?? 0);
+      feedback.taken += bleeding;
       next.health.currentHp -= bleeding; next.healthStatistics.totalDamageTaken += bleeding; e.playerBleedTurns!--; e.log.push(`Bleeding: ${bleeding} damage. Injector clears bleeding.`);
     }
     if (!stun && next.health.currentHp > 0) {
       const charged = traits.charged;
       const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+      feedback.taken += Math.min(next.health.currentHp, incoming);
+      const rawIncoming = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1));
+      feedback.blocked = Math.max(0, rawIncoming - incoming);
       next.health.currentHp = Math.max(0, next.health.currentHp - incoming);
       next.healthStatistics.totalDamageTaken += incoming;
       if (traits.ramDrain && !cover) { const drained = Math.min(e.ram, traits.ramDrain); e.ram -= drained; e.log.push(`Network disruption drained ${drained} RAM. Cover blocks the drain.`); }
@@ -243,6 +249,9 @@ export function performTactic(state: GameState, action: TacticalAction) {
     e.ram = Math.min(maxRam(next), e.ram + (stun ? 0 : ramRecovery(next)));
     if (next.health.currentHp <= 0) { e.phase = "failed"; next.health.lifeState = "downed"; e.log.push("Your fixer pulled you out. Retry with a refreshed field kit, or leave and change your build."); }
   }
+  feedback.healing = Math.max(0, next.health.currentHp - state.health.currentHp + feedback.taken);
+  feedback.interrupted = stun;
+  e.feedback = feedback;
   e.log = e.log.slice(-12);
   return next;
 }

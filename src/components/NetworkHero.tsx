@@ -4,7 +4,8 @@ import cityArt from "../assets/maps/Map.png";
 import "./rpg.css";
 
 /** The same card header for Main, the city map, and every district. */
-export function NetworkHero({ title, eyebrow, description, actions, status, progress }: {
+export function NetworkHero({ title, eyebrow, description, actions, status, progress, compact = false }: {
+  compact?: boolean;
   title: [string, string];
   eyebrow: string;
   description: ReactNode;
@@ -13,6 +14,10 @@ export function NetworkHero({ title, eyebrow, description, actions, status, prog
   progress: { label: string; value: number; maximum: number; suffix: string; note: string };
 }) {
   const percent = Math.max(0, Math.min(100, progress.value / Math.max(1, progress.maximum) * 100));
+  if (compact) return <header className="network-compact-header">
+    <div><strong>{title.join(" // ")}</strong><small>{status}</small></div>
+    <div className="network-compact-progress"><span>{progress.label} · {progress.value}{progress.suffix}</span><div className="rpg-bar" role="progressbar" aria-label={progress.label} aria-valuemin={0} aria-valuemax={progress.maximum} aria-valuenow={progress.value}><i style={{ width: `${percent}%` }} /></div></div>
+  </header>;
   return <>
     <header className="rpg-masthead">
       <div><Radio size={15} /><span>NEON CITY / MERCENARY NETWORK</span><b>CONNECTED</b></div>
