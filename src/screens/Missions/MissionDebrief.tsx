@@ -1,3 +1,5 @@
+import { contractBonus } from "../../data/gigContracts";
+import { gigPayout } from "../../systems/rpgSystem";
 import { CampaignFinale } from "./CampaignFinale";
 import { useState } from "react";
 import { recipes } from "../../data/recipes";
@@ -26,6 +28,7 @@ export function MissionDebrief({ before, after, onContinue }: { before: GameStat
   {!mission.sideGig && mission.act === 7 && <CampaignFinale state={after} />}
   <div className="debrief-rewards"><div><span>Credits received</span><strong>+{(after.resources.credits - before.resources.credits).toLocaleString()}</strong></div><div><span>Character XP</span><strong>+{before.rpg.completed[mission.id] ? Math.round(mission.xp * .5) : mission.xp}</strong></div>{levels > 0 && <div><span>Runner level {after.rpg.level}</span><strong>+{levels * 2} attribute / +{levels} perk points</strong></div>}</div>
 
+  {mission.sideGig && before.rpg.active?.contract?.id && before.rpg.active.contract.id!=="none" && <p className="gig-contract-live">Optional objective: {contractBonus(before.rpg.active,gigPayout(mission,before.rpg.active.gigRisk))>0 ? `complete · +${contractBonus(before.rpg.active,gigPayout(mission,before.rpg.active.gigRisk))} credits included above` : "missed · base rewards kept"}</p>}
   {district && <div className="district-unlocked"><p className="eyebrow">DISTRICT UNLOCKED</p><h3>{district.name}</h3><p>Your main job opened the route. Your previous districts remain available for training, crafting and local gigs.</p></div>}
   <div className="journey-actions">{district && nav.openDistrict && <button className="primary-button" onClick={() => nav.openDistrict?.(district.id)}>Explore {district.name}</button>}<button className={district ? "secondary-button" : "primary-button"} onClick={onContinue}>{mission.sideGig ? "Back to local gigs" : next ? "Next main job" : "Review your ending"}</button>{levels > 0 && nav.openCharacter && <button className="secondary-button" onClick={() => nav.openCharacter?.("attributes")}>Spend new points</button>}</div>
   {loot.length > 0 && <details className="debrief-loot"><summary>Added to inventory / {loot.length} item types</summary><div>{loot.map(({id,count}) => <span key={id} className={"rarity-" + (getItem(id)?.rarity ?? "Common").toLowerCase()}>{getItem(id)?.name ?? id} <b>+{count}</b></span>)}</div></details>}

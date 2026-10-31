@@ -1,3 +1,7 @@
+import { CombatScene } from "./components/CombatScene";
+import { beginRunner } from "./systems/rpgSystem";
+import { canStartSkillAction } from "./systems/actionProcessing";
+import { getSaveWarning, dismissSaveRecoveryNotice } from "./systems/saveSystem";
 import { CraftingRecipeBrowser } from "./components/CraftingRecipeBrowser";
 import { CraftingDetailSheet } from "./components/CraftingDetailSheet";
 import { useRememberedState, useScreenScroll } from "./components/useUiPreferences";
@@ -86,7 +90,7 @@ import {
 } from "./systems/actionProcessing";
 import { canFightEnemy, getEnemy, processCombat, startCombat, stopCombat } from "./systems/combatProcessing";
 import { canCraft, processCrafting, startCraft, stopCraft } from "./systems/craftingProcessing";
-import { chooseStartingPath, cloneState, createInitialState } from "./systems/gameState";
+import { cloneState, createInitialState } from "./systems/gameState";
 import { canAttemptJob, jobRequirementDetails, processJobCompletion, startJob, stopJob } from "./systems/jobProcessing";
 import { jobs } from "./data/jobs";
 import { bosses } from "./data/bosses";
@@ -295,38 +299,8 @@ function App() {
 
   useEffect(() => startAutoSave(() => latestSave.current), []);
 
-  useEffect(() => {
-    saveGame(state, activeSaveSlot);
-  }, [
-    activeSaveSlot,
-    state.startingPath,
-    state.activeAction,
-    state.currentCombat,
-    state.activeOperation,
-    state.activeCraft,
-    state.resources.credits,
-    state.resources.heat,
-    state.neuralInstability,
-    state.activeResidence,
-    state.equippedGear,
-    state.equippedCyberware,
-    state.activeVehicle,
-    state.vendors,
-    state.districtStanding,
-    state.districtEvents,
-    state.perkPointsEarned,
-    state.perkRanks,
-    state.respecCount,
-    state.signatureBuildCache,
-    state.blackMarketListings,
-    state.blackMarketCompletedSales,
-    state.marketStatistics,
-    state.storyArcs,
-    state.storyFlags,
-    state.storyChoices,
-    state.operationLeads,
-    state.factionConflicts,
-  ]);
+  // Frequent resource changes are covered by the stable autosave timer and page-hide flush.
+  useEffect(() => { saveGame(state,activeSaveSlot); },[activeSaveSlot,state.startingPath]);
 
   const activeAction = state.activeAction ? skillActions.find((action) => action.id === state.activeAction?.actionId) : null;
   const activeEnemy = state.currentCombat ? getEnemy(state.currentCombat.enemyId) : null;
@@ -369,7 +343,7 @@ function App() {
       <StartingPathScreen
         activeSaveSlot={activeSaveSlot}
         saveSlots={saveSlotSummaries()}
-        onChoose={(pathId) => setState((current) => chooseStartingPath(current, pathId))}
+        onChoose={(pathId) => setState((current) => beginRunner(current, pathId))}
         onSwitchSave={(slot) => {
           saveGame(state, activeSaveSlot);
           setActiveSaveSlot(slot);
@@ -398,7 +372,7 @@ function App() {
       openCharacter: section => { setCharacterSection(section); setTab("field"); setMainSection("character");  },
       openIndex: () => { setTab("more"); setMoreSection("itemIndex");  },
     }}>
-    <div className="app-shell">
+    <div className="app-shell">{getSaveWarning() && <div className="save-health-warning" role="status"><span>{getSaveWarning()}</span><button className="secondary-button" onClick={() => {setTab("more");setMoreSection("settings");}}>Saves &amp; export</button>{getSaveWarning()?.startsWith("Recovered a backup") && <button className="secondary-button" onClick={dismissSaveRecoveryNotice}>Dismiss notice</button>}</div>}
       <header className="topbar">
         {state.rpg.active ? <button className="topbar-activity-progress" onClick={() => { setTab("field"); setMainSection("journal"); }}><p className="eyebrow">Field Mission / Awaiting Your Move</p><h1>{missionById(state.rpg.active.missionId)?.title ?? "Active mission"}</h1></button> : <TopbarActivityProgress activity={active} onOpen={openCityTab} onStop={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))} />}
         <button className={`player-level-alert ${perkPointsAvailable > 0 ? "has-points" : ""}`} onClick={() => {
@@ -432,6 +406,7 @@ function App() {
         {state.offlineRecap && (
           <OfflineRecap
             state={state}
+            onUpdate={setState}
             onClose={() => setState((current) => ({ ...current, offlineRecap: null }))}
           />
         )}
@@ -1574,7 +1549,7 @@ function DistrictSkillWorkPanel({
           </div>
           <BrainCircuit size={22} />
         </div>
-        <p className="muted">{skillDescriptions[skillId]}</p>
+        <p className="muted">{skillDescriptions[skillId]}</p>{skill.level<5&&<span className="status-chip">Intro training · +25% XP until level 5</span>}
         <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
       </article>
 
@@ -2515,7 +2490,7 @@ function SkillPanel({
         </div>
         <BrainCircuit size={22} />
       </div>
-      <p className="muted">{skillDescriptions[skillId]}</p>
+      <p className="muted">{skillDescriptions[skillId]}</p>{skill.level<5&&<span className="status-chip">Intro training · +25% XP until level 5</span>}
       <Progress value={(skill.xp / xpForNextLevel(skill.level)) * 100} label={`${skill.xp} / ${xpForNextLevel(skill.level)} XP`} />
       <details className="inline-dropdown">
         <summary className="details-button">Actions</summary>
@@ -3067,6 +3042,7 @@ function ActiveCombatPanel({
         </div>
         <div className="combat-fight-timer">{respawning && combat?.respawnAt ? `Respawn ${formatDuration(combat.respawnAt - now)}` : active && combat ? `Fight ${formatDuration(now - combat.startedAt)}` : "Idle"}</div>
       </div>
+      <CombatScene target={enemy.name} melee={["blades", "bluntWeapons"].includes(equippedWeaponClass(state) ?? "bluntWeapons")} status={respawning ? "Target down · re-engaging" : active ? "Auto combat" : "Ready to engage"} pulse={combat?.lastPlayerHit && now-combat.lastPlayerHit.at < 1200 ? {id:String(combat.lastPlayerHit.at),action:"attack",damage:combat.lastPlayerHit.amount,taken:0,blocked:0,healing:0,interrupted:false,defeated:respawning} : undefined} incoming={combat?.lastEnemyHit && now-combat.lastEnemyHit.at < 1200 ? {id:String(combat.lastEnemyHit.at),amount:combat.lastEnemyHit.amount} : undefined} />
       <div className="combatant-row">
         <CombatantCard
           title="Runner"
@@ -5795,10 +5771,16 @@ function GoalsSection({ state }: { state: GameState }) {
   );
 }
 
-function OfflineRecap({ state, onClose }: { state: GameState; onClose: () => void }) {
+function OfflineRecap({ state, onClose, onUpdate }: { state: GameState; onClose: () => void; onUpdate: UpdateGame }) {
   const recap = state.offlineRecap!;
+  const navigation=usePlayerNavigation();
+  const [source,setSource]=useState<{itemId:string;usedAmount:number}|null>(null);
+  const resume=recap.resumeAction;
+  const recipe=resume?.kind==="craft"?recipes.find(r=>r.id===resume.id):undefined;
+  const action=resume?.kind==="skill"?skillActions.find(a=>a.id===resume.id):undefined;
+  const resumable=!state.rpg.active && (recipe ? canCraft(state,recipe) : action ? canStartSkillAction(state,action) : false);
   return (
-    <div className="offline-recap-backdrop" role="presentation">
+    <div className="offline-recap-backdrop" role="presentation">{source&&<ItemSourcePopover state={state} itemId={source.itemId} usedAmount={source.usedAmount} onClose={()=>setSource(null)}/>}
       <article className="panel recap offline-recap-modal" role="dialog" aria-modal="true" aria-labelledby="offline-recap-title">
         <div className="panel-heading">
           <div>
@@ -5818,7 +5800,10 @@ function OfflineRecap({ state, onClose }: { state: GameState; onClose: () => voi
           <Metric label="Heat" value={recap.heatGained} />
           <Metric label="IN" value={recap.neuralInstabilityGained} />
         </div>
-        <p className="fine">Resources: {formatRewards(recap.resourcesGained)}</p>
+        {recap.capped&&<p className="fine">Offline reward cap reached.</p>}<p className="fine">Net resources: {formatRewards(recap.resourcesGained)}</p>
+        {Object.entries(recap.missingMaterials??{}).length>0&&<RequirementBulletList title="Supplies needed for the next cycle">{Object.entries(recap.missingMaterials??{}).map(([id,amount])=><ClickableItemRequirement key={id} state={state} itemId={id} required={amount} onOpen={(itemId,usedAmount)=>setSource({itemId,usedAmount})}/>)}</RequirementBulletList>}
+        {resume&&<div className="journey-actions"><button className="primary-button" disabled={!resumable} onClick={()=>{onUpdate(s=>resume.kind==="craft"?startCraft(s,resume.id):startSkillAction(s,resume.id));onClose();}}>{resumable?"Resume "+recap.actionName:"Restock or meet requirements to resume"}</button><button className="secondary-button" onClick={()=>{onClose();if(recipe)navigation.openCrafting?.(recipe.id);else if(action)navigation.openDistrict?.(action.districtReq??state.selectedDistrict??"neonRow","skill-"+action.skillId);}}>View activity</button></div>}
+        {state.rpg.active&&<button className="primary-button" onClick={()=>{onClose();navigation.openMissions?.();}}>Return to mission</button>}
         {Object.keys(recap.itemsGained ?? {}).length > 0 && <p className="fine">Items: {Object.entries(recap.itemsGained ?? {}).map(([id, quantity]) => `${quantity} ${getItem(id)?.name ?? id}`).join(", ")}</p>}
         <button className="primary-button full-width" onClick={onClose}>Close</button>
       </article>

@@ -76,6 +76,6 @@ test('Character centralizes gear, implants, progression, recovery and presets', 
     }
     if (section === 'presets') assert.match(html, /Best Combat/);
     if (section === 'health') assert.match(html, /Auto Heal/);
-    if (section === 'attributes') assert.match(html, /Allocate point/);
+    if (section === 'attributes') assert.match(html, /Customize points/);
   }
 });

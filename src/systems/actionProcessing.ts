@@ -1,3 +1,4 @@
+import { introductoryTrainingMultiplier } from "../data/progressionPacing";
 import { resourceNames } from "../data/resources";
 import { skillActions, skillNames } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
@@ -248,7 +249,7 @@ export function addSkillXp(state: GameState, skillId: SkillId, xp: number) {
 
 export function actionXpRewardWithMastery(state: GameState, action: SkillAction) {
   const masteryLevel = state.actionMastery[action.id]?.level ?? 1;
-  return Math.max(1, Math.round(applyXpModifier(state, action.skillId, action.xpReward) * (1 + masteryLevel * 0.02)));
+  return Math.max(1, Math.round(applyXpModifier(state, action.skillId, action.xpReward) * introductoryTrainingMultiplier(state.skills[action.skillId].level) * (1 + masteryLevel * 0.02)));
 }
 
 export function actionMasteryXpReward(state: GameState, action: SkillAction) {

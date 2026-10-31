@@ -1,13 +1,17 @@
 import { districtEncounterProfiles, type TacticalTrait } from "../data/tacticalTraits";
 import type { RpgMission } from "../data/rpgCampaign";
 import type { RpgEncounter } from "../rpgTypes";
-export function encounterTraits(mission: RpgMission, enemyIndex: number, turn = 0) {
+export function encounterTraits(mission: RpgMission, enemyIndex: number, turn = 0, variant = 0) {
  const district = districtEncounterProfiles[mission.district];
  const boss = !mission.sideGig && enemyIndex === mission.enemies.length - 1;
  // Gigs teach one local mechanic; main-job bosses own the advanced combinations.
  const profile = boss ? district.boss : district.patrols[enemyIndex % district.patrols.length];
  let traits = profile.traits;
  let phase = profile.phase;
+ if (mission.sideGig && variant > 0) {
+   traits = [...new Set([...traits, variant === 1 ? "armor" as const : "regeneration" as const])];
+   phase = variant === 1 ? "Plated patrol / aim or hack" : "Repair crew / interrupt or Overheat";
+ }
  if (boss && mission.district === "skylineCore") {
    const phases: Array<{ traits: TacticalTrait[]; phase: string }> = [
      {traits:["armor","shield"],phase:"Bastion / aim or hack"},
@@ -30,7 +34,7 @@ export function encounterTraits(mission: RpgMission, enemyIndex: number, turn = 
  };
 }
 export function tacticalIntent(mission: RpgMission, encounter: RpgEncounter) {
- const t = encounterTraits(mission, encounter.enemyIndex, encounter.turn);
+ const t = encounterTraits(mission, encounter.enemyIndex, encounter.turn, encounter.gigVariant);
  const attack = t.charged ? "Charged burst" : t.recovery ? "Recovery shot" : encounter.turn % 3 === 1 ? "Suppressing fire" : "Direct shot";
  const details = [t.bleed ? "Bleed on hit" : "", t.ramDrain ? "RAM drain " + t.ramDrain : "", t.regeneration ? "Repairs after turn" : "", t.armor ? "Plating: " + Math.round(t.armor * 100) + "% · aim bypasses" : "", t.traits.includes("shield") ? t.shield ? "Shield raised · hack bypasses" : "Shield down · fire now" : ""].filter(Boolean);
  return { attack, details, ...t };

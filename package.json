@@ -10,7 +10,9 @@
     "audit": "node --import ./scripts/register-typescript.mjs scripts/audit-progression.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "balance:simulate": "node --import ./scripts/register-typescript.mjs scripts/simulate-progression.mjs",
-    "balance:audit": "node --import ./scripts/register-typescript.mjs scripts/audit-balance.mjs"
+    "balance:audit": "node --import ./scripts/register-typescript.mjs scripts/audit-balance.mjs",
+    "audit:first-hour": "node --import ./scripts/register-typescript.mjs scripts/audit-first-hour.mjs",
+    "audit:session": "node --import ./scripts/register-typescript.mjs scripts/audit-session.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

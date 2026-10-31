@@ -9,9 +9,9 @@ export function createRpgState(): RpgState {
 
 export function cloneRpgState(state?: RpgState): RpgState {
   const base = createRpgState();
-  return { ...base, ...state, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
+  return { ...base, ...state, gigDryStreak: { ...state?.gigDryStreak }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
     completed: Object.fromEntries(Object.entries(state?.completed ?? {}).map(([id, value]) => [id, { ...value }])),
-    active: state?.active ? { ...state.active, log: [...(state.active.log ?? [])] } : null };
+    active: state?.active ? { ...state.active, contract: state.active.contract ? { ...state.active.contract } : undefined, log: [...(state.active.log ?? [])] } : null };
 }
 
 export function normalizeRpgState(state?: RpgState): RpgState {
@@ -28,6 +28,7 @@ export function normalizeRpgState(state?: RpgState): RpgState {
     if (next.level === 30) next.xp = 0;
   }
   next.campaignXpVersion = 2;
+  next.gigDryStreak = Object.fromEntries(Object.entries(next.gigDryStreak ?? {}).filter(([id]) => allRpgMissions.some(m => m.sideGig && m.id === id)).map(([id,value]) => [id,integer(value,0,9)]));
   next.streetCred = integer(next.streetCred, 0, 1000000);
   for (const key of Object.keys(next.attributes) as Array<keyof RpgState["attributes"]>) next.attributes[key] = integer(next.attributes[key], 3, 20);
   if (next.active) {
@@ -37,6 +38,8 @@ export function normalizeRpgState(state?: RpgState): RpgState {
     else {
       e.enemyIndex = integer(e.enemyIndex, 0, e.phase === "decision" ? mission.enemies.length : mission.enemies.length - 1);
       e.enemyMaxHp = integer(e.enemyMaxHp, 1, 100000); e.enemyHp = integer(e.enemyHp, 0, e.enemyMaxHp);
+      e.gigVariant = integer(e.gigVariant ?? 0,0,2);
+      if(e.contract && ["none","clean","precision","disruption"].includes(e.contract.id)) e.contract = {id:e.contract.id,injectors:integer(e.contract.injectors,0,1000),interrupts:integer(e.contract.interrupts,0,1000),aimedHits:integer(e.contract.aimedHits,0,1000)}; else e.contract=undefined;
       e.turn = integer(e.turn, 0, 100000); e.ram = integer(e.ram, 0, 40); e.meds = integer(e.meds, 0, 4);
       e.playerBleedTurns = integer(e.playerBleedTurns ?? 0, 0, 2); e.playerBleedDamage = integer(e.playerBleedDamage ?? 0, 0, 100000);
     e.burnDamage = integer(e.burnDamage ?? 0, 0, 100000); e.burnTurns = integer(e.burnTurns ?? 0, 0, 4);

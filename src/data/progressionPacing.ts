@@ -9,3 +9,5 @@ export function trainingXpPerSecond(level: number) {
 export function pacedActionXp(level: number, durationMs: number, originalXp: number) {
   return Math.max(originalXp, Math.round(trainingXpPerSecond(level) * durationMs / 1000));
 }
+// Accelerate only introductory skill training, not the long-term XP curve.
+export function introductoryTrainingMultiplier(level: number) { return level < 5 ? 1.25 : 1; }

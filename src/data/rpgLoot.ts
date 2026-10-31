@@ -1,8 +1,14 @@
 import type { ItemDefinition } from "../types";
+export const signatureEffects: Record<string,string> = {
+  "rpg-weapon-1": "Aimed hits restore 1 RAM.",
+  "rpg-weapon-3": "Weapon hits deal 20% extra damage to weakened enemies.",
+  "rpg-weapon-4": "Taking cover restores 3% maximum HP.",
+  "rpg-weapon-7": "Interrupting a surviving enemy readies an aimed shot.",
+};
 
 const names = ["Afterhours Special", "Jackal's Promise", "Ghost Receipt", "Static Choir", "Mercy Circuit", "Golden Parachute", "Street Sovereign", "Afterimage"];
 export const rpgWeapons: ItemDefinition[] = names.map((name, index) => ({
-  id: `rpg-weapon-${index}`, name, description: "A signature fixer sidearm recovered from rare local-gig loot.",
+  id: `rpg-weapon-${index}`, name, description: "A signature fixer sidearm recovered from rare local-gig loot. " + (signatureEffects[`rpg-weapon-${index}`] ? "In field combat: " + signatureEffects[`rpg-weapon-${index}`] : ""), specialEffect: signatureEffects[`rpg-weapon-${index}`],
   type: "Weapon", rarity: index < 2 ? "Uncommon" : index < 5 ? "Rare" : index < 7 ? "Epic" : "Legendary",
   tags: ["weapon", "pistol", "ranged", "campaign"], stackable: false, sellValue: 80 + index * 120,
   sourceHint: index === 0 ? "Claim your field kit in the fixer network." : "Rare unique drop from local gigs. Check the item source guide for its district.",

@@ -3,7 +3,9 @@ export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
 export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock" | `quickhack:${string}`;
 export type GigRisk = "standard" | "dangerous" | "elite";
 export interface RpgEncounter {
-  feedback?: { damage: number; taken: number; blocked: number; healing: number; interrupted: boolean; action: string };
+  gigVariant?: number;
+  contract?: { id: "none" | "clean" | "precision" | "disruption"; injectors: number; interrupts: number; aimedHits: number };
+  feedback?: { damage: number; taken: number; blocked: number; healing: number; interrupted: boolean; target?: string; defeated?: boolean; action: string };
   playerBleedTurns?: number;
   playerBleedDamage?: number;
   burnDamage?: number;
@@ -24,6 +26,7 @@ export interface RpgEncounter {
   log: string[];
 }
 export interface RpgState {
+  gigDryStreak?: Record<string, number>;
   quickhackVersion?: number;
   quickhackLoadouts?: Record<string, string[]>;
   campaignXpVersion?: number;

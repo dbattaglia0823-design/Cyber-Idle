@@ -530,6 +530,9 @@ export interface EnemyLog {
 }
 
 export interface OfflineRecap {
+  resumeAction?: { kind: "skill" | "craft"; id: string };
+  missingMaterials?: Record<string, number>;
+  capped?: boolean;
   timeAwayMs: number;
   actionName: string;
   completions: number;

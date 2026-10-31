@@ -1,4 +1,5 @@
 import { processActionCompletion, getSkillAction } from "./actionProcessing";
+import { scaledCraftingCosts } from "./craftingCosts";
 import { processCrafting, getRecipe } from "./craftingProcessing";
 import { processCombat, getEnemy } from "./combatProcessing";
 import { processJobCompletion, getJob } from "./jobProcessing";
@@ -81,6 +82,9 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     : operation ? operationCompletions : next.blackMarketCompletedSales.length - state.blackMarketCompletedSales.length;
   const itemsGained = Object.fromEntries(Object.entries(next.inventory).map(([id, n]) => [id, n - (state.inventory[id] ?? 0)]).filter(([, n]) => Number(n) > 0));
   const recap: OfflineRecap = {
+    resumeAction: recipe ? {kind:"craft",id:recipe.id} : action ? {kind:"skill",id:action.id} : undefined,
+    missingMaterials: Object.fromEntries(Object.entries(recipe ? scaledCraftingCosts(next,recipe) : action ? Object.fromEntries(Object.entries(action.rewards).filter(([,n])=>Number(n)<0).map(([id,n])=>[id,-Number(n)])) : {}).filter(([id,amount])=>owned(next,id)<Number(amount))),
+    capped: now-state.lastSavedAt>cap,
     timeAwayMs: elapsed, actionName: name, completions,
     xpGained: totalSkillXp(next) - totalSkillXp(state),
     levelsGained: sumLevels(next.skills) - sumLevels(state.skills),

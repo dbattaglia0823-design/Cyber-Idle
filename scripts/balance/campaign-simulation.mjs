@@ -25,7 +25,7 @@ import { getXpForLevel } from '../../src/systems/xpCurves.ts';
 // A deterministic material ledger, not a human playtest. No injected gear, XP,
 // credits, district flags, rare drops, or wins. Batch training deliberately omits
 // random drops, district/mastery-pool reward bonuses and random heat losses.
-export function simulateCampaign({ approach = 'assault', style = 'story' } = {}) {
+export function simulateCampaign({ approach = 'assault', style = 'story', maxChapters = 8 } = {}) {
     let state = claimFieldKit(chooseStartingPath(createInitialState(0), 'streetborn'));
     let combatSeconds = 0, craftSeconds = 0;
     let seconds = 0, gigCount = 0, crafts = 0, cycles = 0, act = 0;
@@ -186,7 +186,7 @@ export function simulateCampaign({ approach = 'assault', style = 'story' } = {})
         return true;
     }
     try {
-        for (const mission of rpgMissions) {
+        for (const mission of rpgMissions.slice(0, maxChapters)) {
             act = mission.act;
             const startSeconds = seconds, startGigs = gigCount;
             const p = mainJobBalance[mission.district], prefix = p.armor.replace(/-chest$/, '');

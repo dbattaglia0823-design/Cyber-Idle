@@ -40,14 +40,13 @@ export function StartingPathScreen({
           <div>
             <p className="eyebrow">01 / CHOOSE YOUR ORIGIN</p>
             <h1>Choose Your Lifepath</h1>
-            <p className="muted">Choose the background you like. Every lifepath can use weapons, quickhacks and crafting. Your origin adds bonuses and special story approaches, and is permanent for this save.</p>
+            <p className="muted">Every origin can use all builds. This choice is permanent.</p>
           </div>
           <div className="path-selected-chip">
             <StartingPathBadge pathId={selected.id} name={selected.name} />
             <span>{selected.name}</span>
           </div>
         </section>
-        <div className="start-roadmap" aria-label="First steps"><span><b>1</b> Choose an origin</span><span><b>2</b> Collect your free field kit</span><span><b>3</b> Prepare for Dead Drop</span></div>
         <section className="path-choice-grid">
           {startingPaths.map((path) => (
             <article className={`path-choice-card ${selectedPath === path.id ? "selected" : ""}`} key={path.id} onClick={() => setSelectedPath(path.id)}>
@@ -80,7 +79,7 @@ export function StartingPathScreen({
             <h2>{selected.name}</h2>
             <p className="muted">{selected.theme}</p>
           </div>
-          <button className="primary-button" onClick={() => onChoose(selected.id)}>Lock In {selected.name}</button>
+          <button className="primary-button" onClick={() => onChoose(selected.id)}>Start as {selected.name}</button>
         </section>
       </main>
     </div>

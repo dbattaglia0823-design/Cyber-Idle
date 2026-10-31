@@ -103,7 +103,7 @@ test('legacy character investment transfers once without deleting gear or progre
 });
 
 test('attributes screen shows live stats, per-point bonuses and next-point previews', () => {
-  const html = renderToStaticMarkup(createElement(BuildPanel, { state: createInitialState(), onUpdate() {} }));
+  const html = renderToStaticMarkup(createElement(BuildPanel, { state: spendAttribute(createInitialState(), "body"), onUpdate() {} }));
   assert.match(html, /Attribute-derived stats/);
   assert.match(html, /UPGRADE LIMIT/);
   assert.match(html, /Next point preview/);

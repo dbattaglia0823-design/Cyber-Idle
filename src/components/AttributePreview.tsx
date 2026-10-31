@@ -7,6 +7,6 @@ export function AttributePreview({ state, attribute }: { state: GameState; attri
   const changes = attributePreview(state, attribute);
   return <ul className="attribute-preview" aria-label="Next point preview">
     {changes.map(change => <li key={change.label}><span>{change.label}</span><b>{change.before} → {change.after}{change.unit}</b></li>)}
-    {!changes.length && <li>Next point improves passive bonuses above.</li>}
+    {!changes.length && <li>See all bonuses for this attribute.</li>}
   </ul>;
 }

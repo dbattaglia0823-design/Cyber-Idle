@@ -1,3 +1,5 @@
+import { contractBonus, gigContracts, type GigContractId } from "../data/gigContracts";
+import { gigUniqueCandidates } from "../data/missionRewards";
 import { tacticalWeaponPower, tacticalWeaponStats } from "./tacticalEquipment";
 import { runnerXpNeeded, progressionBalance } from "../data/campaignBalance";
 import { encounterTraits, tacticalIntent } from "./tacticalTraits";
@@ -13,7 +15,7 @@ import { equippedDeck, grantStarterQuickhacks, installedQuickhacks, deckBonuses,
 import { allRpgMissions, rpgMissions, rpgPerks, type RpgMission } from "../data/rpgCampaign";
 import { getItem } from "../data/items";
 import { districtSupplyItems } from "../data/materialSupply";
-import { cloneState, pushCategorizedLog } from "./gameState";
+import { chooseStartingPath, cloneState, pushCategorizedLog } from "./gameState";
 import { addItem } from "./collectionSystem";
 import { calculateMaxHP } from "./healthSystem";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
@@ -22,7 +24,7 @@ import { emitRewardPopupGroup } from "./rewardPopups";
 import { getActiveModifiers } from "./modifiers";
 import { scaledStats } from "./itemFormulas";
 import type { AttributeId, MissionApproach, TacticalAction, GigRisk } from "../rpgTypes";
-import type { GameState } from "../types";
+import type { GameState, StartingPathId } from "../types";
 
 export const rpgXpNeeded = runnerXpNeeded;
 export const missionById = (id: string) => allRpgMissions.find(mission => mission.id === id);
@@ -109,15 +111,16 @@ export function clearHeatWithFixer(state: GameState) {
   return next;
 }
 
-export function startRpgMission(state: GameState, id: string, risk: GigRisk = "standard") {
+export function startRpgMission(state: GameState, id: string, risk: GigRisk = "standard", contract: GigContractId = "none") {
   const mission = missionById(id);
+  if(!Object.prototype.hasOwnProperty.call(gigContracts,contract)) return state;
   if (!mission || state.rpg.active || !missionAvailable(state, mission)) return state;
   if (!Object.prototype.hasOwnProperty.call(gigRisks, risk) || (mission.sideGig && (state.rpg.completed[id]?.clears ?? 0) < gigRisks[risk].clears)) return state;
   const next = cloneState(state);
   clearActiveActivityForSwitch(state, next, mission.title);
   next.selectedDistrict = mission.district;
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
-  next.rpg.active = { gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
+  next.rpg.active = { gigVariant: mission.sideGig ? (state.rpg.completed[id]?.clears ?? 0) % 3 : 0, contract: mission.sideGig ? { id:contract, injectors:0, interrupts:0, aimedHits:0 } : undefined, gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
     turn: 0, ram: maxRam(next), meds: fieldInjectorCount(next), aimed: false, log: ["Fixer clinic check complete. Health restored; field injectors supplied for this mission."] };
   return next;
 }
@@ -177,8 +180,10 @@ export function performTactic(state: GameState, action: TacticalAction) {
   const next = cloneState(state), e = next.rpg.active!, mission = missionById(e.missionId)!;
   const feedback = { damage: 0, taken: 0, blocked: 0, healing: 0, interrupted: false, action: action as string };
   const stats = tacticalStats(next), maxHp = calculateMaxHP(next);
-  const traits = encounterTraits(mission, e.enemyIndex, e.turn);
+  const traits = encounterTraits(mission, e.enemyIndex, e.turn, e.gigVariant);
   const aimedAttack = action === "attack" && e.aimed;
+  const signature = next.equippedGear.weapon;
+  if(e.contract){if(action==="heal")e.contract.injectors++;if(aimedAttack)e.contract.aimedHits++;}
   const wasBurning = (e.burnTurns ?? 0) > 0;
   let damage = 0, stun = false, cover = false;
   const hack = quickhackForAction(next, action);
@@ -205,6 +210,9 @@ export function performTactic(state: GameState, action: TacticalAction) {
     if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - stats.armorPenetration); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
     if (traits.shield) { damage *= 1 - traits.shield; e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
   }
+  if(action==="attack" && signature==="rpg-weapon-3" && (e.weakenTurns ?? 0)>0) {damage*=1.2;e.log.push("Static Choir exploited disabled movement.");}
+  if(aimedAttack && signature==="rpg-weapon-1" && e.ram<maxRam(next)){e.ram=Math.min(maxRam(next),e.ram+1);e.log.push("Jackal’s Promise restored 1 RAM.");}
+  if(action==="cover" && signature==="rpg-weapon-4"){const healing=Math.min(maxHp-next.health.currentHp,Math.round(maxHp*.03));next.health.currentHp+=healing;e.log.push(`Mercy Circuit restored ${healing} HP.`);}
   damage = Math.round(damage);
   if (hack?.effect === "siphon") {
     const healing = Math.min(maxHp - next.health.currentHp, Math.round(Math.min(e.enemyHp, damage) * (hack.potency ?? 0)));
@@ -215,6 +223,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if ((e.burnTurns ?? 0) > 0) { feedback.damage += Math.min(e.enemyHp, e.burnDamage ?? 0); e.enemyHp = Math.max(0, e.enemyHp - (e.burnDamage ?? 0)); e.burnTurns!--; e.log.push(`Overheat: ${e.burnDamage} damage.`); }
   const labels: Partial<Record<TacticalAction, string>> = { attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", burnout: "Synapse Burnout", heal: "Used field injector", overclock: "Recovered RAM from cover" };
   e.log.push(`${hack?.name ?? labels[action]}${damage ? `: ${damage} damage` : ""}.`);
+  if(stun && e.contract && e.enemyHp>0)e.contract.interrupts++;
   if (e.enemyHp <= 0) {
     e.log.push(`${mission.enemies[e.enemyIndex]} neutralized.`);
     e.enemyIndex++;
@@ -249,9 +258,10 @@ export function performTactic(state: GameState, action: TacticalAction) {
     e.ram = Math.min(maxRam(next), e.ram + (stun ? 0 : ramRecovery(next)));
     if (next.health.currentHp <= 0) { e.phase = "failed"; next.health.lifeState = "downed"; e.log.push("Your fixer pulled you out. Retry with a refreshed field kit, or leave and change your build."); }
   }
+  if(stun && signature==="rpg-weapon-7" && e.phase==="combat" && e.enemyIndex===state.rpg.active!.enemyIndex){e.aimed=true;e.log.push("Afterimage readied an aimed shot.");}
   feedback.healing = Math.max(0, next.health.currentHp - state.health.currentHp + feedback.taken);
   feedback.interrupted = stun;
-  e.feedback = feedback;
+  e.feedback = { ...feedback, target: mission.enemies[state.rpg.active!.enemyIndex], defeated: e.enemyIndex !== state.rpg.active!.enemyIndex || e.phase === "decision" };
   e.log = e.log.slice(-12);
   return next;
 }
@@ -277,7 +287,7 @@ export function leaveRpgMission(state: GameState) {
 }
 export function retryRpgMission(state: GameState) {
   if (state.rpg.active?.phase !== "failed") return state;
-  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk);
+  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk, state.rpg.active.contract?.id);
 }
 
 export function resolveRpgMission(state: GameState, choiceId: string, random: () => number = Math.random) {
@@ -287,7 +297,8 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   const repeated = Boolean(next.rpg.completed[mission.id]);
   next.rpg.completed[mission.id] = { outcome: choice.id, approach: e.approach, clears: (next.rpg.completed[mission.id]?.clears ?? 0) + 1 };
   next.rpg.active = null;
-  const payout = gigPayout(mission, e.gigRisk) + choice.bonusCredits;
+  const bonus = mission.sideGig ? contractBonus(e,gigPayout(mission,e.gigRisk)) : 0;
+  const payout = gigPayout(mission, e.gigRisk) + choice.bonusCredits + bonus;
   next.resources.credits += payout;
   if (mission.sideGig) next.resources.heat = Math.max(0, next.resources.heat - 15);
   next.resources.reputation = Math.max(0, next.resources.reputation + choice.reputation);
@@ -304,7 +315,13 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
     next.fixerTrust[fixer.id] = { ...progress, trust: progress.trust + (mission.sideGig ? 3 : 12), completedJobs: progress.completedJobs + 1 };
   }
   addDistrictMasteryXp(next, mission.district, "action", mission.sideGig ? 40 + mission.act * 25 : 250 + mission.act * 100);
-  const unique = rollGigUnique(mission, random, state.inventory);
+  const dry = state.rpg.gigDryStreak?.[mission.id] ?? 0;
+  let unique = rollGigUnique(mission, random, state.inventory);
+  if(mission.sideGig && !unique && dry>=9) {
+    const candidates=gigUniqueCandidates(mission,state.inventory);
+    unique=candidates[Math.min(candidates.length-1,Math.floor(Math.random()*candidates.length))];
+  }
+  if(mission.sideGig)next.rpg.gigDryStreak={...next.rpg.gigDryStreak,[mission.id]:unique?0:Math.min(9,dry+1)};
   if (unique) loot[unique] = (loot[unique] ?? 0) + 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
   if (!mission.sideGig) {
@@ -325,5 +342,22 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
   pushCategorizedLog(next, "World", `${mission.title}: ${choice.response}`);
   emitRewardPopupGroup(next, { title: `${mission.title} complete`, category: "story", resources: { credits: payout, reputation: choice.reputation }, items: loot, story: [choice.response] });
+  return next;
+}
+
+export function beginRunner(state: GameState, path: StartingPathId) {
+  if(state.startingPath) return state;
+  return claimFieldKit(chooseStartingPath(state,path));
+}
+
+export const startingBuilds = {
+  weapons: { name: "Weapons", points: { body: 2, reflexes: 3, intelligence: 0, technical: 2, cool: 0 } },
+  quickhacks: { name: "Quickhacks", points: { body: 2, reflexes: 0, intelligence: 3, technical: 2, cool: 0 } },
+  balanced: { name: "Balanced", points: { body: 2, reflexes: 1, intelligence: 2, technical: 1, cool: 1 } },
+};
+export function applyStartingBuild(state: GameState, id: keyof typeof startingBuilds) {
+  if(state.rpg.active || state.rpg.attributePoints<7 || !Object.values(state.rpg.attributes).every(value=>value===3) || !Object.prototype.hasOwnProperty.call(startingBuilds,id)) return state;
+  let next=state;
+  for(const [attribute,count] of Object.entries(startingBuilds[id].points)) for(let i=0;i<count;i++) next=spendAttribute(next,attribute as AttributeId);
   return next;
 }

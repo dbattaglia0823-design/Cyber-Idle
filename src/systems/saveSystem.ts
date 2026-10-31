@@ -11,6 +11,15 @@ export const SAVE_KEY = "neon-row-idle-save";
 export const SAVE_SLOT_COUNT = 3;
 export const ACTIVE_SAVE_SLOT_KEY = "neon-row-idle-active-save-slot";
 export type SaveSlotId = 1 | 2 | 3;
+let saveWarning: string | null = null;
+let recoveryNotice: string | null = null;
+export function getSaveWarning() { return saveWarning ?? recoveryNotice; }
+export function dismissSaveRecoveryNotice() { recoveryNotice=null; }
+function parseStoredSave(raw: string) {
+  const parsed=JSON.parse(raw);
+  if(!parsed || typeof parsed!=="object" || Array.isArray(parsed) || (!parsed.resources && !parsed.inventory && !parsed.saveVersion)) throw Error("Invalid save record");
+  return normalizeSave(parsed as Partial<GameState>);
+}
 
 export interface SaveSlotSummary {
   slot: SaveSlotId;
@@ -22,16 +31,29 @@ export interface SaveSlotSummary {
 }
 
 export function saveGame(state: GameState, slot: SaveSlotId = getActiveSaveSlot()) {
-  localStorage.setItem(saveKeyForSlot(slot), JSON.stringify({ ...state, lastSavedAt: Date.now(), saveVersion: SAVE_VERSION }));
+  const key=saveKeyForSlot(slot);
+  try {
+    const previous=localStorage.getItem(key);
+    if(previous){
+      let valid=false;try{parseStoredSave(previous);valid=true;}catch{/* Keep an existing good backup. */}
+      if(valid){try{localStorage.setItem(key+"-backup",previous);}catch{/* Still attempt the primary save if backup storage is full. */}}
+      else {try{parseStoredSave(localStorage.getItem(key+"-backup")??"");}catch{saveWarning="Unreadable save preserved. Export this session before resetting the slot to enable saving.";return false;}}
+    }
+    localStorage.setItem(key,JSON.stringify({...state,lastSavedAt:Date.now(),saveVersion:SAVE_VERSION}));
+    saveWarning=null;return true;
+  }catch{saveWarning="Saving failed. Your current session is still running; export your save before closing.";return false;}
 }
 
 export function loadGame(slot: SaveSlotId = getActiveSaveSlot()) {
   try {
     const raw = localStorage.getItem(saveKeyForSlot(slot));
-    if (!raw) return null;
-    return normalizeSave(JSON.parse(raw) as Partial<GameState>);
+    if (raw) return parseStoredSave(raw);
+    const backup=localStorage.getItem(saveKeyForSlot(slot)+"-backup");
+    if(backup){recoveryNotice="Recovered a backup save. Some recent progress may be missing.";return parseStoredSave(backup);}
+    return null;
   } catch (error) {
-    console.warn("Save could not be loaded. Starting a clean state instead.", error);
+    try{const backup=localStorage.getItem(saveKeyForSlot(slot)+"-backup");if(backup){const restored=parseStoredSave(backup);recoveryNotice="Recovered a backup save. Some recent progress may be missing.";return restored;}}catch{/* Both records are unavailable. */}
+    saveWarning="The saved game could not be read. Check your exported saves before overwriting this slot.";
     return null;
   }
 }
@@ -48,42 +70,36 @@ export function importSave(payload: string) {
 
 export function resetSave(slot: SaveSlotId = getActiveSaveSlot()) {
   localStorage.removeItem(saveKeyForSlot(slot));
+  localStorage.removeItem(saveKeyForSlot(slot)+"-backup");
+  saveWarning=null;
+  recoveryNotice=null;
   return createInitialState();
 }
 
 export function getActiveSaveSlot(): SaveSlotId {
-  const value = Number(localStorage.getItem(ACTIVE_SAVE_SLOT_KEY) ?? 1);
-  return value === 2 || value === 3 ? value : 1;
+  try{const value = Number(localStorage.getItem(ACTIVE_SAVE_SLOT_KEY) ?? 1);return value === 2 || value === 3 ? value : 1;}catch{return 1;}
 }
 
 export function setActiveSaveSlot(slot: SaveSlotId) {
-  localStorage.setItem(ACTIVE_SAVE_SLOT_KEY, String(slot));
+  try{localStorage.setItem(ACTIVE_SAVE_SLOT_KEY, String(slot));}catch{saveWarning="Save storage is unavailable. Export your session before closing.";}
 }
 
 export function saveKeyForSlot(slot: SaveSlotId) {
   return slot === 1 ? SAVE_KEY : `${SAVE_KEY}-${slot}`;
 }
 
+const summaryCache=new Map<SaveSlotId,{raw:string|null;backup:string|null;summary:SaveSlotSummary}>();
 export function saveSlotSummaries(): SaveSlotSummary[] {
-  return ([1, 2, 3] as SaveSlotId[]).map((slot) => {
-    try {
-      const raw = localStorage.getItem(saveKeyForSlot(slot));
-      if (!raw) {
-        return { slot, exists: false, startingPath: null, credits: 0, totalLevel: 0, lastSavedAt: null };
-      }
-      const parsed = JSON.parse(raw) as Partial<GameState>;
-      const totalLevel = Object.values(parsed.skills ?? {}).reduce((sum, skill) => sum + (skill?.level ?? 0), 0);
-      return {
-        slot,
-        exists: true,
-        startingPath: parsed.startingPath ?? null,
-        credits: parsed.resources?.credits ?? 0,
-        totalLevel,
-        lastSavedAt: parsed.lastSavedAt ?? null,
-      };
-    } catch {
-      return { slot, exists: false, startingPath: null, credits: 0, totalLevel: 0, lastSavedAt: null };
-    }
+  return ([1,2,3] as SaveSlotId[]).map(slot=>{
+    const empty:SaveSlotSummary={slot,exists:false,startingPath:null,credits:0,totalLevel:0,lastSavedAt:null};
+    try{
+      const raw=localStorage.getItem(saveKeyForSlot(slot)),backup=localStorage.getItem(saveKeyForSlot(slot)+"-backup");
+      const cached=summaryCache.get(slot);if(cached&&cached.raw===raw&&cached.backup===backup)return cached.summary;
+      let parsed:Partial<GameState>|null=null;
+      for(const record of [raw,backup]){if(!record)continue;try{const value=JSON.parse(record);if(value&&typeof value==="object"&&!Array.isArray(value)&&(value.resources||value.inventory||value.saveVersion)){parsed=value;break;}}catch{/* Try backup. */}}
+      const summary:SaveSlotSummary=parsed?{slot,exists:true,startingPath:parsed.startingPath??null,credits:parsed.resources?.credits??0,totalLevel:Object.values(parsed.skills??{}).reduce((sum,s)=>sum+(s?.level??0),0),lastSavedAt:parsed.lastSavedAt??null}:{...empty,exists:Boolean(raw||backup)};
+      summaryCache.set(slot,{raw,backup,summary});return summary;
+    }catch{return empty;}
   });
 }
 
