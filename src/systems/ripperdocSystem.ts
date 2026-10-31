@@ -96,6 +96,7 @@ export function buyCyberwareFromRipperdoc(state: GameState, clinicId: string, it
 }
 
 export function canSellCyberwareToRipperdoc(state: GameState, clinicId: string, itemId: string) {
+  if (state.inventoryLocks?.[itemId]) return false;
   const clinic = ripperdocClinics.find((entry) => entry.id === clinicId);
   const item = getItem(itemId);
   if (!clinic || !item || item.type !== "Cyberware" || !state.districts[clinic.districtId]?.unlocked) return false;

@@ -1,3 +1,10 @@
+import { CraftingRecipeBrowser } from "./components/CraftingRecipeBrowser";
+import { CraftingDetailSheet } from "./components/CraftingDetailSheet";
+import { useRememberedState, useScreenScroll } from "./components/useUiPreferences";
+import { DisplayDensitySetting } from "./components/DisplayDensity";
+import { UpcomingUnlocks } from "./components/UpcomingUnlocks";
+import { ItemActionDock } from "./components/ItemActionDock";
+import { toggleInventoryLock } from "./systems/inventoryLocks";
 import { DistrictSkillGrid, DistrictActivityGrid, type DistrictHubCategory } from "./screens/District/DistrictNavigation";
 import { districtAccents } from "./data/districtPresentation";
 import type { CSSProperties } from "react";
@@ -249,14 +256,12 @@ function App() {
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
   const [importPayload, setImportPayload] = useState("");
-  const [characterSection, setCharacterSection] = useState<CharacterSectionId>("gear");
+  const [characterSection, setCharacterSection] = useRememberedState<CharacterSectionId>("character-section", "gear", ["gear", "cyberware", "quickhacks", "attributes", "health", "presets"]);
   const [moreSection, setMoreSection] = useState<MoreSection>("story");
   const [simMenuOpen, setSimMenuOpen] = useState(false);
   const [cityOpenRequest, setCityOpenRequest] = useState<{ districtId: DistrictId | null; category?: DistrictHubCategory; token: number } | null>(null);
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [tab, mainSection, characterSection, moreSection]);
+  useScreenScroll(`${activeSaveSlot}:${tab}:${tab === "field" ? mainSection + (mainSection === "character" ? ":" + characterSection : "") : tab === "more" ? moreSection : "map"}`);
 
   useEffect(() => {
     if (isDevBuild) reportContentValidation();
@@ -387,11 +392,11 @@ function App() {
     <PlayerNavigation.Provider value={{
       recipeId: recipeRequest.id,
       recipeRequest: recipeRequest.token,
-      openDistrict: (districtId, category) => { setTab("city"); setCityOpenRequest({ districtId, category: category as DistrictHubCategory, token: Date.now() }); window.scrollTo(0, 0); },
-      openCrafting: recipeId => { setRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("city"); setCityOpenRequest({ districtId: state.selectedDistrict, category: "crafting", token: Date.now() }); window.scrollTo(0, 0); },
-      openMissions: () => { setTab("field"); setMainSection("journal"); window.scrollTo(0, 0); },
-      openCharacter: section => { setCharacterSection(section); setTab("field"); setMainSection("character"); window.scrollTo(0, 0); },
-      openIndex: () => { setTab("more"); setMoreSection("itemIndex"); window.scrollTo(0, 0); },
+      openDistrict: (districtId, category) => { setTab("city"); setCityOpenRequest({ districtId, category: category as DistrictHubCategory, token: Date.now() });  },
+      openCrafting: recipeId => { setRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("city"); setCityOpenRequest({ districtId: state.selectedDistrict, category: "crafting", token: Date.now() });  },
+      openMissions: () => { setTab("field"); setMainSection("journal");  },
+      openCharacter: section => { setCharacterSection(section); setTab("field"); setMainSection("character");  },
+      openIndex: () => { setTab("more"); setMoreSection("itemIndex");  },
     }}>
     <div className="app-shell">
       <header className="topbar">
@@ -561,7 +566,7 @@ function App() {
 
       <nav className="bottom-nav" aria-label="Primary">
         {tabs.map(({ id, label, Icon }) => (
-          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field") setMainSection("home"); setSimMenuOpen(false); setTab(id); window.scrollTo({ top: 0, behavior: "instant" }); }}>
+          <button key={id} className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => { if (id === "city") setCityOpenRequest({ districtId: null, token: Date.now() }); if (id === "field" && tab === "field") setMainSection("home"); setSimMenuOpen(false); setTab(id);  }}>
             <Icon size={20} />
             <span>{label}</span>
             {tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled) && <b className="tab-indicator">{tabIndicator(state, id, reviewedNoticeKeys, tabNoticesEnabled)}</b>}
@@ -1102,7 +1107,7 @@ function InfoBlock({ title, lines }: { title: string; lines: string[] }) {
   return (
     <div className="terminal-log">
       <strong>{title}</strong>
-      {lines.length ? lines.map((line) => <p key={line}>{line}</p>) : <p>None logged.</p>}
+      {lines.length ? [...new Set(lines)].map((line) => <p key={line}>{line}</p>) : <p>None logged.</p>}
     </div>
   );
 }
@@ -3497,8 +3502,6 @@ type CraftingSortMode = "rarity" | "level" | "duration" | "name";
 type CraftingFilter = "All" | CraftingRecipe["category"];
 
 const inventorySortModes: InventorySortMode[] = ["rarity", "quantity", "price"];
-const craftingSortModes: CraftingSortMode[] = ["rarity", "level", "duration", "name"];
-const craftingFilters: CraftingFilter[] = ["All", "Components", "Upgrade Parts", "Weapons", "Armor", "Cyberware", "Attachments", "Weapon Mods", "Consumables"];
 const inventoryRarityRanks: Record<string, number> = {
   Common: 1,
   Uncommon: 2,
@@ -3518,6 +3521,7 @@ function InventoryTab({
   onUse,
   onSell,
   onSellAllButOne,
+  onToggleLock,
   onUpgrade,
   onInstallAttachment,
   onRemoveAttachment,
@@ -3534,6 +3538,7 @@ function InventoryTab({
   onUse: (id: string) => void;
   onSell: (id: string) => void;
   onSellAllButOne: (id: string) => void;
+  onToggleLock: (id: string) => void;
   onUpgrade: (id: string) => void;
   onInstallAttachment: (weaponId: string, attachmentId: string) => void;
   onRemoveAttachment: (weaponId: string, category: AttachmentCategory) => void;
@@ -3543,12 +3548,15 @@ function InventoryTab({
   onReviewNotice: (key: string) => void;
   onReviewAllNotices: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [gearSlot, setGearSlot] = useState<GearSlot | null>(null);
-  const [filter, setFilter] = useState<InventoryFilter>("All");
-  const [sortMode, setSortMode] = useState<InventorySortMode>("rarity");
-  const [sortDirection, setSortDirection] = useState<InventorySortDirection>("desc");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useRememberedState("inventory-query", "");
+  const [gearSlot, setGearSlot] = useRememberedState<GearSlot | null>("inventory-slot", null, [null, ...gearSlots.map(s => s.id)]);
+  const [filter, setFilter] = useRememberedState<InventoryFilter>("inventory-filter", "All", ["All", "Resources", "Components", "Cyberware", "Weapons", "Attachments", "Mods", "Armor", "Consumables", "Blueprints", "Quickhacks"]);
+  const [sortMode, setSortMode] = useRememberedState<InventorySortMode>("inventory-sort", "rarity", inventorySortModes);
+  const [sortDirection, setSortDirection] = useRememberedState<InventorySortDirection>("inventory-direction", "desc", ["asc", "desc"]);
+  const [selectedId, setSelectedId] = useRememberedState<string | null>("inventory-selected", null);
+  const [upgradesOnly, setUpgradesOnly] = useRememberedState("inventory-upgrades", false);
+  const [lockedOnly, setLockedOnly] = useRememberedState("inventory-locked", false);
+  const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const inventoryIds = new Set(Object.entries(state.inventory).filter(([, count]) => count > 0).map(([id]) => id));
   Object.values(state.equippedGear).forEach((id) => {
     if (id) inventoryIds.add(id);
@@ -3559,6 +3567,8 @@ function InventoryTab({
   const drops = [...inventoryIds].map((id) => [id, Math.max(state.inventory[id] ?? 0, equippedItemLabel(state, id) ? 1 : 0)] as [string, number]);
   const filtered = drops.filter(([id]) => {
     const item = getItem(id);
+    if (upgradesOnly && !canAffordItemUpgrade(state, id)) return false;
+    if (lockedOnly && !state.inventoryLocks?.[id]) return false;
     if (query.trim() && !(item?.name ?? itemNames[id] ?? id).toLowerCase().includes(query.trim().toLowerCase())) return false;
     if (gearSlot && (!(item?.type === "Weapon" || item?.type === "Armor") || item.slot !== gearSlot)) return false;
     if (filter === "All") return true;
@@ -3612,12 +3622,13 @@ function InventoryTab({
       : undefined;
   return (
     <section className="stack gear-workspace">
+      {sourceItem && <ItemSourcePopover state={state} itemId={sourceItem.itemId} usedAmount={sourceItem.usedAmount} onClose={() => setSourceItem(null)} />}
       <article className="panel runner-equipment">
         <div className="panel-heading"><div><p className="eyebrow">CURRENT LOADOUT</p><h2>Equipped gear</h2></div><Shield size={22} /></div>
         <div className="slot-grid">{gearSlots.map(slot => {
           const id = state.equippedGear[slot.id];
           const item = id ? getItem(id) : undefined;
-          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setSelectedId(id ?? null); revealDetail(".runner-item-inspector"); }}>
+          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); setSelectedId(id ?? null); revealDetail(".runner-item-inspector"); }}>
             <EquipmentTypeIconBadge item={item} fallbackSlot={slot.id} fallbackKind="gear" /><span>{slot.label}</span><strong>{item?.name ?? "Empty slot"}{id && state.upgradeLevels[id] ? " +" + state.upgradeLevels[id] : ""}</strong><small>{item ? "Inspect / replace" : "Find equipment"}</small>
           </button>;
         })}</div>
@@ -3627,7 +3638,7 @@ function InventoryTab({
         notices={notices}
         onReviewNotice={(key) => {
           const itemId = key.replace(/^inventory:/, "");
-          if (getItem(itemId)) { setSelectedId(itemId); setFilter("All"); setGearSlot(null); setQuery(""); }
+          if (getItem(itemId)) { setSelectedId(itemId); setFilter("All"); setGearSlot(null); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); }
           onReviewNotice(key);
         }}
         onReviewAll={onReviewAllNotices}
@@ -3644,6 +3655,7 @@ function InventoryTab({
         <details className="network-disclosure runner-wallet"><summary>Resources &amp; currencies</summary><ResourceWallet state={state} /></details>
         <label className="runner-search">Search inventory<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search by item name" /></label>
         {gearSlot && <div className="runner-slot-filter"><span>Slot: {gearSlots.find(slot => slot.id === gearSlot)?.label}</span><button className="rpg-text-button" onClick={() => setGearSlot(null)}>Show all slots</button></div>}
+        <div className="inventory-filter-row inventory-special-filters"><label><input type="checkbox" checked={upgradesOnly} onChange={event => setUpgradesOnly(event.target.checked)} /> Affordable upgrades</label><label><input type="checkbox" checked={lockedOnly} onChange={event => setLockedOnly(event.target.checked)} /> Locked items</label></div>
         <div className="inventory-sort-row">
           <button
             className="inventory-sort-cycle"
@@ -3676,11 +3688,12 @@ function InventoryTab({
               <button key={id} className={`inventory-slot ${active ? "active" : ""} ${item ? `rarity-${item.rarity.toLowerCase()}` : ""}`} aria-pressed={active} onClick={() => { setSelectedId(id); revealDetail(".runner-item-inspector"); }}>
                 {item ? <EquipmentTypeIconBadge item={item} /> : <span className="slot-fallback">{itemInitials(id)}</span>}
                 {equippedLabel && <span className="equipped-marker">{equippedLabel}</span>}
+                {state.inventoryLocks?.[id] && <span className="item-lock-marker">Locked</span>}
                 <strong>{item?.name ?? itemNames[id] ?? id}</strong>
                 <span>Qty {count}</span>
               </button>
             );
-          }) : <p className="muted">No matching items. Try another category or clear your search.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setGearSlot(null); }}>Reset filters</button></p>}
+          }) : <p className="muted">No matching items. Try another category or clear your search.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setGearSlot(null); setUpgradesOnly(false); setLockedOnly(false); }}>Reset filters</button></p>}
         </div>
       </article>
       <article className="panel runner-item-inspector" aria-label="Selected item" tabIndex={-1}><button className="detail-back secondary-button" onClick={() => revealDetail(".runner-stash .inventory-slot.active, .runner-stash")}>Back to inventory</button>
@@ -3693,12 +3706,37 @@ function InventoryTab({
               </div>
               <EquipmentTypeIconBadge item={selectedItem} />
             </div>
+            <button className="secondary-button item-lock-toggle" aria-pressed={Boolean(state.inventoryLocks?.[activeId])} onClick={() => onToggleLock(activeId)}>{state.inventoryLocks?.[activeId] ? "Locked · unlock item" : "Lock item against selling"}</button>
             <p className="muted">{selectedItem.description}</p>
             {selectedItem.slot && <p className="fine">{selectedIsEquipped ? "Equipped" : "Equip requirement"}: {itemAttributeRequirement(selectedItem).label} / Yours: {state.rpg.attributes[itemAttributeRequirement(selectedItem).attribute]}</p>}
             <p className="fine">Used for: {itemUseSummary(selectedItem.id)}</p>
             <p className="fine">Source: {selectedItem.sourceHint}</p>
             <p className="fine">Market value: {selectedItem.sellValue} / Quick sell: {selectedQuickSellValue.toLocaleString()} Credits</p>
             {selectedItem.stats && <StatComparisonLine state={state} itemId={activeId} compareItemId={selectedComparisonItemId} />}
+            {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
+            {selectedItem.maxUpgradeLevel && (
+              <div className="upgrade-cost-box">
+                <p className="fine">Upgrade requirement: Technical {upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)} / Yours: {state.rpg.attributes.technical}</p>
+                <p className="fine">
+                  {selectedMaxUpgrade
+                    ? `Upgrade: Max level +${selectedItem.maxUpgradeLevel}`
+                    : `Upgrade +${selectedUpgradeLevel + 1}/${selectedItem.maxUpgradeLevel}: ${formatItemCost(selectedUpgradeCost)}`}
+                </p>
+                {!selectedMaxUpgrade && Object.entries(selectedUpgradeCost).map(([id, amount]) => {
+                  const required = id === activeId ? amount + 1 : amount;
+                  const owned = getOwnedCount(state, id);
+                  const hasRequired = owned >= required;
+                  return (
+                    <ClickableItemRequirement key={id} state={state} itemId={id} required={required} warning={!hasRequired} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
+                  );
+                })}
+              </div>
+            )}
+            {selectedItem.type === "Weapon" && <WeaponDetail state={state} weaponId={activeId} onInstallAttachment={onInstallAttachment} onRemoveAttachment={onRemoveAttachment} onInstallWeaponMod={onInstallWeaponMod} onRemoveWeaponMod={onRemoveWeaponMod} />}
+            {selectedItem.type === "WeaponAttachment" && <p className="fine">Attachment: {titleCase(selectedItem.attachmentCategory ?? "")} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
+            {selectedItem.type === "WeaponMod" && <p className="fine">Mod: {selectedItem.specialEffect} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
+            {selectedItem.type === "Cyberware" ? <p className="fine">Equipped Instability {formatSigned(cyberwareInstabilityLoad(selectedItem))}</p> : null}
+            <ItemActionDock key={activeId} name={selectedItem.name}>
               {(selectedItem.type === "Weapon" || selectedItem.type === "Armor" || selectedItem.type === "Cyberware") && (
                 <button
                   className="primary-button full"
@@ -3719,42 +3757,11 @@ function InventoryTab({
                   {state.rpg.active && selectedItem.slot === "operatingSystem" ? "Locked during mission" : !selectedIsEquipped && !meetsItemAttributeRequirement(state, selectedItem) ? `Requires ${itemAttributeRequirement(selectedItem).label}` : selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
                 </button>
               )}
-            {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
-            {selectedItem.maxUpgradeLevel && (
-              <div className="upgrade-cost-box">
-                <p className="fine">Upgrade requirement: Technical {upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)} / Yours: {state.rpg.attributes.technical}</p>
-                <p className="fine">
-                  {selectedMaxUpgrade
-                    ? `Upgrade: Max level +${selectedItem.maxUpgradeLevel}`
-                    : `Upgrade +${selectedUpgradeLevel + 1}/${selectedItem.maxUpgradeLevel}: ${formatItemCost(selectedUpgradeCost)}`}
-                </p>
-                {!selectedMaxUpgrade && Object.entries(selectedUpgradeCost).map(([id, amount]) => {
-                  const required = id === activeId ? amount + 1 : amount;
-                  const owned = getOwnedCount(state, id);
-                  const hasRequired = owned >= required;
-                  return (
-                    <span key={id} className={`requirement-row upgrade-requirement-row ${hasRequired ? "met" : "missing"} rarity-${(getItem(id)?.rarity ?? "Common").toLowerCase()}`}>
-                      {getItem(id)?.name ?? resourceNames[id as ResourceId] ?? id}
-                      <strong>{owned.toLocaleString()} / {required.toLocaleString()}{id === activeId ? " total" : ""}</strong>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            {selectedItem.type === "Weapon" && <WeaponDetail state={state} weaponId={activeId} onInstallAttachment={onInstallAttachment} onRemoveAttachment={onRemoveAttachment} onInstallWeaponMod={onInstallWeaponMod} onRemoveWeaponMod={onRemoveWeaponMod} />}
-            {selectedItem.type === "WeaponAttachment" && <p className="fine">Attachment: {titleCase(selectedItem.attachmentCategory ?? "")} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
-            {selectedItem.type === "WeaponMod" && <p className="fine">Mod: {selectedItem.specialEffect} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
-            {selectedItem.type === "Cyberware" ? <p className="fine">Equipped Instability {formatSigned(cyberwareInstabilityLoad(selectedItem))}</p> : null}
-            <div className="inventory-actions">
-              {selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
-              <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>
-                Sell 1 for {selectedQuickSellValue.toLocaleString()} Credits
-              </button>
-              <button className="secondary-button full" disabled={!selectedCanSell || selectedBulkSellCount === 0} onClick={() => onSellAllButOne(activeId)}>
-                Sell all but 1 for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} Credits
-              </button>
-              {selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : state.rpg.attributes.technical < upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1) ? `Requires Technical ${upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)}` : !selectedCanUpgrade ? "Missing upgrade materials" : "Upgrade"}</button>}
-            </div>
+{selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : state.rpg.attributes.technical < upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1) ? `Requires Technical ${upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)}` : !selectedCanUpgrade ? "Missing upgrade materials" : "Upgrade"}</button>}
+{selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
+<button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>{state.inventoryLocks?.[activeId] ? "Locked against selling" : !selectedCanSell ? "No spare copies to sell" : `Sell · ${selectedQuickSellValue.toLocaleString()} credits`}</button>
+<details className="bulk-sell-menu"><summary>More actions</summary><button className="secondary-button full" disabled={!selectedCanSell || selectedBulkSellCount === 0} onClick={() => onSellAllButOne(activeId)}>Sell all but 1 for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} Credits</button></details>
+            </ItemActionDock>
           </div>
         ) : (
           <p className="muted">No item selected.</p>
@@ -3879,27 +3886,11 @@ function itemUseSummary(itemId: string) {
 function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCraft: (id: string) => void; onStopCraft: () => void }) {
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [filter, setFilter] = useState<CraftingFilter>("All");
-  const [sortMode, setSortMode] = useState<CraftingSortMode>("level");
-  const [sortDirection, setSortDirection] = useState<InventorySortDirection>("asc");
-  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
+  const [selectedRecipeId, setSelectedRecipeId] = useRememberedState<string | null>("crafting-selected", null);
+  const [detailOpen,setDetailOpen] = useState(false);
   const navigation = usePlayerNavigation();
-  const [query, setQuery] = useState("");
-  const [readyOnly, setReadyOnly] = useState(false);
-  useEffect(() => { if (navigation.recipeId) { setFilter("All"); setQuery(""); setReadyOnly(false); setSelectedRecipeId(navigation.recipeId); revealDetail(".crafting-detail-panel"); } }, [navigation.recipeId, navigation.recipeRequest]);
-  const filteredRecipes = recipes.filter(recipe => (filter === "All" || recipe.category === filter) && recipe.name.toLowerCase().includes(query.trim().toLowerCase()) && (!readyOnly || canCraft(state, recipe)));
-  const sortedRecipes = [...filteredRecipes].sort((left, right) => {
-    const leftItem = getItem(left.outputItemId);
-    const rightItem = getItem(right.outputItemId);
-    let value = 0;
-    if (sortMode === "rarity") value = (inventoryRarityRanks[leftItem?.rarity ?? "Common"] ?? 0) - (inventoryRarityRanks[rightItem?.rarity ?? "Common"] ?? 0);
-    if (sortMode === "level") value = left.requiredLevel - right.requiredLevel;
-    if (sortMode === "duration") value = left.durationMs - right.durationMs;
-    if (sortMode === "name") value = left.name.localeCompare(right.name);
-    if (!value) value = left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name);
-    return sortDirection === "asc" ? value : -value;
-  });
-  const selectedRecipe = (selectedRecipeId ? sortedRecipes.find((recipe) => recipe.id === selectedRecipeId) : null) ?? sortedRecipes[0] ?? null;
+  useEffect(() => { if(navigation.recipeId){setSelectedRecipeId(navigation.recipeId);setDetailOpen(true);} },[navigation.recipeId,navigation.recipeRequest]);
+  const selectedRecipe = recipes.find(recipe => recipe.id === selectedRecipeId) ?? recipes[0] ?? null;
   const selectedOutput = selectedRecipe ? getItem(selectedRecipe.outputItemId) : null;
   const selectedCosts = selectedRecipe ? scaledCraftingCosts(state, selectedRecipe) : {};
   const selectedMissingEntries = Object.entries(selectedCosts).filter(([id, amount]) => getOwnedCount(state, id) < amount);
@@ -3937,59 +3928,9 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
         />
       )}
       {sourceItem && <ItemSourcePopover state={state} itemId={sourceItem.itemId} usedAmount={sourceItem.usedAmount} onClose={() => setSourceItem(null)} />}
-      <p className="muted">Choose a recipe, compare its stats, then tap any material to find a source. Completed gear goes to your inventory; equip it from Main.</p><div className="crafting-search"><input aria-label="Search recipes" placeholder="Search recipes" value={query} onChange={event => setQuery(event.target.value)} /><label><input type="checkbox" checked={readyOnly} onChange={event => setReadyOnly(event.target.checked)} /> Ready to craft</label></div><div className="inventory-sort-row crafting-sort-row">
-        <button
-          className="inventory-sort-cycle"
-          onClick={() => setSortMode((current) => craftingSortModes[(craftingSortModes.indexOf(current) + 1) % craftingSortModes.length])}
-        >
-          Sort: {titleCase(sortMode)}
-        </button>
-        <button
-          className="inventory-sort-direction"
-          aria-label={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
-          title={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
-          onClick={() => setSortDirection((current) => current === "asc" ? "desc" : "asc")}
-        >
-          {sortDirection === "asc" ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-        </button>
-      </div>
-      <div className="inventory-filter-row crafting-filter-row">
-        {craftingFilters.map((entry) => (
-          <button key={entry} className={filter === entry ? "active" : ""} onClick={() => setFilter(entry)}>
-            {entry}
-          </button>
-        ))}
-      </div>
       <div className="crafting-workbench-layout">
-        <div className="crafting-recipe-list" tabIndex={-1}>
-          {sortedRecipes.map((recipe) => {
-            const output = getItem(recipe.outputItemId);
-            const levelLocked = state.skills[recipe.requiredSkill].level < recipe.requiredLevel;
-            const blueprintLocked = Boolean(recipe.requiredBlueprint && !state.unlockedBlueprints[recipe.requiredBlueprint]);
-            const districtLocked = Boolean(recipe.requiredDistrict && !state.districts[recipe.requiredDistrict]?.unlocked);
-            const locked = levelLocked || blueprintLocked || districtLocked;
-            const costs = scaledCraftingCosts(state, recipe);
-            const missing = Object.entries(costs).some(([id, amount]) => getOwnedCount(state, id) < amount);
-            const active = state.activeCraft?.recipeId === recipe.id;
-            const craftable = !locked && !missing;
-            const selected = selectedRecipe?.id === recipe.id;
-            return (
-              <button
-                type="button"
-                className={`crafting-recipe-tile rarity-${(output?.rarity ?? "Common").toLowerCase()} ${selected ? "active" : ""} ${active ? "running" : ""} ${craftable ? "craftable-card" : ""} ${locked ? "locked-card" : ""} ${missing ? "missing-card" : ""}`}
-                key={recipe.id}
-                aria-pressed={selected} onClick={() => { setSelectedRecipeId(recipe.id); revealDetail(".crafting-detail-panel"); }}
-              >
-                {output ? <EquipmentTypeIconBadge item={output} /> : <span className="slot-fallback">{itemInitials(recipe.outputItemId)}</span>}
-                <span className="eyebrow">{output?.rarity ?? "Common"} / {recipe.category} / {formatDuration(adjustedDurationMs(state, recipe.durationMs, recipe.tags))}</span>
-                <strong>{recipe.name}</strong>
-                <em>{skillNames[recipe.requiredSkill]} {recipe.requiredLevel} / {missing ? "Missing" : locked ? "Locked" : active ? "Running" : "Ready"}</em>
-              </button>
-            );
-          })}
-          {!sortedRecipes.length && <p className="muted">No recipes match. Try another category, clear your search, or turn off Ready to craft.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setReadyOnly(false); }}>Reset filters</button></p>}
-        </div>
-        <aside tabIndex={-1} aria-label="Selected recipe" className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}><button className="detail-back secondary-button" onClick={() => revealDetail(".crafting-recipe-tile.active")}>Back to recipes</button>
+        <CraftingRecipeBrowser state={state} selected={selectedRecipe?.id} requested={navigation.recipeId} requestToken={navigation.recipeRequest} icon={item => <EquipmentTypeIconBadge item={item} />} onSelect={id => {setSelectedRecipeId(id);setDetailOpen(true);}} />
+        <CraftingDetailSheet key={selectedRecipe?.id} open={detailOpen} onClose={() => setDetailOpen(false)} className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}>
           {selectedRecipe ? (
             <>
               <div className="panel-heading">
@@ -4046,7 +3987,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
           ) : (
             <p className="muted">Select a recipe to inspect requirements, stats, and output details.</p>
           )}
-        </aside>
+        </CraftingDetailSheet>
       </div>
     </article>
   );
@@ -4155,6 +4096,7 @@ export function CharacterTab({
               onUse={(id) => onUpdate((current) => useItem(current, id))}
               onSell={(id) => onUpdate((current) => quickSellInventoryItem(current, id))}
               onSellAllButOne={(id) => onUpdate((current) => quickSellAllButOne(current, id))}
+              onToggleLock={(id) => onUpdate((current) => toggleInventoryLock(current, id))}
               onUpgrade={(id) => onUpdate((current) => upgradeItem(current, id))}
               onInstallAttachment={(weaponId, attachmentId) => onUpdate((current) => installAttachment(current, weaponId, attachmentId))}
               onRemoveAttachment={(weaponId, category) => onUpdate((current) => removeAttachment(current, weaponId, category))}
@@ -4716,6 +4658,7 @@ export function MoreTab({
             {tabNoticesEnabled ? "On" : "Off"}
           </button>
         </div>
+        <DisplayDensitySetting />
         <h2>Saves</h2>
         <div className="save-slot-grid">
           {saveSlots.map((slot) => (
@@ -5204,6 +5147,7 @@ function ProgressTab({ state, onUpdate }: { state: GameState; onUpdate: UpdateGa
   return (
     <section className="stack progress-stack">
       <NextGoal state={state} />
+      <UpcomingUnlocks state={state} />
       <CampaignPanel state={state} />
       <ProgressDropdown id="endgame" title="Street Legend" eyebrow="Long-term account progression" open={openSections.endgame} onOpenChange={setSectionOpen}>
         <EndgameSection state={state} activeTab={endgameTab} onTab={setEndgameTab} onUpdate={onUpdate} />

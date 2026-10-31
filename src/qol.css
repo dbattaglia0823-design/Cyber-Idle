@@ -1,0 +1,24 @@
+.inventory-special-filters{gap:16px;flex-wrap:wrap}.inventory-special-filters label{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:12px}
+.inventory-special-filters input{width:18px;height:18px;accent-color:#6de4ed}
+.item-lock-marker{color:#ffda81!important;font-size:10px!important;font-weight:700}.item-lock-toggle[aria-pressed=true]{border-color:#ffda81;color:#ffda81}
+.dock-item-name{display:none}.bulk-sell-menu{grid-column:1/-1}.bulk-sell-menu summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:12px;color:#aebed1}
+.upcoming-unlocks{margin:14px 0;padding:14px;border:1px solid #344558;background:#111b27}.upcoming-unlocks>summary{cursor:pointer;color:#c3d4e7;font-size:13px;min-height:44px;align-content:center}
+.unlock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-top:12px}.unlock-grid article{display:grid;gap:8px;padding:12px;background:#172432;border:1px solid #304657;min-width:0}.unlock-grid small{color:#91a9bf;font-size:10px}.unlock-grid strong{font-size:14px}.unlock-grid span{font-size:12px;color:#b4c3d5}.unlock-grid progress{width:100%;height:6px;accent-color:#6de4ed}.unlock-grid button{margin-top:auto}
+.quickhack-materials{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.quickhack-materials>span{font-size:12px;color:#b4c3d5}
+[data-density=compact] .app-shell :is(.panel,.software-card,.action-card,.unlock-grid article){padding:12px}
+[data-density=compact] .app-shell :is(.stack,.software-grid,.slot-grid,.item-slot-grid,.inventory-grid){gap:8px}
+[data-density=compact] .app-shell :is(.inventory-slot,.slot-card){padding:9px;min-height:95px}
+[data-density=compact] .app-shell .rpg-build{padding:16px}
+[data-density=compact] .app-shell .rpg-attribute-grid article{padding:12px;gap:8px}
+[data-density=compact] .app-shell .runner-summary{padding:12px}
+[data-density=compact] .app-shell button:not(.inline-button):not(.icon-button){min-height:44px}
+@media(max-width:760px){
+ .item-action-anchor.dock-visible{min-height:var(--item-dock-height,150px)}
+ .dock-visible .item-action-dock{position:fixed;left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));bottom:var(--navigation-height,86px);z-index:42;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px;background:#101d2b;border:1px solid #4b7787;box-shadow:0 -6px 20px #0008;max-height:45dvh;overflow:auto}
+ .dock-visible .dock-item-name{display:block;grid-column:1/-1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9e1f2}
+ .dock-visible .item-action-dock>button{min-height:44px;margin:0!important;width:100%;padding:6px;font-size:11px;white-space:normal;overflow-wrap:anywhere}
+ .dock-visible .bulk-sell-menu summary{min-height:44px}
+ .app-shell:has(.dock-visible) :is(.floating-sim-cache,.back-to-top){bottom:calc(var(--navigation-height,86px) + var(--item-dock-height,150px) + 10px)}
+ .app-shell:has(.source-popover) .item-action-dock{visibility:hidden}
+ .runner-item-inspector{scroll-margin-bottom:calc(var(--item-dock-height,150px) + var(--navigation-height,86px))}
+}

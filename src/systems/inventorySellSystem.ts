@@ -20,6 +20,7 @@ export function canQuickSellInventoryItem(state: GameState, itemId: string) {
 }
 
 export function inventorySellAllButOneCount(state: GameState, itemId: string) {
+  if (state.inventoryLocks?.[itemId]) return 0;
   return Math.max(0, Math.floor(state.inventory[itemId] ?? 0) - Math.max(1, equippedCopies(state, itemId)));
 }
 
@@ -45,6 +46,7 @@ export function quickSellInventoryItem(state: GameState, itemId: string, quantit
 }
 
 export function spareInventoryCopies(state: GameState, itemId: string) {
+  if (state.inventoryLocks?.[itemId]) return 0;
   return (state.inventory[itemId] ?? 0) - equippedCopies(state, itemId);
 }
 

@@ -1,6 +1,7 @@
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DisplayDensityProvider } from "./components/DisplayDensity";
 import "./styles.css";
 import "./network-theme.css";
 import "./mobile.css";
@@ -45,9 +46,11 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, { error: Erro
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
-      <App />
+      <DisplayDensityProvider><App /></DisplayDensityProvider>
     </RootErrorBoundary>
   </StrictMode>,
 );
 
 import "./polish.css";
+import "./qol.css";
+import "./crafting-browser.css";

@@ -1232,6 +1232,7 @@ export interface GameState {
   skills: Record<SkillId, SkillState>;
   actionMastery: Record<string, MasteryState>;
   inventory: Record<string, number>;
+  inventoryLocks: Record<string, boolean>;
   activeAction: ActiveAction | null;
   activeJob: ActiveJob | null;
   activeCraft: ActiveCraft | null;

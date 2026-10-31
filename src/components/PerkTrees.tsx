@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRememberedState } from "./useUiPreferences";
 import { Check, LockKeyhole, Sparkles } from "lucide-react";
 import { attributeDefinitions, rpgPerks } from "../data/rpgCampaign";
 import { buyRpgPerk, canBuyRpgPerk } from "../systems/rpgSystem";
@@ -6,7 +6,7 @@ import type { AttributeId } from "../rpgTypes";
 import type { GameState } from "../types";
 
 export function PerkTrees({ state, onUpdate }: { state: GameState; onUpdate: (fn: (s: GameState) => GameState) => void }) {
-  const [selected, setSelected] = useState<AttributeId>("body");
+  const [selected, setSelected] = useRememberedState<AttributeId>("perk-tree", "body", ["body", "reflexes", "intelligence", "technical", "cool"]);
   const attribute = attributeDefinitions.find(entry => entry.id === selected)!;
   const perks = rpgPerks.filter(perk => perk.attribute === selected);
   return <section className={`perk-tree perk-tree-${selected}`} aria-label="Attribute perk trees">

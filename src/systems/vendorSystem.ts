@@ -92,6 +92,7 @@ export function buyVendorItem(state: GameState, vendorId: string, itemId: string
 }
 
 export function canSellVendorItem(state: GameState, vendorId: string, itemId: string) {
+  if (state.inventoryLocks?.[itemId]) return false;
   const vendor = vendors.find((entry) => entry.id === vendorId);
   if (!vendor?.canSell || !state.districts[vendor.districtId]?.unlocked) return false;
   return (isResourceId(itemId) ? getOwnedCount(state, itemId) : spareInventoryCopies(state, itemId)) > 0 && sellValue(state, vendor, itemId) > 0;

@@ -100,6 +100,7 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     skills: { ...initial.skills, ...saved.skills },
     actionMastery: { ...initial.actionMastery, ...saved.actionMastery },
     inventory: { ...initial.inventory, ...saved.inventory },
+    inventoryLocks: Object.fromEntries(Object.entries(saved.inventoryLocks && typeof saved.inventoryLocks === "object" ? saved.inventoryLocks : {}).filter(([, value]) => value === true)),
     activeAction: saved.activeAction ?? null,
     activeJob: null,
     activeCraft: saved.activeCraft ?? null,
