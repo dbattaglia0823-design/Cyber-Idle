@@ -300,13 +300,33 @@ body, .app-shell { min-height: 100svh; }
   .app-shell .mobile-section-menu summary:focus-visible { outline: 2px solid var(--network-yellow); outline-offset: 2px; }
   .app-shell .mobile-main-navigation { grid-template-columns: minmax(0, 1fr); }
   .app-shell .mobile-main-navigation > button { min-height: 44px; }
-  .main-menu { padding: 14px; }
+  .main-menu { padding: 10px; }
+  .main-menu header { border-bottom: 0; padding-bottom: 0; margin-bottom: 8px; }
+  .main-menu header h1 { margin: 2px 0 0; font-size: 26px; }
+  .app-shell .main-shortcuts { gap: 6px; margin: 8px 0; }
   .main-menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-  .main-menu-card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 13px; min-height: 148px; }
-  .main-menu-card > svg:last-child { position: absolute; top: 13px; right: 12px; }
+  .main-menu-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px; min-height: 96px; }
+  .main-menu-card > svg:last-child { position: absolute; top: 10px; right: 10px; }
+  .main-menu-card span { gap: 4px; }
   .main-menu-card strong { font-size: 16px; }
   .main-menu-card small { font-size: 12px; line-height: 1.4; }
-  .main-menu-missions { grid-column: 1 / -1; min-height: 100px; }
+  .main-menu-missions { grid-column: 1 / -1; min-height: 56px; flex-direction: row; align-items: center; padding-right: 36px; }
+}
+
+/* Keep adjacent mobile sections close without reducing their tap targets. */
+@media (max-width: 600px) {
+  .app-shell { --panel-gap: 8px; }
+  .app-shell .stack { gap: 8px; }
+  .app-shell .app-main { padding-top: 8px; padding-bottom: 8px; }
+  .app-shell .next-goal { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 12px; }
+  .app-shell .next-goal h2 { font-size: 22px; margin: 4px 0 6px; }
+  .app-shell .next-goal p { margin: 0 0 6px; line-height: 1.45; }
+  .app-shell .next-goal .primary-button { margin-top: 2px; gap: 10px; }
+  .app-shell .upcoming-unlocks { margin: 6px 0 0; padding: 0 10px; }
+  .app-shell .upcoming-unlocks > summary { min-height: 44px; padding: 8px 0; line-height: 1.4; }
+  .app-shell .upcoming-unlocks .unlock-grid { margin: 0 0 10px; gap: 8px; }
+  .app-shell .mobile-section-menu summary { min-height: 56px; padding: 8px 10px; }
+  .app-shell .section-disclosure > summary { padding: 10px; }
 }
 
 /* Direct district entry on phones, including compact landscape. */
