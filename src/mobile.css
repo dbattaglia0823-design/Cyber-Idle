@@ -407,3 +407,21 @@ body, .app-shell { min-height: 100svh; }
 .boss-iconic-row strong { color: #ffe49a; font-size: 13px; }
 .boss-iconic-row.unknown strong { color: #a0a6b6; }
 .iconic-recovered { margin: 8px 0; padding: 10px; }
+
+.equipment-upgrade-dialog { box-sizing: border-box; width: min(460px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 1px solid #465368; border-radius: 10px; background: #10151f; color: #e5e7ef; }
+.equipment-upgrade-dialog::backdrop { background: #03050bd9; }
+.equipment-upgrade-dialog .panel-heading { align-items: flex-start; gap: 12px; }
+.equipment-upgrade-dialog h2 { font-size: 1.15rem; overflow-wrap: anywhere; }
+.equipment-upgrade-dialog h3 { margin: 0 0 8px; font-size: 1rem; }
+.equipment-upgrade-dialog .upgrade-cost-box { margin: 12px 0; padding: 10px; }
+.equipment-upgrade-stats table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.equipment-upgrade-stats th, .equipment-upgrade-stats td { padding: 6px 3px; text-align: right; border-bottom: 1px solid #303746; }
+.equipment-upgrade-stats th:first-child { text-align: left; font-weight: 400; }
+.equipment-upgrade-requirement { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 4px 0; font-size: .85rem; }
+.equipment-upgrade-requirement strong { flex-shrink: 0; }
+.upgrade-stat-improved { color: #85dfbd; }
+
+.combat-sim-recap .inventory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.combat-sim-recap .resource-card { min-height: 0; padding: 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.combat-sim-recap .resource-card span { font-size: .75rem; }
+.combat-sim-recap .resource-card strong { font-size: .95rem; flex-shrink: 0; }

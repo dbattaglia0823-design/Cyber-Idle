@@ -1,3 +1,7 @@
+import { pushCategorizedLog } from "./systems/gameState";
+import { BossIconicPreview } from "./components/BossIconicPreview";
+import { streetBoss } from "./data/streetBosses";
+import { combatCache, estimateCombatSimKills, reserveCombatSimCaches, finishCombatSimCaches } from "./systems/combatSimulation";
 import { WeaponSummary } from "./components/WeaponSummary";
 import { MAX_CHARACTER_LEVEL } from "./data/characterBuild";
 import { CombatScene } from "./components/CombatScene";
@@ -24,7 +28,7 @@ import { QuickhackPanel } from "./components/QuickhackPanel";
 import { NetworkHero } from "./components/NetworkHero";
 import { NetworkHeader } from "./components/NetworkHeader";
 import { itemAttributeRequirement, meetsItemAttributeRequirement, upgradeTechnicalRequirement } from "./systems/runnerProgression";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useId, useMemo, type ReactNode } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -253,6 +257,28 @@ function App() {
   const [state, setState] = useState<GameState>(() => loadInitialGameState(getActiveSaveSlot()));
   const latestSave = useRef({ state, slot: activeSaveSlot });
   latestSave.current = { state, slot: activeSaveSlot };
+  const simulationRunning = useRef(false);
+  const [simulationBusy, setSimulationBusy] = useState(false);
+  const simulationDialog = useRef<HTMLDialogElement>(null);
+  useEffect(()=>{if(simulationBusy) simulationDialog.current?.showModal(); else simulationDialog.current?.close();},[simulationBusy]);
+  const runSimCache = async (count:number) => {
+    if(simulationRunning.current)return;
+    const current=latestSave.current.state,slot=latestSave.current.slot;
+    if(!current.currentCombat){setState(previous=>runBasicSimCache(previous,count));return;}
+    const reservation=reserveCombatSimCaches(current,count);
+    if(!reservation)return;
+    if(!saveGame(reservation.state,slot))return;
+    simulationRunning.current=true;setSimulationBusy(true);
+    setState(reservation.state);latestSave.current={state:reservation.state,slot};
+    try {
+      const completed=await finishCombatSimCaches(reservation);
+      saveGame(completed,slot);latestSave.current={state:completed,slot};setState(completed);
+    } catch {
+      const safe=cloneState(reservation.state);safe.currentCombat=null;safe.lastSavedAt=Date.now();
+      pushCategorizedLog(safe,"Warning","Simulation interrupted. Reserved caches were spent; no partial rewards were applied.");
+      saveGame(safe,slot);latestSave.current={state:safe,slot};setState(safe);
+    } finally {simulationRunning.current=false;setSimulationBusy(false);}
+  };
   const [reviewedNoticeKeys, setReviewedNoticeKeys] = useState<Set<string>>(() => loadReviewedNoticeKeys(getActiveSaveSlot()));
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
   const [tab, setTab] = useState<TabId>("field");
@@ -278,7 +304,9 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if(simulationRunning.current)return;
     setState((current) => {
+      if(simulationRunning.current)return current;
       const now = Date.now();
       const recovered = cloneState(current);
       applyPassiveRecovery(recovered, Math.max(0, now - current.lastSavedAt));
@@ -470,7 +498,7 @@ function App() {
             onSpendTime={(id) => setState((current) => spendTimeWithCompanion(current, id))}
             onSetCompanion={(id) => setState((current) => setActiveCompanion(current, id))}
             onStoryChoice={(arcId, stepId, choiceId) => setState((current) => chooseStoryChoice(current, arcId, stepId, choiceId))}
-            onRunSimCache={(count) => setState((current) => runBasicSimCache(current, count))}
+            onRunSimCache={runSimCache}
             onDebugGrantCache={() => setState((current) => ({ ...current, inventory: { ...current.inventory, "basic-sim-cache": (current.inventory["basic-sim-cache"] ?? 0) + 3 } }))}
             onDebugSetRisk={(heat, neuralInstability) => setState((current) => ({ ...current, resources: { ...current.resources, heat }, neuralInstability }))}
             onDebugGrantCredits={() => setState((current) => ({ ...current, resources: { ...current.resources, credits: current.resources.credits + 5000 } }))}
@@ -515,6 +543,7 @@ function App() {
         )}
       </main>
 
+      <dialog ref={simulationDialog} className="equipment-upgrade-dialog" aria-label="Combat simulation running" onCancel={event=>event.preventDefault()}><h2>Simulating Street Combat…</h2><p>Processing attacks and boss drops. Keep this window open. Caches are already spent.</p></dialog>
       <BackToTop />
       <FloatingSimCacheButton
         state={state}
@@ -522,7 +551,7 @@ function App() {
         onToggle={() => setSimMenuOpen((value) => !value)}
         onClose={() => setSimMenuOpen(false)}
         onRun={(count) => {
-          setState((current) => runBasicSimCache(current, count));
+          void runSimCache(count);
           setSimMenuOpen(false);
         }}
         onOpenFull={() => {
@@ -636,6 +665,12 @@ function saveTabNoticesEnabled(enabled: boolean) {
   localStorage.setItem("neon-idle-tab-notices-enabled", String(enabled));
 }
 
+function useCombatSimEstimate(state: GameState, enabled = true) {
+  // Preview actual events periodically, rather than on every 200ms world tick.
+  const bucket = Math.floor(state.lastSavedAt / 5000);
+  return useMemo(() => enabled && state.currentCombat ? estimateCombatSimKills(state) : 0, [enabled, state.currentCombat?.enemyId, bucket]);
+}
+
 function FloatingSimCacheButton({
   state,
   open,
@@ -651,6 +686,7 @@ function FloatingSimCacheButton({
   onRun: (count: number) => void;
   onOpenFull: () => void;
 }) {
+  const estimatedKills = useCombatSimEstimate(state, open);
   const dock = useRef<HTMLElement>(null);
   useEffect(() => {
     const shell = dock.current?.closest<HTMLElement>(".app-shell");
@@ -662,7 +698,7 @@ function FloatingSimCacheButton({
     observer.observe(navigation, { box: "border-box" });
     return () => { observer.disconnect(); shell.style.removeProperty("--navigation-height"); };
   }, []);
-  const available = state.inventory["basic-sim-cache"] ?? 0;
+  const available = state.inventory[state.currentCombat ? combatCache.itemId : "basic-sim-cache"] ?? 0;
   const eligibility = simCacheEligibility(state);
   const active = activeActivity(state);
   const options = [
@@ -681,9 +717,10 @@ function FloatingSimCacheButton({
         </button>
         {open && (
           <div className="sim-cache-menu">
-            <p className="eyebrow">Sim Cache</p>
+            <p className="eyebrow">{state.currentCombat ? "Combat Sim Cache" : "Sim Cache"}</p>
             <h3>{active?.name ?? "No active loop"}</h3>
             <p className="muted">{eligibility.reason}</p>
+            {state.currentCombat && <p className="fine">5m each · about {estimatedKills} kills per cache with current supplies. May stop early.</p>}
             <div className="card-list compact">
               {options.map((option) => (
                 <button key={option.label} className="secondary-button full" disabled={!eligibility.eligible || option.count <= 0 || available < option.count} onClick={() => onRun(option.count)}>
@@ -2926,6 +2963,7 @@ function CombatDashboard({
   return (
     <section className="combat-dashboard">
       <CombatAreaHeader state={state} districtId={districtId} zones={zones} selectedEnemy={selected.enemy} />
+      <BossIconicPreview state={state} enemyId={selected.enemy.id} />
       <ActiveCombatPanel
         state={state}
         zone={selected.zone}
@@ -3170,11 +3208,12 @@ function EnemySelectionCard({ state, zone, enemy, selected, onSelect, onStart }:
       <div className="enemy-selection-top">
         <div>
           <p className="eyebrow">{zone.name} / {enemy.archetype ?? "Enemy"}</p>
-          <h3>{enemy.name}</h3>
+          <h3>{streetBoss(enemy.id) ? "★ " : ""}{enemy.name}</h3>
         </div>
         <SafetyBadge safety={safety.rating} />
       </div>
       <div className="enemy-stat-line">
+        <span>{matchup.difficulty} · Lv {enemy.requiredCombatLevel ?? 1}</span>
         <span>HP {matchup.effectiveHp}</span>
         <span>Damage {enemy.damage}</span>
         <span>Attack {formatDuration(enemy.attackSpeedMs)}</span>
@@ -3185,7 +3224,7 @@ function EnemySelectionCard({ state, zone, enemy, selected, onSelect, onStart }:
         <span>Best {log.bestKillMs ? formatDuration(log.bestKillMs) : "--"}</span>
         <span>Drops {discovered}/{drops.length}</span>
       </div>
-      {!unlocked && <p className="combat-lockout">Requires Street Combat level {enemy.requiredCombatLevel ?? 1}. Current {state.skills.combat.level}.</p>}
+      {!unlocked && <p className="combat-lockout">{state.health.lifeState === "downed" ? "Recover before fighting again." : `Requires Street Combat level ${enemy.requiredCombatLevel ?? 1}. Current ${state.skills.combat.level}.`}</p>}
       <button className="primary-button full" disabled={!unlocked} onClick={(event) => { event.stopPropagation(); onStart(); }}>
         {state.currentCombat?.enemyId === enemy.id ? "Fighting" : state.currentCombat ? "Switch Enemy" : "Start Fight"}
       </button>
@@ -3374,7 +3413,7 @@ function EnemyCard({
     <article className={`action-card vertical ${active ? "active-card" : ""} ${fightUnlocked ? "" : "locked-card"}`}>
       <div>
         <p className="eyebrow">{zone.name} / {enemy.archetype ?? "enemy"} / {matchup.difficulty}</p>
-        <h3>{enemy.name}</h3>
+        <h3>{streetBoss(enemy.id) ? "★ " : ""}{enemy.name}</h3>
         <p className="muted">{enemy.description}</p>
         <p className="fine">{matchup.rating} / Kill {formatDuration(matchup.expectedKillMs)} / Effective HP {matchup.effectiveHp}</p>
         <p className="fine">HP {enemy.hp} / Damage {enemy.damage} / Attack {formatDuration(enemy.attackSpeedMs)} / Armor {enemy.armorType ?? "none"}</p>
@@ -3481,6 +3520,34 @@ const inventoryRarityRanks: Record<string, number> = {
   Iconic: 6,
 };
 
+function EquipmentUpgradeButton({ state, itemId, onUpgrade }: { state: GameState; itemId: string; onUpgrade: (id: string) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const item = getItem(itemId);
+  if (!item?.maxUpgradeLevel) return null;
+  const level = state.upgradeLevels[itemId] ?? 0;
+  const maxed = level >= item.maxUpgradeLevel;
+  const requirement = upgradeTechnicalRequirement(state, level + 1);
+  const affordable = canAffordItemUpgrade(state, itemId);
+  const current = scaledStats(state, itemId);
+  const preview = maxed ? current : scaledStats({ ...state, upgradeLevels: { ...state.upgradeLevels, [itemId]: level + 1 } }, itemId);
+  return <>
+    <button className="secondary-button full" onClick={() => dialog.current?.showModal()}>Upgrade{maxed ? " · Max" : ""}</button>
+    <dialog ref={dialog} className="equipment-upgrade-dialog" aria-labelledby={titleId} onClick={event => { if (event.target === event.currentTarget) { const box = event.currentTarget.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.current?.close(); } }}>
+      <div className="panel-heading"><div><p className="eyebrow">Equipment upgrade</p><h2 id={titleId}>{item.name}</h2></div><button className="icon-button" aria-label="Close upgrade" onClick={() => dialog.current?.close()}><X size={18} /></button></div>
+      <p className="fine">{maxed ? `Maximum upgrade +${level}` : `+${level} → +${level + 1} / ${item.maxUpgradeLevel}`}</p>
+      <div className="equipment-upgrade-stats"><table><thead><tr><th>Stat</th><th>Current</th>{!maxed && <th>After upgrade</th>}</tr></thead><tbody>{Object.entries(current).map(([key, value]) => <tr key={key}><th>{titleCase(key)}</th><td>{value}</td>{!maxed && <td className={preview[key as keyof typeof preview] !== value ? "upgrade-stat-improved" : ""}>{preview[key as keyof typeof preview]}</td>}</tr>)}</tbody></table></div>
+      {item.modifiers && <p className="fine">Modifiers: {formatItemModifiers(item.modifiers)}</p>}
+      {!maxed && <div className="upgrade-cost-box"><h3>Requirements</h3><div className="equipment-upgrade-requirement"><span>Technical {requirement}</span><strong className={state.rpg.attributes.technical < requirement ? "warning" : ""}>{state.rpg.attributes.technical} / {requirement}</strong></div>{Object.entries(itemUpgradeCost(state, itemId)).map(([id, amount]) => {
+        const required = id === itemId ? amount + 1 : amount;
+        const owned = getOwnedCount(state, id);
+        return <div className="equipment-upgrade-requirement" key={id}><span>{getItem(id)?.name ?? itemNames[id] ?? titleCase(id)}{id === itemId ? " (including kept copy)" : ""}</span><strong className={owned < required ? "warning" : ""}>{owned.toLocaleString()} / {required.toLocaleString()}</strong></div>;
+      })}</div>}
+      <button className="primary-button full" disabled={!affordable || maxed} onClick={() => onUpgrade(itemId)}>{maxed ? "Fully upgraded" : state.rpg.attributes.technical < requirement ? `Requires Technical ${requirement}` : !affordable ? "Missing upgrade materials" : `Upgrade to +${level + 1}`}</button>
+    </dialog>
+  </>;
+}
+
 function InventoryTab({
   state,
   onEquip,
@@ -3573,13 +3640,9 @@ function InventoryTab({
   const activeId = selectedId && sorted.some(([id]) => id === selectedId) ? selectedId : sorted[0]?.[0] ?? null;
   const selectedItem = activeId ? getItem(activeId) : null;
   const selectedCount = activeId ? state.inventory[activeId] ?? 0 : 0;
-  const selectedUpgradeCost = activeId && selectedItem?.maxUpgradeLevel ? itemUpgradeCost(state, activeId) : {};
-  const selectedCanUpgrade = activeId ? canAffordItemUpgrade(state, activeId) : false;
   const selectedQuickSellValue = activeId ? inventoryQuickSellValue(state, activeId) : 0;
   const selectedCanSell = activeId ? canQuickSellInventoryItem(state, activeId) : false;
   const selectedBulkSellCount = activeId ? inventorySellAllButOneCount(state, activeId) : 0;
-  const selectedUpgradeLevel = activeId ? state.upgradeLevels[activeId] ?? 0 : 0;
-  const selectedMaxUpgrade = Boolean(selectedItem?.maxUpgradeLevel && selectedUpgradeLevel >= selectedItem.maxUpgradeLevel);
   const selectedEquippedGearSlot = activeId ? gearSlots.find((slot) => state.equippedGear[slot.id] === activeId)?.id : undefined;
   const selectedEquippedCyberwareSlot = activeId ? cyberwareSlots.find((slot) => state.equippedCyberware[slot.id] === activeId)?.id : undefined;
   const selectedIsEquipped = Boolean(selectedEquippedGearSlot || selectedEquippedCyberwareSlot);
@@ -3682,24 +3745,6 @@ function InventoryTab({
             <p className="fine">Market value: {selectedItem.sellValue} / Quick sell: {selectedQuickSellValue.toLocaleString()} Credits</p>
             {selectedItem.stats && <StatComparisonLine state={state} itemId={activeId} compareItemId={selectedComparisonItemId} />}
             {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
-            {selectedItem.maxUpgradeLevel && (
-              <div className="upgrade-cost-box">
-                <p className="fine">Upgrade requirement: Technical {upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)} / Yours: {state.rpg.attributes.technical}</p>
-                <p className="fine">
-                  {selectedMaxUpgrade
-                    ? `Upgrade: Max level +${selectedItem.maxUpgradeLevel}`
-                    : `Upgrade +${selectedUpgradeLevel + 1}/${selectedItem.maxUpgradeLevel}: ${formatItemCost(selectedUpgradeCost)}`}
-                </p>
-                {!selectedMaxUpgrade && Object.entries(selectedUpgradeCost).map(([id, amount]) => {
-                  const required = id === activeId ? amount + 1 : amount;
-                  const owned = getOwnedCount(state, id);
-                  const hasRequired = owned >= required;
-                  return (
-                    <ClickableItemRequirement key={id} state={state} itemId={id} required={required} warning={!hasRequired} onOpen={(itemId, usedAmount) => setSourceItem({ itemId, usedAmount })} />
-                  );
-                })}
-              </div>
-            )}
             {selectedItem.type === "Weapon" && <WeaponDetail state={state} weaponId={activeId} onInstallAttachment={onInstallAttachment} onRemoveAttachment={onRemoveAttachment} onInstallWeaponMod={onInstallWeaponMod} onRemoveWeaponMod={onRemoveWeaponMod} />}
             {selectedItem.type === "WeaponAttachment" && <p className="fine">Attachment: {titleCase(selectedItem.attachmentCategory ?? "")} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
             {selectedItem.type === "WeaponMod" && <p className="fine">Mod: {selectedItem.specialEffect} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}
@@ -3725,7 +3770,7 @@ function InventoryTab({
                   {state.rpg.active && selectedItem.slot === "operatingSystem" ? "Locked during mission" : !selectedIsEquipped && !meetsItemAttributeRequirement(state, selectedItem) ? `Requires ${itemAttributeRequirement(selectedItem).label}` : selectedIsEquipped ? `Unequip ${selectedItem.name}` : "Equip"}
                 </button>
               )}
-{selectedItem.maxUpgradeLevel && <button className="secondary-button full" disabled={!selectedCanUpgrade} onClick={() => onUpgrade(activeId)}>{selectedMaxUpgrade ? "Max Upgrade" : state.rpg.attributes.technical < upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1) ? `Requires Technical ${upgradeTechnicalRequirement(state, selectedUpgradeLevel + 1)}` : !selectedCanUpgrade ? "Missing upgrade materials" : "Upgrade"}</button>}
+{selectedItem.maxUpgradeLevel && <EquipmentUpgradeButton state={state} itemId={activeId} onUpgrade={onUpgrade} />}
 {selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
 <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>{state.inventoryLocks?.[activeId] ? "Locked against selling" : !selectedCanSell ? "No spare copies to sell" : `Sell · ${selectedQuickSellValue.toLocaleString()} credits`}</button>
 <details className="bulk-sell-menu"><summary>More actions</summary><button className="secondary-button full" disabled={!selectedCanSell || selectedBulkSellCount === 0} onClick={() => onSellAllButOne(activeId)}>Sell all but 1 for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} Credits</button></details>
@@ -4450,11 +4495,7 @@ function CyberwareDetailsDrawer({
           <div className="inventory-actions">
             <button className="secondary-button full" disabled={Boolean(state.rpg.active && overlay.slotId === "operatingSystem")} onClick={() => onUnequip(overlay.slotId)}>{state.rpg.active && overlay.slotId === "operatingSystem" ? "Locked during mission" : "Unequip"}</button>
             {equippedItem.maxUpgradeLevel && (
-              <button className="secondary-button full" title={`Requires Technical ${upgradeTechnicalRequirement(state, (state.upgradeLevels[equippedItem.id] ?? 0) + 1)} and upgrade materials`} disabled={!canAffordItemUpgrade(state, equippedItem.id)} onClick={() => onUpgrade(equippedItem.id)}>
-                {(state.upgradeLevels[equippedItem.id] ?? 0) >= equippedItem.maxUpgradeLevel
-                  ? "Max Upgrade"
-                  : `Upgrade ${formatItemCost(itemUpgradeCost(state, equippedItem.id))}`}
-              </button>
+              <EquipmentUpgradeButton state={state} itemId={equippedItem.id} onUpgrade={onUpgrade} />
             )}
           </div>
         </div>
@@ -4482,9 +4523,7 @@ function CyberwareDetailsDrawer({
                   {installed ? "Installed" : state.rpg.active && item.slot === "operatingSystem" ? "Locked during mission" : !canInstall ? `Requires ${itemAttributeRequirement(item).label}` : "Equip"}
                 </button>
                 {item.maxUpgradeLevel && (
-                  <button className="secondary-button full" title={`Requires Technical ${upgradeTechnicalRequirement(state, (state.upgradeLevels[itemId] ?? 0) + 1)} and upgrade materials`} disabled={!canAffordItemUpgrade(state, itemId)} onClick={() => onUpgrade(itemId)}>
-                    {(state.upgradeLevels[itemId] ?? 0) >= item.maxUpgradeLevel ? "Max Upgrade" : "Upgrade"}
-                  </button>
+                  <EquipmentUpgradeButton state={state} itemId={itemId} onUpgrade={onUpgrade} />
                 )}
               </div>
             </article>
@@ -5639,13 +5678,15 @@ function PrestigePanel({ state, onUpdate }: { state: GameState; onUpdate: Update
 function SimCacheSection({ state, onRun }: { state: GameState; onRun: (count: number) => void }) {
   const eligibility = simCacheEligibility(state);
   const efficiency = getSimulationEfficiency(state);
-  const cacheCount = state.inventory["basic-sim-cache"] ?? 0;
+  const estimatedKills = useCombatSimEstimate(state);
+  const combat = !!state.currentCombat;
+  const cacheCount = state.inventory[combat ? combatCache.itemId : "basic-sim-cache"] ?? 0;
   const current = state.activeAction
     ? skillActions.find((action) => action.id === state.activeAction?.actionId)?.name
     : state.activeCraft
       ? recipes.find((recipe) => recipe.id === state.activeCraft?.recipeId)?.name
       : state.currentCombat
-        ? "Combat target"
+        ? getEnemy(state.currentCombat.enemyId)?.name ?? "Combat target"
         : state.activeJob
           ? "Fixer job"
           : "No activity";
@@ -5655,36 +5696,38 @@ function SimCacheSection({ state, onRun }: { state: GameState; onRun: (count: nu
         <p className="eyebrow">Useful QoL, not progression bypass</p>
         <h2>Sim Cache</h2>
         <div className="inventory-grid">
-          <Metric label="Basic Sim Caches" value={cacheCount} />
+          <Metric label={combat ? "Combat Sim Caches" : "Basic Sim Caches"} value={cacheCount} />
           <Metric label="Minutes Each" value={5} />
-          <Metric label="Mastery Efficiency" value={efficiency.masteryXp * 100} />
-          <Metric label="Rare Drop Efficiency" value={efficiency.rareDrops * 100} />
+          {!combat && <Metric label="Mastery Efficiency" value={efficiency.masteryXp * 100} />}
+          {!combat && <Metric label="Rare Drop Efficiency" value={efficiency.rareDrops * 100} />}
         </div>
         <p className="muted">Current activity: {current}</p>
         <p className="fine">Eligibility: {eligibility.reason}</p>
-        <p className="fine">Manual discovery required: skill actions and recipes must be completed manually once before Basic Sim Cache can repeat them.</p>
-        <p className="fine">Safety: stops early for missing materials, high Heat, or high Neural Instability.</p>
+        <p className="fine">{combat ? `Estimated ${estimatedKills} kills per cache with current gear and healing supplies. Manual defeat required; simulation stops on defeat or exhausted auto-healing.` : "Manual discovery required: complete the action or recipe once first."}</p>
+        <p className="fine">{combat ? "Actual combat rewards and boss odds: 0.005% total per kill. No efficiency multiplier or pity." : "Stops early for missing materials or high risk."}</p>
         <button className="primary-button full" disabled={!eligibility.eligible || cacheCount <= 0} onClick={() => onRun(1)}>
-          Simulate 5m
+          Start Simulation · 5m
         </button>
+        {combat && <div className="journey-actions">{[3,12,cacheCount].map((count,index)=><button key={index} className="secondary-button" disabled={!eligibility.eligible||count<1||count>cacheCount} onClick={()=>onRun(count)}>{index===2 ? "All" : `${count*5}m`} · {count} caches</button>)}</div>}
       </article>
       {state.simulationRecap && (
-        <article className="panel recap">
+        <article className={`panel recap ${state.simulationRecap.cacheType === "combat" ? "combat-sim-recap" : ""}`}>
           <p className="eyebrow">Simulation recap</p>
           <h2>{state.simulationRecap.activityName}</h2>
           <div className="inventory-grid">
-            <Metric label="Completions" value={state.simulationRecap.completions} />
+            <Metric label={state.simulationRecap.cacheType==="combat"?"Successful kills":"Completions"} value={state.simulationRecap.completions} />
             <Metric label="Skill XP" value={state.simulationRecap.xpGained} />
             <Metric label="Character XP" value={state.simulationRecap.characterXpGained ?? 0} />
-            <Metric label="Character levels" value={state.simulationRecap.characterLevelsGained ?? 0} />
-            <Metric label="Mastery XP" value={state.simulationRecap.masteryXpGained} />
-            <Metric label="Pool XP" value={state.simulationRecap.poolXpGained} />
-            <Metric label="Heat" value={state.simulationRecap.heatChange} />
-            <Metric label="IN" value={state.simulationRecap.neuralInstabilityChange} />
+            {(state.simulationRecap.cacheType !== "combat" || !!state.simulationRecap.characterLevelsGained) && <Metric label="Character levels" value={state.simulationRecap.characterLevelsGained ?? 0} />}
+            <Metric label={state.simulationRecap.cacheType === "combat" ? "Weapon mastery XP" : "Mastery XP"} value={state.simulationRecap.masteryXpGained} />
+            {state.simulationRecap.cacheType !== "combat" && <Metric label="Pool XP" value={state.simulationRecap.poolXpGained} />}
+            {(state.simulationRecap.cacheType !== "combat" || !!state.simulationRecap.heatChange) && <Metric label="Heat" value={state.simulationRecap.heatChange} />}
+            {(state.simulationRecap.cacheType !== "combat" || !!state.simulationRecap.neuralInstabilityChange) && <Metric label="IN" value={state.simulationRecap.neuralInstabilityChange} />}
           </div>
+          {state.simulationRecap.iconicsRecovered?.map(id=><div className="boss-iconic-row iconic-recovered" key={id}><span>★</span><span><strong>{getItem(id)?.name} · Iconic recovered</strong><small>{getItem(id)?.specialEffect}</small></span></div>)}
           <p className="fine">Resources: {formatRewards(state.simulationRecap.resourcesGained)}</p>
           <p className="fine">Drops: {Object.entries(state.simulationRecap.dropsGained).map(([id, amount]) => `${amount} ${getItem(id)?.name ?? id}`).join(", ") || "None"}</p>
-          <p className="fine">Stopped: {state.simulationRecap.stoppedReason}</p>
+          <p className="fine">{state.simulationRecap.stoppedReason}</p>
         </article>
       )}
     </section>

@@ -41,7 +41,11 @@ const categoryDuration: Record<RewardPopupCategory, number> = {
   warning: 4500,
 };
 
+const suppressed = new WeakSet<GameState>();
+export function suppressRewardPopups(state:GameState, value:boolean) { if(value) suppressed.add(state); else suppressed.delete(state); }
+
 export function emitRewardPopupGroup(state: GameState, input: RewardPopupInput) {
+  if(suppressed.has(state)) return;
   const now = Date.now();
   const skillId = Object.keys(input.xp ?? {})[0] as SkillId | undefined;
   const skill = skillId ? { id: skillId, name: skillNames[skillId], level: state.skills[skillId].level } : undefined;

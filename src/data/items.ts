@@ -103,7 +103,7 @@ const baseItems: ItemDefinition[] = [
   consumable("emergency-reboot-kit", "Emergency Reboot Kit", "Rare kit that can reboot a downed runner and restore emergency HP.", 260, "heal"),
   consumable("neural-stabilizer", "Neural Stabilizer", "A clinic-grade stabilizer used in medical recipes and ripperdoc supply chains.", 45, undefined),
   consumable("basic-sim-cache", "Basic Sim Cache", "Stores 5 minutes of simulated work for discovered skill actions or crafting.", 80, undefined),
-  consumable("combat-sim-cache", "Combat Sim Cache", "Future cache type for already-cleared combat farming.", 100, undefined),
+  consumable("combat-sim-cache", "Combat Sim Cache", "Simulates 5 minutes against an active Street Combat target you have defeated manually. Uses real combat and boss drop odds.", 100, undefined),
   consumable("blacknet-sim-cache", "Blacknet Sim Cache", "Future cache type for discovered hacking loops.", 100, undefined),
   consumable("fixer-sim-cache", "Fixer Sim Cache", "Future cache type for repeatable safe fixer jobs.", 100, undefined),
   component("prototype-neural-core", "Prototype Neural Core", "High-tier bottleneck for unstable implant projects.", 350, "Epic"),

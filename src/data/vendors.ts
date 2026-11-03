@@ -25,6 +25,7 @@ export const vendors: VendorDefinition[] = [
       item("compact-holdout", 130, "limited", "Pocket pistol case.", 1),
       item("rusted-pistol", 160, "limited", "Pawned weapon locker.", 1),
       item("circuitBoards", 24, "infinite", "Part bins under the counter."),
+      item("combat-sim-cache", 350, "unlock", "Five minutes of discovered Street Combat farming.", 2, "sim-cache-basic"),
       item("basic-sim-cache", 240, "unlock", "Unlocked by Sim Cache systems.", 2, "sim-cache-basic"),
     ],
   },

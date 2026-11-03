@@ -1,3 +1,4 @@
+import { combatSimEligibility } from "./combatSimulation";
 import { grantActivityCharacterXp, totalCharacterXp } from "./characterProgression";
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
@@ -15,6 +16,7 @@ import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import type { GameState, ResourceId, RewardBundle, SimulationRecap } from "../types";
 
 export function simCacheEligibility(state: GameState) {
+  if(state.currentCombat)return combatSimEligibility(state);
   const basic = simCacheTypes[0];
   if ((state.inventory[basic.itemId] ?? 0) <= 0) return { eligible: false, reason: "No Basic Sim Cache available." };
   if (state.activeAction) {
@@ -32,13 +34,12 @@ export function simCacheEligibility(state: GameState) {
     if (!canCraft(state, recipe)) return { eligible: false, reason: "Missing materials." };
     return { eligible: true, reason: `Eligible: repeat ${recipe.name}.` };
   }
-  if (state.currentCombat) return { eligible: false, reason: "Basic Sim Cache does not simulate combat yet." };
   if (state.activeJob) return { eligible: false, reason: "Basic Sim Cache does not simulate fixer jobs yet." };
   return { eligible: false, reason: "Start a discovered skill action or craft first." };
 }
 
 export function runBasicSimCache(state: GameState, cacheCount: number) {
-  if (!Number.isFinite(cacheCount) || cacheCount < 1) return state;
+  if (state.currentCombat || !Number.isFinite(cacheCount) || cacheCount < 1) return state;
   const basic = simCacheTypes[0];
   const count = Math.max(1, Math.min(Math.floor(cacheCount), state.inventory[basic.itemId] ?? 0));
   const eligible = simCacheEligibility(state);

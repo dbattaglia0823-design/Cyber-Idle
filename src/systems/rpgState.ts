@@ -46,7 +46,7 @@ export function normalizeRpgState(state?: RpgState): RpgState {
   addRunnerXp(next, 0);
   next.gigDryStreak = Object.fromEntries(Object.entries(next.gigDryStreak ?? {}).filter(([id]) => allRpgMissions.some(m => m.sideGig && m.id === id)).map(([id,value]) => [id,integer(value,0,9)]));
   next.iconicLootSeed = Number.isFinite(next.iconicLootSeed) ? (Math.trunc(next.iconicLootSeed!)>>>0)||1 : undefined;
-  next.bossIconicProgress = Object.fromEntries(Object.entries(next.bossIconicProgress ?? {}).filter(([id])=>rpgMissions.some(m=>m.id===id)).map(([id,p])=>[id,{victories:integer(p.victories,0,1000000),dryStreak:integer(p.dryStreak,0,9),acquired:Object.fromEntries(bossIconics.filter(def=>def.mission===id&&p.acquired?.[def.id]===true).map(def=>[def.id,true]))}]));
+  next.bossIconicProgress = Object.fromEntries(Object.entries(next.bossIconicProgress ?? {}).filter(([id])=>bossIconics.some(def=>def.mission===id||def.bossEnemyId===id)).map(([id,p])=>[id,{victories:integer(p.victories,0,Number.MAX_SAFE_INTEGER),dryStreak:integer(p.dryStreak,0,9),acquired:Object.fromEntries(bossIconics.filter(def=>(def.mission===id||def.bossEnemyId===id)&&p.acquired?.[def.id]===true).map(def=>[def.id,true]))}]));
   next.streetCred = integer(next.streetCred, 0, 1000000);
   for (const key of Object.keys(next.attributes) as Array<keyof RpgState["attributes"]>) next.attributes[key] = integer(next.attributes[key], 3, 20);
   if (next.active) {

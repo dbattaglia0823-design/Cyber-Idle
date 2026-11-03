@@ -1,5 +1,4 @@
 import { attributePointBudget, perkPointBudget } from "../../data/characterBuild";
-import { BossIconicPreview } from "../../components/BossIconicPreview";
 import { contractBonus } from "../../data/gigContracts";
 import { gigPayout } from "../../systems/rpgSystem";
 import { CampaignFinale } from "./CampaignFinale";
@@ -27,7 +26,7 @@ export function MissionDebrief({ before, after, onContinue }: { before: GameStat
  const levels = after.rpg.level - before.rpg.level;
  return <section className="mission-debrief" aria-label="Mission rewards" tabIndex={-1}>
   <p className="eyebrow">{replay ? "BOSS REMATCH COMPLETE" : mission.sideGig ? "GIG COMPLETE" : "BOSS DEFEATED / MAIN JOB COMPLETE"}</p><h2>{mission.title}</h2>
-  <p>{replay ? "Boss loot settled. Your campaign choices and first-clear rewards are unchanged." : mission.choices.find(choice => choice.id === result?.outcome)?.response}</p>
+  <p>{replay ? "Practice complete. Your campaign choices and first-clear rewards are unchanged." : mission.choices.find(choice => choice.id === result?.outcome)?.response}</p>
   {!replay && !mission.sideGig && mission.act === 7 && <CampaignFinale state={after} />}
   <div className="debrief-rewards"><div><span>Credits received</span><strong>+{(after.resources.credits - before.resources.credits).toLocaleString()}</strong></div><div><span>Character XP</span><strong>+{replay ? 0 : before.rpg.completed[mission.id] ? Math.round(mission.xp * .5) : mission.xp}</strong></div>{levels > 0 && <div><span>Runner level {after.rpg.level}</span><strong>+{attributePointBudget(after.rpg.level)-attributePointBudget(before.rpg.level)} attribute / +{perkPointBudget(after.rpg.level)-perkPointBudget(before.rpg.level)} perk points</strong></div>}</div>
 
@@ -35,7 +34,6 @@ export function MissionDebrief({ before, after, onContinue }: { before: GameStat
   {district && <div className="district-unlocked"><p className="eyebrow">DISTRICT UNLOCKED</p><h3>{district.name}</h3><p>Your main job opened the route. Your previous districts remain available for training, crafting and local gigs.</p></div>}
   <div className="journey-actions">{district && nav.openDistrict && <button className="primary-button" onClick={() => nav.openDistrict?.(district.id)}>Explore {district.name}</button>}<button className={district ? "secondary-button" : "primary-button"} onClick={onContinue}>{replay ? "Back to boss" : mission.sideGig ? "Back to local gigs" : next ? "Next main job" : "Review your ending"}</button>{levels > 0 && nav.openCharacter && <button className="secondary-button" onClick={() => nav.openCharacter?.("attributes")}>Spend new points</button>}</div>
   {loot.filter(entry=>getItem(entry.id)?.iconic).map(({id})=><div className="boss-iconic-row iconic-recovered" key={id}><span>★</span><span><strong>{getItem(id)!.name} · Iconic recovered</strong><small>{getItem(id)!.specialEffect}</small></span></div>)}
-  {!mission.sideGig && <BossIconicPreview state={after} missionId={mission.id}/>}
   {loot.length > 0 && <details className="debrief-loot"><summary>Added to inventory / {loot.length} item types</summary><div>{loot.map(({id,count}) => <span key={id} className={"rarity-" + (getItem(id)?.rarity ?? "Common").toLowerCase()}>{getItem(id)?.name ?? id} <b>+{count}</b></span>)}</div></details>}
   {newlyAvailable.length > 0 && <details className="debrief-recipes"><summary>{newlyAvailable.length} new recipes available to inspect</summary><p>Material costs still apply. Open a recipe to see what you need.</p><div className="journey-actions">{newlyAvailable.map(recipe => <button className="secondary-button" key={recipe.id} onClick={() => nav.openCrafting?.(recipe.id)}>{recipe.name}</button>)}</div></details>}
  </section>;

@@ -1,3 +1,4 @@
+import { settleBossIconic } from "./bossIconicLoot";
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget } from "./iconicCombat";
 import { weaponDropFitsDistrict } from "../data/weaponProgression";
 import { rollDistrictWeapon } from "../data/missionRewards";
@@ -62,6 +63,14 @@ export function processCombat(state: GameState, now = Date.now()) {
   if (!state.currentCombat) return state;
 
   const next = cloneState(state);
+  advanceCombat(next, now);
+  next.lastSavedAt = Date.now();
+  return next;
+}
+
+export interface CombatAdvanceOptions { simulated?: boolean; preview?: boolean; onKill?: (enemy:Enemy, durationMs:number, earned?:{xp:number;mastery:number})=>void }
+// Mutating event processor shared by live ticks and cache simulations.
+export function advanceCombat(next:GameState, now:number, options:CombatAdvanceOptions = {}) {
   let guard = 0;
 
   while (next.currentCombat && guard < 100) {
@@ -71,6 +80,7 @@ export function processCombat(state: GameState, now = Date.now()) {
       break;
     }
 
+    if(options.simulated && !canFightEnemy(next,enemy)){next.currentCombat=null;break;}
     next.currentCombat = normalizeCombatState(next, enemy, now);
     if (next.currentCombat.respawnAt) {
       if (now < next.currentCombat.respawnAt) break;
@@ -97,9 +107,11 @@ export function processCombat(state: GameState, now = Date.now()) {
         const killDuration = Math.max(1, nextPlayerAttackAt - combat.startedAt);
         iconicKill(next,combat,stats.maxHp);
         resetIconicTarget(next,combat);
-        completeKill(next, enemy, killDuration);
+        const earned = options.preview ? undefined : completeKill(next, enemy, killDuration, !options.simulated);
+        options.onKill?.(enemy,killDuration,earned);
         if (next.health.lifeState === "downed") break;
         const healed = maybeAutoHeal(next, enemy.name);
+        if (!next.currentCombat) break;
         next.currentCombat = {
           ...combat,
           enemyCurrentHp: 0,
@@ -133,7 +145,6 @@ export function processCombat(state: GameState, now = Date.now()) {
     guard += 1;
   }
 
-  next.lastSavedAt = Date.now();
   return next;
 }
 
@@ -172,7 +183,7 @@ function enemyAttackDamage(enemy: Enemy) {
   return Math.max(1, Math.round(enemy.damage * threatScale));
 }
 
-function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
+function completeKill(state: GameState, enemy: Enemy, durationMs: number, manual = true) {
   const matchup = combatEffectivenessForEnemy(state, enemy);
   const districtId = enemyDistrict(enemy.id);
   const rewards = calculateCombatRewards(state, { credits: enemy.creditsReward, reputation: Math.max(0, enemy.reputationReward) }, matchup.tags, matchup.rewardMultiplier + districtMasteryRewardBonus(state, districtId));
@@ -192,7 +203,7 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
   const weaponClass = equippedWeaponClass(state);
   const enemyTags = combatTagsForEnemy(enemy);
   if (weaponClass) {
-    addWeaponClassXp(state, weaponClass, Math.max(5, Math.round(enemy.xpReward * 0.35)), true);
+    addWeaponClassXp(state, weaponClass, Math.max(5, Math.round(enemy.xpReward * 0.35)), manual);
     state.weaponStatistics.killsByClass[weaponClass] = (state.weaponStatistics.killsByClass[weaponClass] ?? 0) + 1;
     state.weaponStatistics.damageByClass[weaponClass] = (state.weaponStatistics.damageByClass[weaponClass] ?? 0) + enemy.hp;
     if ((state.weaponStatistics.killsByClass[weaponClass] ?? 0) >= 1000) state.achievements[`weapon-${weaponClass}-1000-kills`] = true;
@@ -225,7 +236,9 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     }
   }
   state.enemyLog[enemy.id] = log;
-  markEnemyManual(state, enemy.id);
+  if(manual) markEnemyManual(state, enemy.id);
+  const iconic = settleBossIconic(state, enemy.id);
+  if(iconic){log.discoveredDrops[iconic]=(log.discoveredDrops[iconic]??0)+1;dropMessages.push(`★ ${getItem(iconic)!.name} · Iconic recovered`);}
   if (districtId) {
     discoverDistrictContent(state, districtId, `enemy:${enemy.id}`);
     changeLocalStanding(state, districtId, 1, `${enemy.name} defeated`);
@@ -247,6 +260,7 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     neuralInstability: 0,
   });
   updateWorldUnlocks(state);
+  return {xp:xpReward,mastery:weaponClass ? Math.max(5,Math.round(enemy.xpReward*.35)) : 0};
 }
 
 function isResource(id: string): id is ResourceId {

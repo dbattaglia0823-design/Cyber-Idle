@@ -277,7 +277,7 @@ export interface ItemStats {
 }
 
 export interface ItemDefinition {
-  iconic?: { boss: string; mission: string; effect: import("./data/bossIconics").IconicEffect };
+  iconic?: { boss: string; mission: string; bossEnemyId?: string; effect: import("./data/bossIconics").IconicEffect };
   weaponModel?: string;
   weaponVariant?: WeaponVariant;
   weaponDistrict?: DistrictId;
@@ -580,6 +580,8 @@ export interface SimulationEfficiency {
 }
 
 export interface SimulationRecap {
+  elapsedMs?: number;
+  iconicsRecovered?: string[];
   characterXpGained?: number;
   characterLevelsGained?: number;
   cacheType: "basic" | "combat" | "blacknet" | "fixer";

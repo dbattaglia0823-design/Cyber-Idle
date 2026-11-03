@@ -1,4 +1,3 @@
-import { settleBossIconic } from "./bossIconicLoot";
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget, iconicNonAttack } from "./iconicCombat";
 import { addWeaponClassXp, equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import { grantCharacterXp } from "./characterProgression";
@@ -319,10 +318,9 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   if (e.bossReplay) {
     if(!canReplayBoss(state,mission)||e.enemyIndex<mission.enemies.length||e.enemyHp>0)return state;
     const next=cloneState(state);next.rpg.active=null;
-    const iconic=settleBossIconic(next,mission.id);
     next.health.currentHp=calculateMaxHP(next);next.health.lifeState="alive";
-    pushCategorizedLog(next,"Loot",`${mission.enemies[mission.enemies.length-1]} rematch settled.${iconic?" Iconic recovered: "+getItem(iconic)!.name:" No Iconic this time."}`);
-    emitRewardPopupGroup(next,{title:"Boss rematch complete",items:iconic?{[iconic]:1}:undefined,story:["Story choices and first-clear rewards are unchanged."]});
+    pushCategorizedLog(next,"Loot",`${mission.enemies[mission.enemies.length-1]} rematch settled. No loot is awarded in story rematches.`);
+    emitRewardPopupGroup(next,{title:"Boss rematch complete",story:["Story choices and first-clear rewards are unchanged."]});
     return next;
   }
   if(!mission.sideGig && state.rpg.completed[mission.id])return state;
@@ -353,9 +351,6 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   if(mission.sideGig)next.rpg.gigDryStreak={...next.rpg.gigDryStreak,[mission.id]:unique?0:Math.min(9,dry+1)};
   if (unique) loot[unique] = (loot[unique] ?? 0) + 1;
   for (const [id, amount] of Object.entries(loot)) addItem(next, id, amount);
-  if(!mission.sideGig && e.enemyIndex>=mission.enemies.length && e.enemyHp===0){
-    const iconic=settleBossIconic(next,mission.id);if(iconic)loot[iconic]=1;
-  }
   if (!mission.sideGig) {
     next.storyFlags[`afterimage:${mission.id}:${choice.id}`] = true;
     next.factions[choice.reputation >= 0 ? "ghostMarket" : "helixOrder"].reputation += 10;

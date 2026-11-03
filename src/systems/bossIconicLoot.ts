@@ -14,25 +14,30 @@ export function bossLootValue(seed:number, mission:string, victory:number, salt=
 export function normalizeBossIconicOwnership(state:GameState) {
  state.rpg.iconicLootSeed=(Math.trunc(state.rpg.iconicLootSeed ?? state.lastSavedAt)>>>0)||1;
  const progress=state.rpg.bossIconicProgress ?? (state.rpg.bossIconicProgress={});
- for(const def of bossIconics) if((state.inventory[def.id]??0)>0) {
-  const entry=progress[def.mission]??(progress[def.mission]={victories:0,dryStreak:0,acquired:{}});
-  entry.acquired[def.id]=true;discoverItem(state,def.id);
+ for(const def of bossIconics) {
+  const legacy=progress[def.mission];
+  if(legacy?.acquired?.[def.id]||progress[def.bossEnemyId]?.acquired?.[def.id]||(state.inventory[def.id]??0)>0) {
+   const entry=progress[def.bossEnemyId]??(progress[def.bossEnemyId]={victories:0,dryStreak:0,acquired:{}});
+   entry.acquired[def.id]=true;discoverItem(state,def.id);
+  }
  }
+ for(const def of bossIconics) delete progress[def.mission];
 }
-export function settleBossIconic(state:GameState, missionId:string):string|undefined {
+
+export function settleBossIconic(state:GameState, enemyId:string):string|undefined {
  normalizeBossIconicOwnership(state);
- const pool=bossIconics.filter(def=>def.mission===missionId);
+ const pool=bossIconics.filter(def=>def.bossEnemyId===enemyId);
  if(pool.length!==2)return undefined;
  const progress=state.rpg.bossIconicProgress!;
- const entry=progress[missionId]??(progress[missionId]={victories:0,dryStreak:0,acquired:{}});
+ const entry=progress[enemyId]??(progress[enemyId]={victories:0,dryStreak:0,acquired:{}});
  const candidates=pool.filter(def=>!entry.acquired[def.id]);
  const victory=entry.victories++;
  if(!candidates.length){entry.dryStreak=0;return undefined;}
- const hit=bossLootValue(state.rpg.iconicLootSeed!,missionId,victory)<ICONIC_DROP_CHANCE;
+ const hit=bossLootValue(state.rpg.iconicLootSeed!,enemyId,victory)<ICONIC_DROP_CHANCE;
  // Retain the legacy save field without allowing it to affect drop odds.
  entry.dryStreak=0;
  if(!hit)return undefined;
- const selected=candidates[Math.min(candidates.length-1,Math.floor(bossLootValue(state.rpg.iconicLootSeed!,missionId,victory,0x51ed270b)*candidates.length))];
+ const selected=candidates[Math.min(candidates.length-1,Math.floor(bossLootValue(state.rpg.iconicLootSeed!,enemyId,victory,0x51ed270b)*candidates.length))];
  entry.acquired[selected.id]=true;entry.dryStreak=0;addItem(state,selected.id,1);state.inventoryLocks[selected.id]=true;
  return selected.id;
 }

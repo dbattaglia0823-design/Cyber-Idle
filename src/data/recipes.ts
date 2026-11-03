@@ -51,6 +51,7 @@ export const recipes: CraftingRecipe[] = [
   recipe("recipe-neural-stabilizer", "Neural Stabilizer", "Consumables", 3, { encryptedData: 2, "neural-connector": 1 }, "neural-stabilizer", 1, 8000, 28),
   recipe("recipe-advanced-med-injector", "Advanced Med Injector", "Consumables", 8, { "medical-gel": 2, "neural-connector": 1, cyberwareParts: 2 }, "advanced-med-injector", 1, 12000, 44),
   recipe("recipe-emergency-reboot-kit", "Emergency Reboot Kit", "Consumables", 16, { "medical-gel": 4, "precision-parts": 2, "neural-connector": 2 }, "emergency-reboot-kit", 1, 24000, 95),
+  recipe("recipe-combat-sim-cache", "Combat Sim Cache", "Consumables", 10, { encryptedData: 6, circuitBoards: 2, scrap: 10 }, "combat-sim-cache", 1, 20000, 50, undefined, undefined, "hacking"),
   recipe("recipe-basic-sim-cache", "Basic Sim Cache", "Consumables", 4, { encryptedData: 3, circuitBoards: 1 }, "basic-sim-cache", 1, 10000, 32, undefined, undefined, "hacking"),
   recipe("recipe-precision-grip", "Precision Grip Actuators", "Cyberware", 5, { "cyberware-frame": 1, "neural-connector": 1, cyberwareParts: 6 }, "precision-grip-actuators", 1, 15000, 64, "bp-precision-grip"),
   recipe("recipe-stabilized-buffer", "Stabilized Neural Buffer", "Cyberware", 6, { "neural-connector": 2, encryptedData: 6, cyberwareParts: 4 }, "stabilized-neural-buffer", 1, 17000, 72, "bp-stabilized-buffer"),

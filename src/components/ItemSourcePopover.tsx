@@ -112,7 +112,7 @@ export function ItemSourcePopover({
               : action && canVisit && navigation.openDistrict ? { label: "Open " + skillNames[action.skillId], go: () => navigation.openDistrict?.(district, "skill-" + action.skillId) }
               : source.type === "Mission reward" && navigation.openMissions ? { label: "Open missions", go: navigation.openMissions }
               : source.name === "Netrunner exchange" && navigation.openCharacter ? { label: "Open quickhacks", go: () => navigation.openCharacter?.("quickhacks") }
-              : canVisit && navigation.openDistrict && source.type === "Enemy drop" ? { label: "Open combat", go: () => navigation.openDistrict?.(district, "combat") }
+              : canVisit && navigation.openDistrict && ["Enemy drop", "Boss drop"].includes(source.type) ? { label: "Open combat", go: () => navigation.openDistrict?.(district, "combat") }
               : canVisit && navigation.openDistrict && ["Vendor", "Ripperdoc"].includes(source.type) ? { label: "Visit " + (source.type === "Vendor" ? "market" : "ripperdoc"), go: () => navigation.openDistrict?.(district, source.type === "Vendor" ? "market" : "ripperdoc") } : null;
             return (
             <article className={`source-entry ${source.unlocked ? "" : "locked"}`} key={`${source.type}-${source.name}-${index}`}>

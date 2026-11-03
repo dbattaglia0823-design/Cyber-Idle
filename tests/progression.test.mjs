@@ -110,7 +110,7 @@ test('skill loot stays within district material tiers and crafting XP follows un
   assert.deepEqual(craftingRewardProblems, []);
   for (const recipe of recipes) {
     if (['Weapons', 'Armor', 'Attachments', 'Weapon Mods', 'Upgrade Parts'].includes(recipe.category)) assert.equal(recipe.requiredSkill, 'cyberware', recipe.id);
-    if (recipe.category === 'Consumables' && recipe.outputItemId !== 'basic-sim-cache') assert.equal(recipe.requiredSkill, 'medical', recipe.id);
+    if (recipe.category === 'Consumables') assert.equal(recipe.requiredSkill, ['basic-sim-cache', 'combat-sim-cache'].includes(recipe.outputItemId) ? 'hacking' : 'medical', recipe.id);
   }
 });
 

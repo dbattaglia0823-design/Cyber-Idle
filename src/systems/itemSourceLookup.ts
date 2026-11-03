@@ -1,3 +1,4 @@
+import { getEnemy } from "./combatProcessing";
 import { ICONIC_DROP_CHANCE } from "./bossIconicLoot";
 import { bossIconics } from "../data/bossIconics";
 import { quickhacks } from "../data/quickhacks";
@@ -6,9 +7,9 @@ import { districtProgressionOrder } from "../data/districtProgressionOrder";
 import { softwareStageUnlocked } from "./quickhackSystem";
 import { missionItemRewards, missionRewardPools, gigUniquePools, gigUniqueCandidates, GIG_UNIQUE_CHANCE } from "../data/missionRewards";
 import { bosses } from "../data/bosses";
-import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
+import { allRpgMissions } from "../data/rpgCampaign";
 import { districtSupplyItems } from "../data/materialSupply";
-import { missionAvailable, canReplayBoss } from "./rpgSystem";
+import { missionAvailable } from "./rpgSystem";
 import { combatZones } from "../data/combat";
 import { operations } from "../data/operations";
 import { recipes } from "../data/recipes";
@@ -59,11 +60,11 @@ export function getItemSources(itemId: string, state: GameState): ItemSourceEntr
   const sources: ItemSourceEntry[] = [];
   const iconic=bossIconics.find(def=>def.id===itemId);
   if(iconic){
-    const mission=rpgMissions.find(m=>m.id===iconic.mission)!;
-    const entry=state.rpg.bossIconicProgress?.[mission.id];
-    const remaining=bossIconics.filter(def=>def.mission===mission.id&&!entry?.acquired[def.id]&&!(state.inventory[def.id]>0));
+    const enemy=getEnemy(iconic.bossEnemyId)!;
+    const entry=state.rpg.bossIconicProgress?.[enemy.id];
+    const remaining=bossIconics.filter(def=>def.bossEnemyId===enemy.id&&!entry?.acquired[def.id]&&!(state.inventory[def.id]>0));
     const owned=!!entry?.acquired[itemId]||(state.inventory[itemId]??0)>0;
-    return [{type:"Mission reward",name:iconic.boss,detail:owned?"Already recovered; duplicate drops are disabled.":`Boss-only Iconic. ${ICONIC_DROP_CHANCE*100/Math.max(1,remaining.length)}% chance per victory; no bad-luck protection. Replay this boss from its completed main job.`,chance:owned?0:ICONIC_DROP_CHANCE/Math.max(1,remaining.length),districtId:mission.district,unlocked:!owned&&(missionAvailable(state,mission)||canReplayBoss(state,mission))}];
+    return [{type:"Boss drop",name:iconic.boss,detail:owned?"Already recovered; duplicate drops are disabled.":`Street Combat only. ${ICONIC_DROP_CHANCE*100/Math.max(1,remaining.length)}% per successful kill; no pity. Combat Sim Caches use identical odds after one manual defeat.`,chance:owned?0:ICONIC_DROP_CHANCE/Math.max(1,remaining.length),districtId:iconic.district,unlocked:!owned&&canFightEnemy(state,enemy)}];
   }
   const software = quickhacks.find(entry => entry.id === itemId) ?? cyberdecks.find(entry => entry.id === itemId);
   if (software) sources.push({ type: "Vendor", name: "Netrunner exchange", detail: `${software.price} credits in Character > Quickhacks. Programs can also be crafted with credits and Encrypted Data.`, districtId: districtProgressionOrder[software.stage], unlocked: softwareStageUnlocked(state, software.stage) });

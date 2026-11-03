@@ -35,7 +35,7 @@ test('exactly sixteen handcrafted boss Iconics coexist with all 261 unchanged re
  assert.equal(items.filter(i=>i.iconic).length,16);assert.equal(items.filter(i=>i.type==='Weapon'&&!i.iconic).length,261);
  const regular=JSON.stringify(items.filter(i=>!i.iconic));makeBossIconicItems(items.filter(i=>!i.iconic));assert.equal(JSON.stringify(items.filter(i=>!i.iconic)),regular);
  for(const district of weaponDistrictOrder){const defs=bossIconics.filter(d=>d.district===district);assert.equal(defs.length,2);assert.notEqual(defs[0].category,defs[1].category);}
- for(const def of bossIconics){const mission=rpgMissions.find(m=>m.id===def.mission);assert.equal(def.boss,mission.enemies[mission.enemies.length-1]);assert.equal(def.district,mission.district);const item=getItem(def.id);assert.equal(item.weaponVariant,undefined);assert.equal(item.weaponModel,undefined);assert.equal(item.weaponClass,def.category);assert.ok(item.stats.damage>0);assert.equal(item.specialEffect,def.ability);assert.equal(weaponDropFitsDistrict(item,def.district),false);}
+ for(const def of bossIconics){const boss=allEnemies().find(e=>e.id===def.bossEnemyId);assert.equal(def.boss,boss.name);assert.equal(def.district,boss.preferredDistrict);assert.equal(boss.difficulty,"Boss");const item=getItem(def.id);assert.equal(item.weaponVariant,undefined);assert.equal(item.weaponModel,undefined);assert.equal(item.weaponClass,def.category);assert.ok(item.stats.damage>0);assert.equal(item.specialEffect,def.ability);assert.equal(weaponDropFitsDistrict(item,def.district),false);}
 });
 
 test('Iconics are excluded from ordinary recipes, shops, idle drops, gigs and local weapon rolls',()=>{
@@ -50,26 +50,26 @@ test('Iconics are excluded from ordinary recipes, shops, idle drops, gigs and lo
 test('base odds are 0.005 percent total, split evenly between missing weapons',()=>{
  assert.equal(ICONIC_DROP_CHANCE,.00005);
  let hits=0,a=0,b=0;
- for(let seed=1;seed<=2000000;seed++)if(bossLootValue(seed,'dead-drop',0)<ICONIC_DROP_CHANCE){hits++;bossLootValue(seed,'dead-drop',0,0x51ed270b)<.5?a++:b++;}
+ for(let seed=1;seed<=2000000;seed++)if(bossLootValue(seed,'neon-row-kill-team',0)<ICONIC_DROP_CHANCE){hits++;bossLootValue(seed,'neon-row-kill-team',0,0x51ed270b)<.5?a++:b++;}
  assert.ok(hits>65&&hits<140,`${hits}`);assert.ok(Math.abs(a-b)<40,`${a}/${b}`);
 });
 
 test('legacy dry streaks never guarantee drops and selling cannot farm duplicates',()=>{
  let state=completed();state.rpg.iconicLootSeed=1;
  for(let i=0;i<20;i++){
-  state.rpg.bossIconicProgress={'dead-drop':{victories:i,dryStreak:9,acquired:{}}};
-  assert.ok(bossLootValue(1,'dead-drop',i)>=ICONIC_DROP_CHANCE);
-  assert.equal(settleBossIconic(state,'dead-drop'),undefined);
+  state.rpg.bossIconicProgress={'neon-row-kill-team':{victories:i,dryStreak:9,acquired:{}}};
+  assert.ok(bossLootValue(1,'neon-row-kill-team',i)>=ICONIC_DROP_CHANCE);
+  assert.equal(settleBossIconic(state,'neon-row-kill-team'),undefined);
  }
  state=completed();let seed=1;
- while(bossLootValue(seed,'dead-drop',0)>=ICONIC_DROP_CHANCE)seed++;
+ while(bossLootValue(seed,'neon-row-kill-team',0)>=ICONIC_DROP_CHANCE)seed++;
  state.rpg.iconicLootSeed=seed;
- const first=settleBossIconic(state,'dead-drop');assert.ok(first);assert.equal(state.inventoryLocks[first],true);
- delete state.inventory[first];state.rpg.bossIconicProgress['dead-drop'].victories=0;
- const second=settleBossIconic(state,'dead-drop');assert.ok(second);assert.notEqual(first,second);
- state.rpg.bossIconicProgress['dead-drop'].victories=0;
- assert.equal(settleBossIconic(state,'dead-drop'),undefined);assert.equal(state.inventory[first],undefined);
- const html=render(createElement(BossIconicPreview,{state:completed(),missionId:'dead-drop'}));
+ const first=settleBossIconic(state,'neon-row-kill-team');assert.ok(first);assert.equal(state.inventoryLocks[first],true);
+ delete state.inventory[first];state.rpg.bossIconicProgress['neon-row-kill-team'].victories=0;
+ const second=settleBossIconic(state,'neon-row-kill-team');assert.ok(second);assert.notEqual(first,second);
+ state.rpg.bossIconicProgress['neon-row-kill-team'].victories=0;
+ assert.equal(settleBossIconic(state,'neon-row-kill-team'),undefined);assert.equal(state.inventory[first],undefined);
+ const html=render(createElement(BossIconicPreview,{state:completed(),enemyId:'neon-row-kill-team'}));
  assert.match(html,/0.005% total/);assert.match(html,/0.0025% per missing weapon/);assert.doesNotMatch(html,/Guaranteed after/);
 });
 
@@ -80,8 +80,8 @@ test('boss replay preserves story, first-clear rewards, XP, credits and settleme
  fight.rpg.active.enemyHp=1;fight=performTactic(fight,'attack');
  const after=resolveRpgMission(fight,rpgMissions[0].choices[0].id);
  assert.deepEqual(after.rpg.completed,before.completed);assert.deepEqual(after.storyFlags,before.flags);assert.equal(after.rpg.xp,before.xp);assert.equal(after.resources.credits,before.credits);assert.equal(after.rpg.ending,before.ending);assert.equal(after.rpg.streetCred,before.mastery);
- assert.equal(resolveRpgMission(after,rpgMissions[0].choices[0].id),after);assert.equal(after.rpg.bossIconicProgress['dead-drop'].victories,1);
- const loaded=normalizeSave(JSON.parse(JSON.stringify(after)));assert.equal(loaded.rpg.bossIconicProgress['dead-drop'].victories,1);
+ assert.equal(resolveRpgMission(after,rpgMissions[0].choices[0].id),after);assert.equal(after.rpg.bossIconicProgress?.['neon-row-kill-team']?.victories??0,0);
+ const loaded=normalizeSave(JSON.parse(JSON.stringify(after)));assert.equal(loaded.rpg.bossIconicProgress?.['neon-row-kill-team']?.victories??0,0);
  const html=render(createElement(MissionDebrief,{before:fight,after,onContinue(){}}));assert.match(html,/BOSS REMATCH COMPLETE/);assert.doesNotMatch(html,/DISTRICT UNLOCKED/);
 });
 
@@ -93,15 +93,15 @@ test('failed encounters, incomplete reward states, retries, aborts and reloads c
  fight=retryRpgMission(fight);assert.equal(fight.rpg.active.bossReplay,true);assert.equal(fight.rpg.iconicLootSeed,seed);
  fight=leaveRpgMission(fight);assert.deepEqual(fight.rpg.bossIconicProgress??{},{});
  const loaded=normalizeSave(JSON.parse(JSON.stringify(fight)));
- const a=victory(fight),b=victory(loaded);assert.deepEqual(a.rpg.bossIconicProgress,b.rpg.bossIconicProgress);assert.deepEqual(a.inventory,b.inventory);
+ const a=victory(fight),b=victory(loaded);assert.ok(Object.values(a.rpg.bossIconicProgress??{}).every(p=>p.victories===0));assert.ok(Object.values(b.rpg.bossIconicProgress??{}).every(p=>p.victories===0));assert.deepEqual(a.inventory,b.inventory);
  let forged=chooseMissionApproach(startBossReplay(s,'dead-drop'),'assault');forged.rpg.active.phase='decision';forged.rpg.active.enemyIndex=0;assert.equal(resolveRpgMission(forged,rpgMissions[0].choices[0].id),forged);
  let gig=chooseMissionApproach(startRpgMission(fresh(),rpgSideGigs[0].id),'assault');gig.rpg.active.enemyHp=1;gig=performTactic(gig,'attack');gig=resolveRpgMission(gig,rpgSideGigs[0].choices[0].id,()=>1);assert.deepEqual(gig.rpg.bossIconicProgress??{},{});
 });
 
-test('first-clear rewards still settle once and add exactly one eligible boss roll',()=>{
+test('first-clear rewards still settle once without an Iconic roll',()=>{
  let state=chooseMissionApproach(startRpgMission(fresh(),'dead-drop'),'lifepath');state.rpg.active.enemyIndex=rpgMissions[0].enemies.length-1;state.rpg.active.enemyHp=1;state=performTactic(state,'attack');
  const after=resolveRpgMission(state,rpgMissions[0].choices[0].id,()=>1);
- assert.equal(after.rpg.completed['dead-drop'].clears,1);assert.ok(after.resources.credits>state.resources.credits);assert.equal(after.districts.rustYards.unlocked,true);assert.equal(after.rpg.bossIconicProgress['dead-drop'].victories,1);
+ assert.equal(after.rpg.completed['dead-drop'].clears,1);assert.ok(after.resources.credits>state.resources.credits);assert.equal(after.districts.rustYards.unlocked,true);assert.equal(after.rpg.bossIconicProgress?.['neon-row-kill-team']?.victories??0,0);
  assert.equal(resolveRpgMission(after,rpgMissions[0].choices[0].id),after);
 });
 
@@ -133,10 +133,10 @@ test('signature memory survives reload, is cloned safely and cannot carry charge
 });
 
 test('Iconic appearance, source and possible-reward previews are distinct from regular rarities',()=>{
- const state=fresh(),unknown=render(createElement(BossIconicPreview,{state,missionId:'dead-drop'}));assert.match(unknown,/Unknown Iconic/);assert.doesNotMatch(unknown,/Final Notice/);assert.match(unknown,/Possible/);
+ const state=fresh(),unknown=render(createElement(BossIconicPreview,{state,enemyId:'neon-row-kill-team'}));assert.match(unknown,/Unknown Iconic/);assert.doesNotMatch(unknown,/Final Notice/);assert.match(unknown,/Possible/);
  state.discoveredItems['iconic-final-notice']=true;
- const known=render(createElement(BossIconicPreview,{state,missionId:'dead-drop'}));assert.match(known,/Final Notice/);assert.match(known,/18%/);
- const stats=render(createElement(WeaponSummary,{state,itemId:'iconic-final-notice',compareItemId:'rpg-weapon-0'}));assert.match(stats,/Iconic/);assert.match(stats,/Chrome Debt Collector/);assert.match(stats,/Pistols/);assert.match(stats,/Base DPS/);assert.doesNotMatch(stats,/NaN|undefined/);
+ const known=render(createElement(BossIconicPreview,{state,enemyId:'neon-row-kill-team'}));assert.match(known,/Final Notice/);assert.match(known,/18%/);
+ const stats=render(createElement(WeaponSummary,{state,itemId:'iconic-final-notice',compareItemId:'rpg-weapon-0'}));assert.match(stats,/Iconic/);assert.match(stats,/Neon Row Kill Team Leader/);assert.match(stats,/Pistols/);assert.match(stats,/Base DPS/);assert.doesNotMatch(stats,/NaN|undefined/);
 });
 
 for(const def of bossIconics)test(`${def.name} integrates with the actual idle processor without mutating input or farming loot`,()=>{
@@ -183,7 +183,7 @@ test('old and new saves retain Iconic ownership, upgrades, protection, seed and 
  const old=JSON.parse(JSON.stringify(state));
  const loaded=normalizeSave(old),again=normalizeSave(old);
  assert.equal(loaded.rpg.iconicLootSeed,again.rpg.iconicLootSeed);
- assert.equal(loaded.rpg.bossIconicProgress['dead-drop'].acquired['iconic-final-notice'],true);
+ assert.equal(loaded.rpg.bossIconicProgress['neon-row-kill-team'].acquired['iconic-final-notice'],true);
  assert.equal(loaded.inventory['iconic-final-notice'],1);assert.equal(loaded.upgradeLevels['iconic-final-notice'],3);
  const replay=chooseMissionApproach(startBossReplay(loaded,'dead-drop'),'assault');
  const restored=normalizeSave(JSON.parse(JSON.stringify(replay)));assert.equal(restored.rpg.active.bossReplay,true);assert.equal(restored.rpg.active.enemyIndex,rpgMissions[0].enemies.length-1);

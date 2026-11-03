@@ -1,3 +1,4 @@
+import { streetBoss } from "./streetBosses";
 import { canonicalWeaponId, getItem } from "./items";
 import type { CombatAffinity, CombatZone, Enemy, PlayerCombatStats } from "../types";
 import { districtLevelBands } from "./levelBands";
@@ -858,6 +859,28 @@ function scaleEnemyForProgression(enemy: Enemy, zoneIndex: number, enemyIndex: n
     xpReward: Math.max(Math.round(trainingXpPerSecond(requiredCombatLevel) * 5), Math.round(enemy.xpReward * rewardMultiplier)),
     reputationReward: Math.max(enemy.reputationReward, Math.round(enemy.reputationReward * (1 + zoneStep * 0.08 + rankStep * 0.04))),
   };
+}
+
+// Existing targets become district bosses without replacing enemies or saved IDs.
+for (const zone of combatZones) for (const enemy of zone.enemies) {
+ const boss=streetBoss(enemy.id);
+ if (!boss) continue;
+ enemy.name=boss.name; enemy.description=boss.identity;
+ enemy.difficulty="Boss";
+ enemy.hp=boss.hp; enemy.damage=boss.damage;
+ enemy.behaviorTags=[...new Set([...(enemy.behaviorTags??[]).filter(tag=>tag!=="highThreat"),"boss","iconicSource"])];
+ enemy.preferredDistrict=boss.district;
+ enemy.traits=[...new Set(enemy.traits??[])];
+ if(!enemy.traits.includes("boss"))enemy.traits.push("boss");
+ if(boss.shielded){enemy.armorType="shielded";if(!enemy.traits.includes("shielded"))enemy.traits.push("shielded");}
+ else enemy.armorType ??= boss.district==="blacknetQuarter" ? "digital" : "plated";
+ enemy.armor ??= 3 + Math.floor((enemy.requiredCombatLevel??1)/12);
+ if (!enemy.weaknesses?.length) enemy.weaknesses=[weak("boss-counter","Targeting the boss's exposed systems",1.16,{weaponClasses:boss.district==="helixWard"?["techWeapons","smartWeapons"]:boss.district==="skylineCore"?["exoticWeapons","sniperRifles","cyberdeckWeapons"]:["techWeapons","heavyWeapons"]})];
+ if (!enemy.resistances?.length) enemy.resistances=[weak("boss-defense","Reinforced boss defenses",.92,{weaponClasses:["blades","bluntWeapons"]})];
+ if(boss.district==="underpassMarket") {
+  enemy.weaknesses=[weak("factor-blind-spot","Precision fire and close blades expose shield blind spots",1.18,{weaponClasses:["sniperRifles","blades","cyberdeckWeapons"]})];
+  enemy.resistances=[weak("factor-cover","Market cover limits heavy suppression",.92,{weaponClasses:["heavyWeapons","smgs"]})];
+ }
 }
 
 for (const zone of combatZones) for (const enemy of zone.enemies) for (const drop of enemy.drops) {
