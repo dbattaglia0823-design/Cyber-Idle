@@ -15,7 +15,7 @@ export const SAVE_VERSION = 13;
 export function createInitialState(now = Date.now()): GameState {
   return {
     saveVersion: SAVE_VERSION,
-    rpg: createRpgState(),
+    rpg: { ...createRpgState(), iconicLootSeed: (Math.trunc(now) >>> 0) || 1 },
     startingPath: null,
     resources: { ...startingResources },
     neuralInstability: 0,
@@ -228,7 +228,7 @@ export function cloneState(state: GameState): GameState {
     activeJob: state.activeJob ? { ...state.activeJob } : null,
     activeCraft: state.activeCraft ? { ...state.activeCraft } : null,
     activeOperation: state.activeOperation ? { ...state.activeOperation } : null,
-    currentCombat: state.currentCombat ? { ...state.currentCombat } : null,
+    currentCombat: state.currentCombat ? { ...state.currentCombat, iconicMemory: state.currentCombat.iconicMemory ? {...state.currentCombat.iconicMemory} : undefined } : null,
     health: { ...state.health },
     autoHeal: { ...state.autoHeal },
     healthStatistics: {

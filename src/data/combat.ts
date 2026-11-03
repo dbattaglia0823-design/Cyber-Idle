@@ -1,3 +1,4 @@
+import { canonicalWeaponId, getItem } from "./items";
 import type { CombatAffinity, CombatZone, Enemy, PlayerCombatStats } from "../types";
 import { districtLevelBands } from "./levelBands";
 import { trainingXpPerSecond } from "./progressionPacing";
@@ -857,4 +858,9 @@ function scaleEnemyForProgression(enemy: Enemy, zoneIndex: number, enemyIndex: n
     xpReward: Math.max(Math.round(trainingXpPerSecond(requiredCombatLevel) * 5), Math.round(enemy.xpReward * rewardMultiplier)),
     reputationReward: Math.max(enemy.reputationReward, Math.round(enemy.reputationReward * (1 + zoneStep * 0.08 + rankStep * 0.04))),
   };
+}
+
+for (const zone of combatZones) for (const enemy of zone.enemies) for (const drop of enemy.drops) {
+  const id = canonicalWeaponId(drop.id);
+  if (id !== drop.id) { drop.id = id; drop.name = getItem(id)?.name ?? drop.name; }
 }

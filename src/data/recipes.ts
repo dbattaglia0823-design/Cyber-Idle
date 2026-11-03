@@ -1,3 +1,5 @@
+import { items, getItem, canonicalWeaponId, legacyWeaponAliases } from "./items";
+import { weaponCosts } from "./weapons";
 import { trainingXpPerSecond } from "./progressionPacing";
 import type { CraftingRecipe } from "../types";
 import { armorSpecs } from "./armor";
@@ -105,6 +107,54 @@ export const recipes: CraftingRecipe[] = [
     ),
   ),
 ].sort(sortRecipes);
+
+// Retired weapon recipes resolve to their district/category replacement, but
+// only one recipe per live variant appears in the crafting browser.
+export const legacyRecipeAliases: Record<string,string> = {};
+const keepRecipes: CraftingRecipe[] = [];
+const seenWeapons = new Set<string>();
+for (const entry of recipes) {
+  const output = getItem(entry.outputItemId);
+  if (output?.type !== "Weapon") { keepRecipes.push(entry); continue; }
+  const target = canonicalWeaponId(entry.outputItemId);
+  const exact = entry.outputItemId === target;
+  if (!exact) { legacyRecipeAliases[entry.id] = `recipe-${target}`; continue; }
+  if (!seenWeapons.has(target)) { entry.name = output.name; keepRecipes.push(entry); seenWeapons.add(target); }
+}
+recipes.splice(0, recipes.length, ...keepRecipes);
+
+// Expand model recipes, retaining every legacy recipe ID and its saved progress.
+const modelRecipes = new Map(recipes.map(entry => [entry.outputItemId, entry]));
+for (const output of items.filter(item => item.type === "Weapon" && item.weaponVariant === "Power")) {
+  let base = modelRecipes.get(output.id);
+  if (!base && output.id === "rpg-weapon-0") {
+    base = recipe("recipe-rpg-weapon-0", output.name, "Weapons", 1, { scrap: 6, circuitBoards: 1 }, output.id, 1, 8000, 22, undefined, "neonRow");
+    recipes.push(base); modelRecipes.set(output.id, base);
+  }
+  if (!base) {
+    const kind = output.weaponClass === "bluntWeapons" ? "Melee" : output.weaponClass === "heavyWeapons" ? "Shotgun" : "Rifle";
+    base = recipe(`recipe-${output.id}`, output.name, "Weapons", output.requiredLevel ?? 1, weaponCosts(output.weaponDistrict!, kind), output.id, 1, 18000, 40, undefined, output.weaponDistrict);
+    recipes.push(base); modelRecipes.set(output.id, base);
+  }
+  if (!base) continue; // Unique archived drops remain loot, not mass-production recipes.
+  base.name = output.name;
+  if (output.weaponDistrict && output.id !== "rpg-weapon-0") base.requiredDistrict = output.weaponDistrict;
+  for (const variant of items.filter(item => item.weaponModel === output.id && item.weaponVariant !== "Power")) {
+    const id = `recipe-${variant.id}`;
+    if (recipes.some(entry => entry.id === id)) continue;
+    recipes.push({ ...base, id, name: variant.name, outputItemId: variant.id, inputCosts: { ...base.inputCosts }, tags: [...base.tags, variant.weaponVariant!.toLowerCase()] });
+  }
+}
+
+for (const [oldId, targetId] of Object.entries(legacyRecipeAliases)) {
+  const outputId = targetId.replace(/^recipe-/, "");
+  legacyRecipeAliases[oldId] = recipes.find(entry=>entry.outputItemId===outputId)?.id ?? targetId;
+}
+
+for (const [old, target] of Object.entries(legacyWeaponAliases)) {
+  const replacement = recipes.find(entry=>entry.outputItemId===target);
+  if (replacement) legacyRecipeAliases[`recipe-${old}`] = replacement.id;
+}
 
 // Older individual recipes used a 1–99 curve. Bring their component dependencies
 // forward together, so a recipe never advertises an unlock before its inputs.

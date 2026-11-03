@@ -108,6 +108,8 @@ body, .app-shell { min-height: 100svh; }
   .app-shell :is(.rpg-section-nav, .network-tabs, .district-skill-tabs, .runner-workspace > .character-tabs) button { width: auto; flex: initial; justify-content: center; padding: 7px 4px; gap: 4px; font-size: 12px; white-space: normal; }
   .app-shell .rpg-section-nav:not(.district-primary-tabs) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-shell .district-primary-tabs button { align-content: center; }
+  /* Reserve Services' original grid cell when Overview is removed. */
+  .app-shell .district-primary-tabs .district-services-tab { grid-row: var(--services-row); grid-column: var(--services-column); }
   .app-shell .district-primary-tabs small { font-size: 10px; white-space: normal; }
   .app-shell .rpg-section-nav .rpg-services { margin: 0; }
   .app-shell :is(.district-tabs, .market-tabs, .ripperdoc-tabs, .inventory-filter-row, .endgame-tabs) { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -181,6 +183,7 @@ body, .app-shell { min-height: 100svh; }
   }
 }
 @media (max-width: 359px) {
+  .app-shell .district-primary-tabs .district-services-tab { grid-row: var(--services-narrow-row); grid-column: var(--services-narrow-column); }
   .app-shell :is(.runner-vitals, .rpg-runner-stats, .district-primary-tabs, .runner-workspace > .character-tabs) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-shell :is(.rpg-attribute-grid, .rpg-perk-grid, .rpg-approaches) { grid-template-columns: minmax(0, 1fr); }
 }
@@ -371,3 +374,36 @@ body, .app-shell { min-height: 100svh; }
 
 .app-shell .back-to-top { position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: calc(var(--navigation-height, 86px + env(safe-area-inset-bottom)) + 10px); z-index: 30; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 1px solid #48d9e8; border-radius: 8px; background: #101d29; color: #6de4ed; box-shadow: 0 3px 12px #0006; cursor: pointer; }
 .app-shell .back-to-top:hover, .app-shell .back-to-top:focus-visible { color: #f1e660; outline: 2px solid #f1e660; outline-offset: 2px; }
+
+/* Shared compact weapon details in shops, inventory and crafting. */
+.weapon-summary { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-left: 3px solid currentColor; min-width: 0; }
+.weapon-summary-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; font-size: 11px; }
+.weapon-variant { padding: 2px 5px; background: #20313c; color: #f1e660; }
+.weapon-variant.variant-rapid { color: #6de4ed; }
+.weapon-variant.variant-precision { color: #dca1ff; }
+.weapon-summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 6px; }
+.weapon-summary-stats > span { display: grid; gap: 2px; }
+.weapon-summary small { color: #aebdcd; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.weapon-summary-stats strong { color: #edf0f6; font-size: 14px; }
+.weapon-summary-stats em { font-size: 11px; font-style: normal; }
+.weapon-summary .better { color: #8dffb0; }.weapon-summary .worse { color: #ff8ab0; }.weapon-summary .same { color: #9da4b8; }
+.equipment-icon-badge[data-variant] { position: relative; border-bottom: 2px solid var(--weapon-accent, #6de4ed); }
+.equipment-icon-badge[data-variant]::after { content: attr(data-variant); position: absolute; right: -2px; bottom: -2px; background: #080c13; color: var(--weapon-accent, #6de4ed); padding: 1px 2px; font: 700 8px Consolas, monospace; }
+.weapon-art-neonRow { --weapon-accent: #f1e660; }.weapon-art-rustYards { --weapon-accent: #ed9a59; }.weapon-art-underpassMarket { --weapon-accent: #d692ed; }.weapon-art-blacknetQuarter { --weapon-accent: #6de4ed; }.weapon-art-helixWard { --weapon-accent: #73e1ad; }.weapon-art-glasslineDistrict { --weapon-accent: #a6c9ff; }.weapon-art-redlineBlocks { --weapon-accent: #ff6479; }.weapon-art-skylineCore { --weapon-accent: #fff4b0; }
+.weapon-summary-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* Iconic is a unique-boss designation, independent of Prototype/Relic rarity. */
+.weapon-summary.iconic-weapon, .iconic-recovered { border: 1px solid #cda85b; border-left: 3px solid #ffe49a; background: linear-gradient(120deg,#2b2518,#111720); }
+.iconic-weapon .weapon-variant { color: #ffe49a; background: #42331a; }
+.equipment-icon-badge[data-iconic] { position: relative; border: 1px solid #ffe49a; box-shadow: inset 0 0 6px #e4af3540; }
+.equipment-icon-badge[data-iconic]::after { content: "★"; position: absolute; right: -2px; bottom: -2px; color: #ffe49a; background: #17140d; padding: 0 2px; font-size: 11px; }
+.inventory-slot:has([data-iconic]), .slot-card:has([data-iconic]) { border-color: #cda85b; }
+.boss-iconic-preview { margin: 10px 0; padding: 0 10px 8px; border: 1px solid #6e603e; background: #161a20; }
+.boss-iconic-preview > summary { min-height: 44px; align-content: center; color: #ffe49a; cursor: pointer; font-size: 13px; }
+.boss-iconic-preview small, .boss-iconic-row small { display: block; font-size: 11px; line-height: 1.4; color: #b7c5d3; overflow-wrap: anywhere; }
+.boss-iconic-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; min-width: 0; }
+.boss-iconic-row > span:first-child, .boss-iconic-row > b { color: #ffe49a; flex-shrink: 0; }
+.boss-iconic-row > span:nth-child(2) { flex: 1; min-width: 0; }
+.boss-iconic-row strong { color: #ffe49a; font-size: 13px; }
+.boss-iconic-row.unknown strong { color: #a0a6b6; }
+.iconic-recovered { margin: 8px 0; padding: 10px; }

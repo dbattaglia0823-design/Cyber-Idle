@@ -25,7 +25,7 @@ import { getXpForLevel } from '../../src/systems/xpCurves.ts';
 // A deterministic material ledger, not a human playtest. No injected gear, XP,
 // credits, district flags, rare drops, or wins. Batch training deliberately omits
 // random drops, district/mastery-pool reward bonuses and random heat losses.
-export function simulateCampaign({ approach = 'assault', style = 'story', maxChapters = 8 } = {}) {
+export function simulateCampaign({ approach = 'assault', style = 'story', maxChapters = 8, weaponVariant = 'Power' } = {}) {
     let state = claimFieldKit(chooseStartingPath(createInitialState(0), 'streetborn'));
     let combatSeconds = 0, craftSeconds = 0;
     let seconds = 0, gigCount = 0, crafts = 0, cycles = 0, act = 0;
@@ -190,7 +190,8 @@ export function simulateCampaign({ approach = 'assault', style = 'story', maxCha
             act = mission.act;
             const startSeconds = seconds, startGigs = gigCount;
             const p = mainJobBalance[mission.district], prefix = p.armor.replace(/-chest$/, '');
-            const gear = act === 0 && style === 'story' ? [p.weapon, 'padded-street-vest'] : [p.weapon, ...['chest', 'head', 'hands', 'legs', 'boots'].map(slot => prefix + '-' + slot)].filter(id => getItem(id));
+            const weaponId = weaponVariant === 'Power' ? p.weapon : `${p.weapon}-${weaponVariant.toLowerCase()}`;
+            const gear = act === 0 && style === 'story' ? [weaponId, 'padded-street-vest'] : [weaponId, ...['chest', 'head', 'hands', 'legs', 'boots'].map(slot => prefix + '-' + slot)].filter(id => getItem(id));
             const previous = structuredClone(state);
             let allocation = allocate(gear);
             while (!allocation) {

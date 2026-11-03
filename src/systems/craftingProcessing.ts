@@ -1,4 +1,5 @@
-import { recipes } from "../data/recipes";
+import { grantActivityCharacterXp } from "./characterProgression";
+import { recipes, legacyRecipeAliases } from "../data/recipes";
 import { addMasteryXp, addSkillXp } from "./actionProcessing";
 import { addItem, removeItem } from "./collectionSystem";
 import { adjustedDurationMs, getActiveModifiers } from "./modifiers";
@@ -13,7 +14,7 @@ import { updateWorldUnlocks } from "./worldUnlocks";
 import type { CraftingRecipe, DistrictId, GameState } from "../types";
 
 export function getRecipe(recipeId: string) {
-  return recipes.find((recipe) => recipe.id === recipeId);
+  return recipes.find((recipe) => recipe.id === (legacyRecipeAliases[recipeId] ?? recipeId));
 }
 
 export function canCraft(state: GameState, recipe: CraftingRecipe) {
@@ -24,6 +25,7 @@ export function canCraft(state: GameState, recipe: CraftingRecipe) {
 }
 
 export function startCraft(state: GameState, recipeId: string, now = Date.now()) {
+  recipeId = legacyRecipeAliases[recipeId] ?? recipeId;
   const recipe = getRecipe(recipeId);
   if (!recipe || !canCraft(state, recipe)) return state;
   const next = cloneState(state);
@@ -52,6 +54,7 @@ export function processCrafting(state: GameState, now = Date.now()) {
       break;
     }
     completeCraft(next, recipe);
+    grantActivityCharacterXp(next, next.activeCraft.durationMs);
     next.activeCraft = {
       ...next.activeCraft,
       startedAt: next.activeCraft.startedAt + next.activeCraft.durationMs,

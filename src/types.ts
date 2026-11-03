@@ -70,6 +70,7 @@ export type CyberwareSlot =
   | "utility";
 export type GearSlot = "weapon" | "head" | "chest" | "hands" | "legs" | "boots" | "accessory1" | "accessory2";
 export type ItemType = "Quickhack" | "Resource" | "Material" | "Component" | "Cyberware" | "Weapon" | "WeaponAttachment" | "WeaponMod" | "Armor" | "Consumable" | "Blueprint" | "Quest";
+export type WeaponVariant = "Power" | "Rapid" | "Precision";
 export type ItemRarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Prototype" | "Relic";
 export type ContractType =
   | "Courier"
@@ -276,6 +277,10 @@ export interface ItemStats {
 }
 
 export interface ItemDefinition {
+  iconic?: { boss: string; mission: string; effect: import("./data/bossIconics").IconicEffect };
+  weaponModel?: string;
+  weaponVariant?: WeaponVariant;
+  weaponDistrict?: DistrictId;
   id: string;
   name: string;
   description: string;
@@ -466,6 +471,7 @@ export interface ActiveOperation {
 }
 
 export interface CurrentCombat {
+  iconicMemory?: import("./rpgTypes").IconicCombatMemory;
   enemyId: string;
   startedAt: number;
   durationMs: number;
@@ -530,6 +536,8 @@ export interface EnemyLog {
 }
 
 export interface OfflineRecap {
+  characterXpGained?: number;
+  characterLevelsGained?: number;
   resumeAction?: { kind: "skill" | "craft"; id: string };
   missingMaterials?: Record<string, number>;
   capped?: boolean;
@@ -572,6 +580,8 @@ export interface SimulationEfficiency {
 }
 
 export interface SimulationRecap {
+  characterXpGained?: number;
+  characterLevelsGained?: number;
   cacheType: "basic" | "combat" | "blacknet" | "fixer";
   simulatedMs: number;
   activityName: string;

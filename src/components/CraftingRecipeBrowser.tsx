@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { recipes } from "../data/recipes";
+import { recipes, legacyRecipeAliases } from "../data/recipes";
 import { getItem } from "../data/items";
 import { districts } from "../data/districts";
 import { skillNames } from "../data/skills";
@@ -13,6 +13,7 @@ export function CraftingRecipeBrowser({ state, selected, onSelect, icon, request
   const categories = ["All", ...new Set(recipes.map(r => r.category))];
   const [category, setCategory] = useRememberedState("crafting-filter", "All", categories);
   const [sub, setSub] = useRememberedState("crafting-subcategory", "All");
+  const [variant, setVariant] = useRememberedState("crafting-variant", "All", ["All", "Power", "Rapid", "Precision"]);
   const [query, setQuery] = useRememberedState("crafting-query", "");
   const [ready, setReady] = useRememberedState("crafting-ready", false);
   const [local, setLocal] = useRememberedState("crafting-local", false);
@@ -33,24 +34,24 @@ export function CraftingRecipeBrowser({ state, selected, onSelect, icon, request
       browser.current?.style.setProperty("--craft-header-offset", `${fixed?header.getBoundingClientRect().height+8:8}px`);
     });observer.observe(header);return()=>observer.disconnect();
   },[]);
-  const favorites = favoriteIds.split("|").filter(Boolean);
+  const favorites = [...new Set(favoriteIds.split("|").filter(Boolean).map(id=>legacyRecipeAliases[id] ?? id))];
   const subcategories = ["All", ...new Set(recipes.filter(r => r.category === category).map(recipeSubcategory).filter(s => s !== "All"))];
   const validSub = subcategories.includes(sub) ? sub : "All";
-  const visible = browseRecipes(state, { category, subcategory: validSub, query, ready, district: local, upgrades, favoritesOnly, favorites, showLocked, sort, direction });
+  const visible = browseRecipes(state, { variant, category, subcategory: validSub, query, ready, district: local, upgrades, favoritesOnly, favorites, showLocked, sort, direction });
   const pages = Math.max(1, Math.ceil(visible.length / RECIPE_PAGE_SIZE));
   const page = Math.min(pages, Math.max(1, Number.isFinite(storedPage) ? Math.floor(storedPage) : 1));
   useEffect(() => { if (page !== storedPage) setPage(page); }, [page, storedPage]);
   useEffect(() => {
     if (!requested) return;
-    setCategory("All"); setSub("All"); setQuery(""); setReady(false); setLocal(false); setUpgrades(false); setFavoritesOnly(false); setShowLocked(true);
+    setVariant("All"); setCategory("All"); setSub("All"); setQuery(""); setReady(false); setLocal(false); setUpgrades(false); setFavoritesOnly(false); setShowLocked(true);
     const all = browseRecipes(state, { category:"All", subcategory:"All", query:"", ready:false, district:false, upgrades:false, favoritesOnly:false, favorites:[], showLocked:true, sort, direction });
-    setPage(Math.floor(Math.max(0, all.findIndex(r => r.id === requested)) / RECIPE_PAGE_SIZE)+1);
+    setPage(Math.floor(Math.max(0, all.findIndex(r => r.id === (legacyRecipeAliases[requested] ?? requested))) / RECIPE_PAGE_SIZE)+1);
   }, [requested, requestToken]);
   const change = <T,>(setter: (value: T) => void, value: T) => { setter(value); setPage(1); };
-  const reset = () => { setCategory("All"); setSub("All"); setQuery(""); setReady(false); setLocal(false); setUpgrades(false); setFavoritesOnly(false); setShowLocked(false); setPage(1); };
+  const reset = () => { setVariant("All"); setCategory("All"); setSub("All"); setQuery(""); setReady(false); setLocal(false); setUpgrades(false); setFavoritesOnly(false); setShowLocked(false); setPage(1); };
   const goPage=(next:number)=>{setPage(next);requestAnimationFrame(()=>list.current?.scrollIntoView({block:"start",behavior:"instant"}));};
   return <section ref={browser} className="recipe-browser" aria-label="Recipe browser">
-    <div className="recipe-browser-tools"><input type="search" aria-label="Search recipes" placeholder="Search recipes" value={query} onChange={e => change(setQuery,e.target.value)}/><details className="recipe-filter-menu"><summary>Filters{[category!=="All",validSub!=="All",ready,local,upgrades,favoritesOnly,showLocked].filter(Boolean).length ? " •" : ""}</summary><div>
+    <div className="recipe-browser-tools"><select aria-label="Weapon variant" value={variant} onChange={e=>change(setVariant,e.target.value)}>{["All","Power","Rapid","Precision"].map(value=><option key={value} value={value}>{value === "All" ? "All variants" : value}</option>)}</select><input type="search" aria-label="Search recipes" placeholder="Search recipes" value={query} onChange={e => change(setQuery,e.target.value)}/><details className="recipe-filter-menu"><summary>Filters{[category!=="All",validSub!=="All",ready,local,upgrades,favoritesOnly,showLocked].filter(Boolean).length ? " •" : ""}</summary><div>
       <label>Category<select value={category} onChange={e => { change(setCategory,e.target.value);setSub("All"); }}>{categories.map(c => <option key={c}>{c}</option>)}</select></label>
       {subcategories.length>1 && <label>{category === "Weapons" ? "Weapon class" : "Equipment slot"}<select value={validSub} onChange={e => change(setSub,e.target.value)}>{subcategories.map(s => <option key={s} value={s}>{label(s)}</option>)}</select></label>}
       <label><input type="checkbox" checked={local} onChange={e=>change(setLocal,e.target.checked)}/>Current district · {districts.find(d=>d.id===state.selectedDistrict)?.name}</label>
@@ -69,7 +70,7 @@ export function CraftingRecipeBrowser({ state, selected, onSelect, icon, request
         const favorite=favorites.includes(recipe.id);
         return <div className={`compact-recipe-row rarity-${(output?.rarity??"Common").toLowerCase()} ${selected===recipe.id?"selected":""}`} key={recipe.id}>
           <button className="recipe-select" aria-pressed={selected===recipe.id} onClick={()=>onSelect(recipe.id)}>{output?icon(output):<span>◇</span>}<span><strong>{recipe.name}</strong><small>{output?.rarity??"Common"} · {skillNames[recipe.requiredSkill]} {recipe.requiredLevel}</small><em className={status==="Ready"?"ready":locked?"locked":""}>{status}</em></span><span aria-hidden="true">›</span></button>
-          <button className="recipe-favorite" aria-label={`${favorite?"Unfavorite":"Favorite"} ${recipe.name}`} aria-pressed={favorite} onClick={()=>setFavoriteIds(current=>{const ids=current.split("|").filter(Boolean);return(ids.includes(recipe.id)?ids.filter(id=>id!==recipe.id):[...ids,recipe.id]).join("|");})}>{favorite?"★":"☆"}</button>
+          <button className="recipe-favorite" aria-label={`${favorite?"Unfavorite":"Favorite"} ${recipe.name}`} aria-pressed={favorite} onClick={()=>setFavoriteIds(current=>{const ids=[...new Set(current.split("|").filter(Boolean).map(id=>legacyRecipeAliases[id] ?? id))];return(ids.includes(recipe.id)?ids.filter(id=>id!==recipe.id):[...ids,recipe.id]).join("|");})}>{favorite?"★":"☆"}</button>
         </div>;
       })}
       {!visible.length && <div className="recipe-empty"><p>No matching recipes.</p><button className="secondary-button" onClick={reset}>Reset filters</button>{!showLocked && <button className="secondary-button" onClick={()=>change(setShowLocked,true)}>Show locked recipes</button>}</div>}

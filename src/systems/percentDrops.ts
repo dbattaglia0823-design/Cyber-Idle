@@ -1,5 +1,5 @@
 import { percentDropTables } from "../data/percentDrops";
-import { getItem } from "../data/items";
+import { getItem, weaponVariantDropId } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { addItem, discoverItem } from "./collectionSystem";
 import { calculateDropChance } from "./balanceFormulas";
@@ -10,16 +10,19 @@ export function processPercentDrops(state: GameState, sourceId: string, sourceTa
   const table = (percentDropTables[sourceId] ?? []).filter((entry) => !excluded.has(entry.itemId));
   const gained: string[] = [];
   table.forEach((entry) => {
+    const weapon = getItem(entry.itemId);
+    if (weapon?.type === "Weapon" && weapon.weaponDistrict && !state.districts[weapon.weaponDistrict]?.unlocked) return;
     const chance = entry.affectedByDropModifiers || entry.affectedByScenarioModifiers
       ? calculateDropChance(entry.chancePercent / 100, state, entry.affectedByScenarioModifiers ? sourceTags : []) * 100
       : entry.chancePercent;
     revealDropFromAttempts(state, sourceId, entry);
     if (Math.random() * 100 > chance) return;
     const quantity = randomQuantity(entry);
-    if (isResource(entry.itemId)) state.resources[entry.itemId] += quantity;
-    else addItem(state, entry.itemId, quantity);
+    const itemId = weaponVariantDropId(entry.itemId);
+    if (isResource(itemId)) state.resources[itemId] += quantity;
+    else { addItem(state, itemId, quantity); discoverItem(state, itemId); }
     markDropFound(state, sourceId, entry, quantity);
-    gained.push(`${quantity} ${getItem(entry.itemId)?.name ?? resourceNames[entry.itemId as ResourceId] ?? entry.itemId}`);
+    gained.push(`${quantity} ${getItem(itemId)?.name ?? resourceNames[itemId as ResourceId] ?? entry.itemId}`);
     if (entry.rarity !== "Common") state.weaponStatistics.rareDropsFound += 1;
     if (getItem(entry.itemId)?.type === "WeaponAttachment") state.weaponStatistics.attachmentDropsFound += 1;
   });

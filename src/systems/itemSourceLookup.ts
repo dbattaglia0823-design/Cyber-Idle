@@ -1,3 +1,5 @@
+import { ICONIC_DROP_CHANCE } from "./bossIconicLoot";
+import { bossIconics } from "../data/bossIconics";
 import { quickhacks } from "../data/quickhacks";
 import { cyberdecks } from "../data/cyberdecks";
 import { districtProgressionOrder } from "../data/districtProgressionOrder";
@@ -6,7 +8,7 @@ import { missionItemRewards, missionRewardPools, gigUniquePools, gigUniqueCandid
 import { bosses } from "../data/bosses";
 import { rpgMissions, allRpgMissions } from "../data/rpgCampaign";
 import { districtSupplyItems } from "../data/materialSupply";
-import { missionAvailable } from "./rpgSystem";
+import { missionAvailable, canReplayBoss } from "./rpgSystem";
 import { combatZones } from "../data/combat";
 import { operations } from "../data/operations";
 import { recipes } from "../data/recipes";
@@ -15,7 +17,7 @@ import { skillActions, skillNames } from "../data/skills";
 import { vendors } from "../data/vendors";
 import { jobs } from "../data/jobs";
 import { percentDropTables } from "../data/percentDrops";
-import { getItem } from "../data/items";
+import { getItem, canonicalWeaponId } from "../data/items";
 import { resourceNames } from "../data/resources";
 import { resourceSourceHint } from "../data/resourceTiers";
 import { actionAccessRequirementText } from "./actionAccess";
@@ -53,7 +55,16 @@ export interface ItemSourceEntry {
 }
 
 export function getItemSources(itemId: string, state: GameState): ItemSourceEntry[] {
+  itemId = canonicalWeaponId(itemId);
   const sources: ItemSourceEntry[] = [];
+  const iconic=bossIconics.find(def=>def.id===itemId);
+  if(iconic){
+    const mission=rpgMissions.find(m=>m.id===iconic.mission)!;
+    const entry=state.rpg.bossIconicProgress?.[mission.id];
+    const remaining=bossIconics.filter(def=>def.mission===mission.id&&!entry?.acquired[def.id]&&!(state.inventory[def.id]>0));
+    const owned=!!entry?.acquired[itemId]||(state.inventory[itemId]??0)>0;
+    return [{type:"Mission reward",name:iconic.boss,detail:owned?"Already recovered; duplicate drops are disabled.":`Boss-only Iconic. ${ICONIC_DROP_CHANCE*100/Math.max(1,remaining.length)}% chance per victory; no bad-luck protection. Replay this boss from its completed main job.`,chance:owned?0:ICONIC_DROP_CHANCE/Math.max(1,remaining.length),districtId:mission.district,unlocked:!owned&&(missionAvailable(state,mission)||canReplayBoss(state,mission))}];
+  }
   const software = quickhacks.find(entry => entry.id === itemId) ?? cyberdecks.find(entry => entry.id === itemId);
   if (software) sources.push({ type: "Vendor", name: "Netrunner exchange", detail: `${software.price} credits in Character > Quickhacks. Programs can also be crafted with credits and Encrypted Data.`, districtId: districtProgressionOrder[software.stage], unlocked: softwareStageUnlocked(state, software.stage) });
   if (itemId === "rpg-weapon-0") sources.push({ type: "Mission reward", name: "Sable's field kit", detail: "Guaranteed starting sidearm. Claim the field kit in Main > Missions.", unlocked: Boolean(state.startingPath) && !state.rpg.starterClaimed });

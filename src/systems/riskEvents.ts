@@ -25,7 +25,7 @@ export function applyRiskEvents(state: GameState) {
     state.resources.credits = Math.max(0, state.resources.credits - 50);
     pushCategorizedLog(state, "Warning", "Heat Lockdown triggered. Enforcement pressure cost 50 Credits and Heat dropped to 80.");
   } else {
-    state.resources.heat = clampRiskStat(state.resources.heat);
+    state.resources.heat = Math.max(0, Math.min(100, state.resources.heat));
   }
 
   if (effectiveNeuralInstability(state) >= 100) {

@@ -36,7 +36,7 @@ test('legacy completed jobs receive their XP difference once without replaying r
     assert.equal(loaded.rpg.level, 5);
     assert.equal(loaded.rpg.xp, 0);
     assert.equal(loaded.rpg.attributePoints, s.rpg.attributePoints + 6);
-    assert.equal(loaded.rpg.perkPoints, s.rpg.perkPoints + 3);
+    assert.equal(loaded.rpg.perkPoints, s.rpg.perkPoints + 2);
     assert.deepEqual(loaded.rpg.completed, s.rpg.completed);
     assert.deepEqual(loaded.inventory, s.inventory);
     assert.equal(loaded.resources.credits, s.resources.credits);
@@ -176,6 +176,7 @@ test('unique source odds follow unowned priority and full-pool fallback', async 
     const pool = gigUniquePools[gig.district];
     const state = fresh();
     for (const id of pool.slice(1)) state.inventory[id] = 1;
+    delete state.inventory[pool[0]];
     const source = id => getItemSources(id, state).find(entry => entry.name === gig.title);
     assert.equal(source(pool[0]).chance, 0.05);
     assert.equal(source(pool[1]).chance, 0);

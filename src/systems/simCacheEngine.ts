@@ -1,8 +1,9 @@
+import { grantActivityCharacterXp, totalCharacterXp } from "./characterProgression";
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
 import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canStartSkillAction, grantActionItems, getSkillAction } from "./actionProcessing";
 import { updateWorldUnlocks } from "./worldUnlocks";
-import { calculateHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
+import { calculateActionHeatGain, calculateSkillActionRewards } from "./balanceFormulas";
 import { canCraft, completeCraft, getRecipe } from "./craftingProcessing";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
@@ -67,6 +68,8 @@ export function runBasicSimCache(state: GameState, cacheCount: number) {
   else if (next.activeCraft) simulateCraft(next, simulatedMs, recap);
 
   next.worldUnlocks.usedSimCache = true;
+  recap.characterXpGained = totalCharacterXp(next) - totalCharacterXp(state);
+  recap.characterLevelsGained = next.rpg.level - state.rpg.level;
   updateWorldUnlocks(next);
   next.simulationRecap = recap;
   pushCategorizedLog(next, "World", `Sim Cache used: ${recap.completions} completions. ${recap.stoppedReason}`);
@@ -116,10 +119,11 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
     recap.masteryXpGained += mastery;
     recap.poolXpGained += pool;
     if (action.heatChange) {
-      const heat = Math.round(calculateHeatGain(state, action.heatChange, action.tags) * efficiency.heat);
+      const heat = calculateActionHeatGain(state, action.heatChange, state.activeAction!.durationMs, action.tags) * efficiency.heat;
       state.resources.heat += heat;
       recap.heatChange += heat;
     }
+    grantActivityCharacterXp(state, state.activeAction!.durationMs * efficiency.skillXp);
     recap.completions += 1;
     applyRiskEvents(state);
   }
@@ -135,6 +139,7 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
       break;
     }
     completeCraft(state, recipe, recap.efficiency.masteryXp, false, false);
+    grantActivityCharacterXp(state, state.activeCraft!.durationMs * recap.efficiency.skillXp);
     recap.completions += 1;
     recap.xpGained += recipe.xpReward;
     recap.masteryXpGained += Math.round(recipe.masteryXpReward * recap.efficiency.masteryXp);

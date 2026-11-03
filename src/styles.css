@@ -6011,13 +6011,16 @@ button:disabled {
   }
 
   .requirement-summary-row {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 6px 8px;
   }
 
   .requirement-summary-row > strong {
-    grid-column: 2;
-    text-align: left;
-    white-space: normal;
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .requirement-time-grid {

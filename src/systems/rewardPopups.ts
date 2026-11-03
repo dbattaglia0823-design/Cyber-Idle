@@ -96,7 +96,7 @@ function buildRewardLines(input: RewardPopupInput): RewardPopupLine[] {
     if (!amount) return;
     lines.push(line(`${signed(amount)} ${name} Reputation`, "reputation", amount));
   });
-  if (input.heat) lines.push(line(`Heat ${signed(input.heat)}`, input.heat > 0 ? "heat" : "resource", input.heat));
+  if (input.heat) lines.push(line(`Heat ${signed(Number(input.heat.toFixed(2)))}`, input.heat > 0 ? "heat" : "resource", input.heat));
   if (input.neuralInstability) lines.push(line(`Neural Instability ${signed(input.neuralInstability)}`, input.neuralInstability > 0 ? "neural" : "resource", input.neuralInstability));
   (input.achievements ?? []).forEach((text) => lines.push(line(`Achievement: ${text}`, "achievement")));
   (input.story ?? []).forEach((text) => lines.push(line(text, input.category ?? "story")));

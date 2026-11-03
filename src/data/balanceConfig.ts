@@ -69,6 +69,8 @@ export const balanceConfig = {
     defaultRareJobChance: 0.08,
   },
   risk: {
+    // Positive repeatable-action Heat is a rate per two minutes, not per reward loop.
+    actionHeatIntervalMs: 120000,
     heatMax: 100,
     neuralMax: 100,
     heatSmugglingRelief: -0.05,

@@ -127,7 +127,7 @@ function modernWeaponStats(weaponClass: WeaponClass, stats: ItemStats, tier: num
   return { ...stats, critChance: Math.max(stats.critChance ?? 0, 0.025 * tier), heatModifier: -0.02 * tier };
 }
 
-function weaponCosts(districtId: DistrictId, weaponClass: WeaponClass): Record<string, number> {
+export function weaponCosts(districtId: DistrictId, weaponClass: WeaponClass): Record<string, number> {
   const classPart = weaponClass === "Melee" ? "grip-polymer" : weaponClass === "Rifle" || weaponClass === "Shotgun" ? "barrel-assembly" : "precision-parts";
   const districtParts: Record<DistrictId, Record<string, number>> = {
     neonRow: { "weapon-frame": 1, "street-coil": 1 },

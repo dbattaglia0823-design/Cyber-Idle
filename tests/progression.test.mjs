@@ -7,7 +7,7 @@ import { skillActions } from '../src/data/skills.ts';
 import { materialSupplyActions } from '../src/data/materialSupply.ts';
 import { districtSpecificMaterials } from '../src/data/districtMastery.ts';
 import { districtLevelBands } from '../src/data/levelBands.ts';
-import { items } from '../src/data/items.ts';
+import { items, getItem } from '../src/data/items.ts';
 import { createInitialState, chooseStartingPath } from '../src/systems/gameState.ts';
 import { startSkillAction, processActionCompletion, stopSkillAction, addMasteryXp } from '../src/systems/actionProcessing.ts';
 import { startCraft, processCrafting } from '../src/systems/craftingProcessing.ts';
@@ -115,10 +115,13 @@ test('skill loot stays within district material tiers and crafting XP follows un
 });
 
 test('legacy early equipment has timely recipes without late district ingredients', () => {
-  for (const [id, level] of [['redline-burst-pistol', 8], ['subdermal-plate-carrier', 20], ['ghoststep-joint-kit', 40], ['backroom-breacher', 40], ['impact-driver', 32]]) {
-    const recipe = recipes.find(r => r.outputItemId === id);
-    assert.equal(recipe.requiredLevel, level, id);
-    for (const material of Object.keys(recipe.inputCosts)) assert.ok(sources.get(material).level <= level, id + ': ' + material);
+  for (const [id, level] of [['redline-burst-pistol', 8], ['subdermal-plate-carrier', 20], ['ghoststep-joint-kit', 40], ['backroom-breacher', 40], ['impact-driver', 40]]) {
+    const item = getItem(id);
+    const recipe = recipes.find(r => r.outputItemId === (item?.id ?? id));
+    assert.ok(recipe, id);
+    if (item?.type !== "Weapon") assert.equal(recipe.requiredLevel, level, id);
+    else assert.equal(recipe.requiredDistrict, item.weaponDistrict, id);
+    for (const material of Object.keys(recipe.inputCosts)) assert.ok(sources.get(material).level <= recipe.requiredLevel, id + ': ' + material);
   }
 });
 

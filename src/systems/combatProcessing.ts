@@ -1,9 +1,13 @@
+import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget } from "./iconicCombat";
+import { weaponDropFitsDistrict } from "../data/weaponProgression";
+import { rollDistrictWeapon } from "../data/missionRewards";
+import { getItem, items, weaponVariantDropId } from "../data/items";
+import { grantActivityCharacterXp } from "./characterProgression";
 import { combatZones } from "../data/combat";
 import { resourceNames } from "../data/resources";
 import { addSkillXp } from "./actionProcessing";
-import { calculateCombatRewards, calculateDropChance, calculatePlayerCombatStats } from "./balanceFormulas";
+import { calculateActionHeatGain, calculateCombatRewards, calculateDropChance, calculatePlayerCombatStats } from "./balanceFormulas";
 import { addItem, discoverItem } from "./collectionSystem";
-import { clampRiskStat } from "./formulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { changeLocalStanding, discoverDistrictContent } from "./districtProgression";
 import { applyXpModifier } from "./modifiers";
@@ -70,7 +74,9 @@ export function processCombat(state: GameState, now = Date.now()) {
     next.currentCombat = normalizeCombatState(next, enemy, now);
     if (next.currentCombat.respawnAt) {
       if (now < next.currentCombat.respawnAt) break;
+      const carried = next.currentCombat.iconicMemory;
       next.currentCombat = createCombatState(next, enemy, next.currentCombat.respawnAt);
+      next.currentCombat.iconicMemory = carried ? {...carried} : undefined;
     }
     const combat = next.currentCombat;
     const nextPlayerAttackAt = combat.nextPlayerAttackAt ?? now;
@@ -81,13 +87,16 @@ export function processCombat(state: GameState, now = Date.now()) {
 
     if (playerActsNext && nextPlayerAttackAt <= now) {
       const stats = calculatePlayerCombatStats(next);
-      const damage = Math.max(1, stats.damage);
+      const iconic = iconicWeaponHit(next,combat,{mode:"idle",damage:stats.damage,maxHp:stats.maxHp,enemyHp:combat.enemyCurrentHp??enemy.hp,enemyMaxHp:combat.enemyMaxHp??enemy.hp,armored:(enemy.armor??0)>0,shielded:enemy.armorType==="shielded" || !!enemy.traits?.includes("shielded")});
+      const damage = Math.max(1, Math.round(stats.damage*iconic.multiplier+iconic.extra));
       combat.enemyCurrentHp = Math.max(0, (combat.enemyCurrentHp ?? combat.enemyMaxHp ?? enemy.hp) - damage);
       combat.lastPlayerAttackAt = nextPlayerAttackAt;
       combat.lastPlayerHit = { amount: damage, at: nextPlayerAttackAt };
-      combat.nextPlayerAttackAt = nextPlayerAttackAt + stats.attackSpeedMs;
+      combat.nextPlayerAttackAt = nextPlayerAttackAt + Math.max(400,Math.round(stats.attackSpeedMs*iconic.interval));
       if (combat.enemyCurrentHp <= 0) {
         const killDuration = Math.max(1, nextPlayerAttackAt - combat.startedAt);
+        iconicKill(next,combat,stats.maxHp);
+        resetIconicTarget(next,combat);
         completeKill(next, enemy, killDuration);
         if (next.health.lifeState === "downed") break;
         const healed = maybeAutoHeal(next, enemy.name);
@@ -102,7 +111,7 @@ export function processCombat(state: GameState, now = Date.now()) {
         break;
       }
     } else if (nextEnemyAttackAt <= now) {
-      const rawDamage = enemyAttackDamage(enemy);
+      const rawDamage = Math.max(1,Math.round(enemyAttackDamage(enemy)*iconicIncoming(next,combat)));
       const damageTaken = applyDamage(next, rawDamage, enemy.name);
       if (next.currentCombat) {
         next.currentCombat.lastDamageTaken = damageTaken;
@@ -170,8 +179,10 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
   const xpReward = applyXpModifier(state, "combat", Math.round(enemy.xpReward * matchup.rewardMultiplier));
   state.resources.credits += rewards.credits ?? 0;
   state.resources.reputation += rewards.reputation ?? 0;
-  state.resources.heat = clampRiskStat(state.resources.heat + matchup.heatChange);
+  const heatDelta = calculateActionHeatGain(state, matchup.heatChange, durationMs, combatTagsForEnemy(enemy));
+  state.resources.heat = Math.max(0, Math.min(100, state.resources.heat + heatDelta));
   addSkillXp(state, "combat", xpReward);
+  grantActivityCharacterXp(state, durationMs);
 
   const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
   log.kills += 1;
@@ -187,20 +198,32 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     if ((state.weaponStatistics.killsByClass[weaponClass] ?? 0) >= 1000) state.achievements[`weapon-${weaponClass}-1000-kills`] = true;
   }
   enemy.drops.forEach((drop) => {
+    const weapon = getItem(drop.id);
+    if (weapon?.type === "Weapon" && weapon.weaponDistrict && districtId && !weaponDropFitsDistrict(weapon, districtId)) return;
     const chance = calculateDropChance(drop.chance, state, matchup.tags, matchup.dropChance + districtMasteryDropBonus(state, districtId));
     if (Math.random() > chance) return;
+    const droppedId = weaponVariantDropId(drop.id);
+    const droppedName = getItem(droppedId)?.name ?? drop.name;
     if (isResource(drop.id)) {
       state.resources[drop.id] += drop.quantity;
     } else {
-      addItem(state, drop.id, drop.quantity);
+      addItem(state, droppedId, drop.quantity);
     }
-    log.discoveredDrops[drop.id] = (log.discoveredDrops[drop.id] ?? 0) + drop.quantity;
-    discoverItem(state, drop.id);
-    dropMessages.push(`${drop.quantity} ${drop.name}`);
-    pushCategorizedLog(state, "Loot", `Loot found: ${drop.name}.`);
+    log.discoveredDrops[droppedId] = (log.discoveredDrops[droppedId] ?? 0) + drop.quantity;
+    discoverItem(state, droppedId);
+    dropMessages.push(`${drop.quantity} ${droppedName}`);
+    pushCategorizedLog(state, "Loot", `Loot found: ${droppedName}.`);
   });
-  processPercentDrops(state, enemy.id, enemyTags, enemy.drops.map((drop) => drop.id)).forEach((message) => dropMessages.push(message));
+  processPercentDrops(state, enemy.id, enemyTags,  [...enemy.drops.map((drop) => drop.id), ...items.filter(item => item.type === "Weapon" && (!districtId || !weaponDropFitsDistrict(item, districtId))).map(item => item.id)]).forEach((message) => dropMessages.push(message));
 
+  if (districtId) {
+    const weaponDrop = rollDistrictWeapon(districtId, enemy.behaviorTags?.includes("highThreat") ? .06 : .015);
+    if (weaponDrop) {
+      addItem(state, weaponDrop, 1); discoverItem(state, weaponDrop);
+      log.discoveredDrops[weaponDrop] = (log.discoveredDrops[weaponDrop] ?? 0) + 1;
+      dropMessages.push(getItem(weaponDrop)!.name);
+    }
+  }
   state.enemyLog[enemy.id] = log;
   markEnemyManual(state, enemy.id);
   if (districtId) {
@@ -213,14 +236,14 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number) {
     "Combat",
     `${enemy.name} defeated: +${rewards.credits ?? 0} ${resourceNames.credits}, +${xpReward} Street Combat XP${
       dropMessages.length ? `, loot ${dropMessages.join(", ")}` : ""
-    }. ${matchup.rating}${matchup.heatChange ? ` (${matchup.heatChange >= 0 ? "+" : ""}${matchup.heatChange} Heat)` : ""}.`,
+    }. ${matchup.rating}${heatDelta ? ` (${heatDelta >= 0 ? "+" : ""}${Number(heatDelta.toFixed(2))} Heat)` : ""}.`,
   );
   emitRewardPopupGroup(state, {
     title: `${enemy.name} Defeated`,
     xp: { combat: xpReward },
     resources: rewards,
     rareDrops: dropMessages,
-    heat: matchup.heatChange,
+    heat: heatDelta,
     neuralInstability: 0,
   });
   updateWorldUnlocks(state);

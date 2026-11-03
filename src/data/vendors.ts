@@ -1,3 +1,4 @@
+import { items, getItem } from "./items";
 import type { VendorDefinition } from "../types";
 
 export const vendors: VendorDefinition[] = [
@@ -225,4 +226,29 @@ function item(
   requiredUnlock?: string,
 ) {
   return { itemId, price, stockType, stock, requiredUnlock, sourceHint };
+}
+
+// Retire old weapon offers; local stock below is the complete live lineup.
+for (const vendor of vendors) vendor.inventory = vendor.inventory.filter(entry=>!getItem(entry.itemId) || getItem(entry.itemId)?.type!=="Weapon");
+
+// One local pattern per category keeps shop browsing focused; all variants are selectable.
+for (const district of [...new Set(vendors.map(vendor => vendor.districtId))]) {
+  const vendor = vendors.find(entry => entry.districtId === district && entry.canBuy && entry.canSell) ?? vendors.find(entry => entry.districtId === district && entry.canBuy);
+  if (!vendor) continue;
+  const seen = new Set<string>();
+  for (const weapon of items.filter(entry => entry.type === "Weapon" && entry.weaponDistrict === district && entry.weaponVariant === "Power")) {
+    if (seen.has(weapon.weaponClass!)) continue;
+    seen.add(weapon.weaponClass!);
+    for (const variant of items.filter(entry => entry.weaponModel === weapon.id)) {
+      if (!vendor.inventory.some(entry => entry.itemId === variant.id)) vendor.inventory.push(item(variant.id, Math.max(variant.sellValue * 4, 180 + (variant.requiredLevel ?? 1) * 18), "limited", "Local weapon pattern.", 1));
+    }
+  }
+}
+
+for (const vendor of vendors) for (const entry of [...vendor.inventory]) {
+  const model = items.find(item => item.id === entry.itemId);
+  if (model?.weaponVariant !== "Power") continue;
+  for (const variant of items.filter(item => item.weaponModel === model.id && item.weaponVariant !== "Power")) {
+    if (!vendor.inventory.some(stock => stock.itemId === variant.id)) vendor.inventory.push({ ...entry, itemId: variant.id });
+  }
 }

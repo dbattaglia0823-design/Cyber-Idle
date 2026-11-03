@@ -1,11 +1,12 @@
 import { meetsItemAttributeRequirement } from "./runnerProgression";
-import { getItem } from "../data/items";
+import { getItem, canonicalWeaponId } from "../data/items";
 import { removeItem } from "./collectionSystem";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { useHealingItem } from "./healthSystem";
 import type { CyberwareSlot, GameState, GearSlot } from "../types";
 
 export function equipItem(state: GameState, itemId: string) {
+  itemId = canonicalWeaponId(itemId);
   const item = getItem(itemId);
   if (state.rpg.active && item?.slot === "operatingSystem") return state;
   if (!item || !item.slot || (state.inventory[itemId] ?? 0) <= 0) return state;

@@ -1,3 +1,4 @@
+import { attributePointBudget, perkPointBudget } from "../src/data/characterBuild.ts";
 import assert from 'node:assert/strict';
 import { mainJobBalance } from '../src/data/mainJobBalance.ts';
 import { getItem } from '../src/data/items.ts';
@@ -12,8 +13,8 @@ import { itemAttributeRequirement, meetsItemAttributeRequirement } from '../src/
 export function prepareMainJob(state, mission, focus = 'body') {
   state.rpg.level = Math.min(30, 3 + mission.act * 4);
   state.rpg.attributes = { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 };
-  state.rpg.attributePoints = 7 + (state.rpg.level - 1) * 2;
-  state.rpg.perks = {}; state.rpg.perkPoints = 2 + state.rpg.level - 1;
+  state.rpg.attributePoints = attributePointBudget(state.rpg.level);
+  state.rpg.perks = {}; state.rpg.perkPoints = perkPointBudget(state.rpg.level);
   const profile = mainJobBalance[mission.district];
   const armorPrefix = profile.armor.replace(/-chest$/, '');
   const gear = [profile.weapon, ...['chest','head','hands','legs','boots'].map(slot => armorPrefix + '-' + slot)].filter(id => getItem(id));
@@ -33,7 +34,7 @@ export function prepareMainJob(state, mission, focus = 'body') {
     const attribute = [focus, 'body', 'reflexes', 'technical', 'intelligence', 'cool'].find(id => state.rpg.attributes[id] < 20);
     state = spendAttribute(state, attribute);
   }
-  for (const perk of rpgPerks) state = buyRpgPerk(state, perk.id);
+  for (const perk of [...rpgPerks].sort((a,b) => Number(b.attribute === focus) - Number(a.attribute === focus))) state = buyRpgPerk(state, perk.id);
   for (const id of gear) {
     const item = getItem(id); assert.ok(meetsItemAttributeRequirement(state, item), id + ' attributes');
     state.inventory[id] = 1; state.equippedGear[item.slot] = id;

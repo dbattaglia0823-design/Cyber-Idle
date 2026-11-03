@@ -1,4 +1,5 @@
-// Runner progression is earned mainly through one-time story jobs. Gigs supplement it.
+// Missions give large character XP rewards; completed idle work also advances runners.
+export const runnerTrainingLevelMs = 30 * 60 * 1000;
 export const campaignRunnerTargets = [5, 9, 13, 17, 21, 25, 28, 30] as const;
 export const runnerXpNeeded = (level: number) => 100 + level * 60;
 export function mainJobXp(act: number) {

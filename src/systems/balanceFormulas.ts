@@ -1,3 +1,4 @@
+import { weaponCombatProfile } from "./weaponCombat";
 import { runnerCombatLevel } from "./runnerProgression";
 import { balanceConfig } from "../data/balanceConfig";
 import { getItem } from "../data/items";
@@ -21,6 +22,7 @@ export function clampPercent(value: number, min = 0, max = 1) {
 
 export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats {
   const modifiers = getActiveModifiers(state);
+  const weapon = weaponCombatProfile(state);
   const weaponClass = equippedWeaponClass(state);
   const classBonus = weaponClass ? weaponClassBonus(state, weaponClass) : { damage: 0, unarmedDamage: 0 };
   const gearStats = [...Object.values(state.equippedGear), ...Object.values(state.equippedCyberware)].reduce(
@@ -35,15 +37,16 @@ export function calculatePlayerCombatStats(state: GameState): PlayerCombatStats 
     { maxHp: 0, damage: 0, attackSpeedMs: 0, armor: 0 },
   );
   const rawMaxHp = balanceConfig.combat.baseMaxHp + runnerCombatLevel(state) * balanceConfig.combat.hpPerCombatLevel + gearStats.maxHp;
-  const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs;
+  const attachmentDamage = (weapon.stats.damage ?? 0) - (weapon.scaledWeaponDamage * weapon.damageFactor);
+  const rawAttackSpeed = balanceConfig.combat.baseAttackSpeedMs + gearStats.attackSpeedMs + (weapon.stats.attackSpeed ?? 0) - (scaledStats(state, state.equippedGear.weapon ?? "").attackSpeed ?? 0);
   return {
     maxHp: Math.round(rawMaxHp * (1 + modifiers.combatMaxHp)),
     damage: Math.round(
       (balanceConfig.combat.baseDamage +
         runnerCombatLevel(state) * balanceConfig.combat.damagePerCombatLevel +
-        gearStats.damage +
+        gearStats.damage - weapon.scaledWeaponDamage * weapon.damageFactor + weapon.scaledWeaponDamage + attachmentDamage +
         (!state.equippedGear.weapon && weaponClass === "bluntWeapons" ? classBonus.unarmedDamage : 0)) *
-        (1 + modifiers.combatDamage + classBonus.damage),
+        (1 + modifiers.combatDamage + classBonus.damage) * weapon.damageFactor * weapon.expectedCritical,
     ),
     attackSpeedMs: Math.max(balanceConfig.combat.minAttackSpeedMs, Math.round(rawAttackSpeed * (1 - Math.min(0.45, modifiers.combatAttackSpeed)))),
     armor: Math.round((balanceConfig.combat.baseArmor + Math.floor(runnerCombatLevel(state) / balanceConfig.combat.armorPerCombatLevels) + gearStats.armor) * (1 + modifiers.combatDefense)),
@@ -123,6 +126,16 @@ export function calculateHeatGain(state: GameState, heat: number, tags: string[]
   const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
   const multiplier = Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief);
   return Math.round(heat * multiplier);
+}
+
+export function calculateActionHeatGain(state: GameState, heat: number, durationMs: number, tags: string[] = []) {
+  // Cooling actions retain their per-completion benefit. Preserve fractions so
+  // fast actions and small equipment bonuses do not round to whole Heat points.
+  if (heat <= 0) return calculateHeatGain(state, heat, tags);
+  const modifiers = getActiveModifiers(state);
+  const smugglingRelief = tags.includes("smuggling") ? balanceConfig.risk.heatSmugglingRelief : 0;
+  return heat * Math.max(0.1, 1 + modifiers.heatGain + smugglingRelief)
+    * Math.max(0, durationMs) / balanceConfig.risk.actionHeatIntervalMs;
 }
 
 export function calculateHeatTier(value: number) {

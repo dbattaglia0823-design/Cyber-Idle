@@ -1,10 +1,11 @@
+import { grantActivityCharacterXp } from "./characterProgression";
 import { introductoryTrainingMultiplier } from "../data/progressionPacing";
 import { resourceNames } from "../data/resources";
 import { skillActions, skillNames } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
 import { MAX_MAIN_SKILL_LEVEL } from "../data/levelBands";
-import { clampRiskStat, xpForNextLevel, xpForNextMastery } from "./formulas";
-import { calculateDropChance, calculateHeatGain, calculateSkillActionRewards, masteryDropBonusForLevel } from "./balanceFormulas";
+import { xpForNextLevel, xpForNextMastery } from "./formulas";
+import { calculateDropChance, calculateActionHeatGain, calculateSkillActionRewards, masteryDropBonusForLevel } from "./balanceFormulas";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { adjustedActionDurationMs, applyXpModifier, getActiveModifiers } from "./modifiers";
 import { applyRiskEvents } from "./riskEvents";
@@ -93,9 +94,10 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     const xpReward = actionXpRewardWithMastery(next, action);
     applyRewards(next, rewards);
     grantActionItems(next, action);
-    const heatDelta = action.heatChange ? calculateHeatGain(next, action.heatChange, action.tags) : 0;
-    if (heatDelta) next.resources.heat = clampRiskStat(next.resources.heat + heatDelta);
+    const heatDelta = action.heatChange ? calculateActionHeatGain(next, action.heatChange, next.activeAction.durationMs, action.tags) : 0;
+    if (heatDelta) next.resources.heat = Math.max(0, Math.min(100, next.resources.heat + heatDelta));
     const neuralDelta = 0;
+    grantActivityCharacterXp(next, next.activeAction.durationMs);
     const levelUps = addSkillXp(next, action.skillId, xpReward);
     const masteryReward = Math.round(actionMasteryXpReward(next, action) * (1 + getActiveModifiers(next).masteryXpGain));
     const masteryUps = addMasteryXp(next, action.id, masteryReward);
@@ -110,7 +112,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
       if (action.threatChange) changeDistrictThreat(next, districtId, action.threatChange);
     }
     const rareMessages = processSkillRareDrops(next, action);
-    const traceMessage = processHackingTrace(next, action);
+    const traceMessage = processHackingTrace(next, action, next.activeAction.durationMs);
     updateSkillActionStats(next, action, rareMessages.length, Boolean(traceMessage));
     emitRewardPopupGroup(next, {
       title: `${action.name} Complete`,
@@ -173,19 +175,19 @@ function grantDrop(state: GameState, drop: EnemyDrop) {
   }
 }
 
-function processHackingTrace(state: GameState, action: SkillAction) {
+function processHackingTrace(state: GameState, action: SkillAction, durationMs: number) {
   if (!action.traceChance) return "";
   const chance = Math.max(balanceConfig.risk.traceMinChance, action.traceChance - traceReduction(state, action));
   if (Math.random() > chance) return "";
   const severity = action.traceSeverity ?? 1;
-  const heat = calculateHeatGain(state, severity * 3, ["hacking", ...(action.tags ?? [])]);
-  state.resources.heat = clampRiskStat(state.resources.heat + heat);
+  const heat = calculateActionHeatGain(state, severity * 3, durationMs, ["hacking", ...(action.tags ?? [])]);
+  state.resources.heat = Math.max(0, Math.min(100, state.resources.heat + heat));
   state.resources.encryptedData = Math.max(0, state.resources.encryptedData - severity);
   if (severity >= 3) state.unlocks["blacknet-trace-events"] = true;
   if (action.districtReq) changeDistrictThreat(state, action.districtReq, severity);
   state.marketStatistics.traceEvents += 1;
   state.achievements["first-trace-event"] = true;
-  return `trace event +${heat} Heat`;
+  return `trace event +${Number(heat.toFixed(2))} Heat`;
 }
 
 function traceReduction(state: GameState, action: SkillAction) {

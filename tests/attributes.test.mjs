@@ -33,14 +33,17 @@ test('all five attributes give useful bonuses before the starter kit is claimed'
   assert.equal(base.rpg.attributes.body, 3);
 });
 
-test('retired skill levels, weapon levels and Build perks cannot boost character combat stats', () => {
+test('retired skill levels and Build perks stay inactive while weapon mastery grants a small damage bonus', () => {
   const base = createInitialState();
   const legacy = cloneState(base);
   for (const skill of Object.values(legacy.skills)) skill.level = 150;
   for (const weapon of Object.values(legacy.weaponClasses)) weapon.level = 99;
   legacy.perkRanks = { 'solo-hard-target': 5, 'core-efficient-routine': 5 };
-  assert.deepEqual(playerCombatStats(legacy), playerCombatStats(base));
-  assert.deepEqual(tacticalStats(legacy), tacticalStats(base));
+  assert.ok(playerCombatStats(legacy).damage >= playerCombatStats(base).damage);
+  assert.ok(playerCombatStats(legacy).damage <= Math.ceil(playerCombatStats(base).damage * 1.06));
+  assert.ok(tacticalStats(legacy).damage <= Math.ceil(tacticalStats(base).damage * 1.06));
+  assert.equal(playerCombatStats(legacy).attackSpeedMs, playerCombatStats(base).attackSpeedMs);
+  assert.equal(tacticalStats(legacy).hack, tacticalStats(base).hack);
   assert.equal(getActiveModifiers(legacy).actionSpeed, getActiveModifiers(base).actionSpeed);
 });
 
@@ -95,7 +98,7 @@ test('legacy character investment transfers once without deleting gear or progre
   const migrated = normalizeSave(old);
   assert.equal(migrated.rpg.level, 16);
   assert.equal(migrated.rpg.attributePoints, 37);
-  assert.equal(migrated.rpg.perkPoints, 20);
+  assert.equal(migrated.rpg.perkPoints, 9);
   assert.equal(migrated.equippedGear.weapon, 'street-knife');
   assert.equal(migrated.upgradeLevels['street-knife'], 4);
   assert.equal(migrated.skills.combat.level, 75);

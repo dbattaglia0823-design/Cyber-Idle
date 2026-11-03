@@ -1,13 +1,15 @@
-import { getItem } from "../data/items";
+import { getItem, canonicalWeaponId } from "../data/items";
 import type { GameState } from "../types";
 
 export function discoverItem(state: GameState, itemId: string) {
+  itemId = canonicalWeaponId(itemId);
   state.discoveredItems[itemId] = true;
   const item = getItem(itemId);
   if (item?.type === "Blueprint") state.unlockedBlueprints[itemId] = true;
 }
 
 export function addItem(state: GameState, itemId: string, quantity = 1) {
+  itemId = canonicalWeaponId(itemId);
   if (!Number.isFinite(quantity) || quantity <= 0) return;
   if (itemId in state.resources) {
     state.resources[itemId as keyof GameState["resources"]] += quantity;
@@ -19,6 +21,7 @@ export function addItem(state: GameState, itemId: string, quantity = 1) {
 }
 
 export function removeItem(state: GameState, itemId: string, quantity = 1) {
+  itemId = canonicalWeaponId(itemId);
   if (!Number.isFinite(quantity) || quantity <= 0) return false;
   if (itemId in state.resources) {
     const id = itemId as keyof GameState["resources"];

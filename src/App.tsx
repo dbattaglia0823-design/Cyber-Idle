@@ -1,3 +1,5 @@
+import { WeaponSummary } from "./components/WeaponSummary";
+import { MAX_CHARACTER_LEVEL } from "./data/characterBuild";
 import { CombatScene } from "./components/CombatScene";
 import { beginRunner } from "./systems/rpgSystem";
 import { canStartSkillAction } from "./systems/actionProcessing";
@@ -9,10 +11,9 @@ import { DisplayDensitySetting } from "./components/DisplayDensity";
 import { UpcomingUnlocks } from "./components/UpcomingUnlocks";
 import { ItemActionDock } from "./components/ItemActionDock";
 import { toggleInventoryLock } from "./systems/inventoryLocks";
-import { DistrictSkillGrid, DistrictActivityGrid, type DistrictHubCategory } from "./screens/District/DistrictNavigation";
+import { type DistrictHubCategory } from "./screens/District/DistrictNavigation";
 import { districtAccents } from "./data/districtPresentation";
 import type { CSSProperties } from "react";
-import { DistrictJourney } from "./screens/District/DistrictJourney";
 import { StartingPathScreen, StartingPathBadge, startingPathImages } from "./screens/Start/StartingPathScreen";
 import { NextGoal } from "./components/NextGoal";
 import { PlayerNavigation, usePlayerNavigation, revealDetail } from "./components/PlayerNavigation";
@@ -108,7 +109,7 @@ import {
 import { applyOfflineProgress } from "./systems/offlineProgress";
 import { exportSave, getActiveSaveSlot, importSave, loadGame, resetSave, saveGame, saveSlotSummaries, setActiveSaveSlot, type SaveSlotId, type SaveSlotSummary } from "./systems/saveSystem";
 import { canBuyHousing, buyHousing, giveCompanionGift, setActiveCompanion, setActiveResidence, spendTimeWithCompanion } from "./systems/worldProgression";
-import { recipes } from "./data/recipes";
+import { recipes, legacyRecipeAliases } from "./data/recipes";
 import { getItem, gearSlots } from "./data/items";
 import { cyberwareInstabilityLoad, cyberwareLoad, effectiveNeuralInstability, scaledStats } from "./systems/itemFormulas";
 import { equipItem, unequipCyberware, unequipGear, useItem } from "./systems/equipmentSystem";
@@ -310,7 +311,7 @@ function App() {
   const active = activeActivity(state, now);
   const selectedStartingPath = state.startingPath ? startingPaths.find((path) => path.id === state.startingPath) : null;
   const perkPointsAvailable = state.rpg.attributePoints + state.rpg.perkPoints;
-  const runnerProgress = { level: state.rpg.level, currentTotalLevel: state.rpg.xp, nextMilestone: rpgXpNeeded(state.rpg.level), percent: state.rpg.level >= 30 ? 100 : state.rpg.xp / rpgXpNeeded(state.rpg.level) * 100 };
+  const runnerProgress = { level: state.rpg.level, currentTotalLevel: state.rpg.xp, nextMilestone: rpgXpNeeded(state.rpg.level), percent: state.rpg.level >= MAX_CHARACTER_LEVEL ? 100 : state.rpg.xp / rpgXpNeeded(state.rpg.level) * 100 };
   const cityNotices = tabNoticesEnabled ? unreviewedTabNotices(state, "city", reviewedNoticeKeys) : [];
   const inventoryNotices = tabNoticesEnabled ? unreviewedTabNotices(state, "inventory", reviewedNoticeKeys) : [];
   const setTabNoticePreference = (enabled: boolean) => {
@@ -380,11 +381,9 @@ function App() {
             setMainSection("character");
             setCharacterSection("attributes");
           }}>
-          <span>Runner Lv {runnerProgress.level}</span>
+          <span>Runner Lv {runnerProgress.level}{perkPointsAvailable > 0 ? ` · ${perkPointsAvailable} points available` : ""}</span>
           <strong>
-            {perkPointsAvailable > 0
-              ? `${perkPointsAvailable} attribute / perk point${perkPointsAvailable === 1 ? "" : "s"} available`
-              : `${runnerProgress.currentTotalLevel} / ${runnerProgress.nextMilestone} character XP`}
+            {state.rpg.level >= MAX_CHARACTER_LEVEL ? "Max character level" : `${runnerProgress.currentTotalLevel} / ${runnerProgress.nextMilestone} character XP`}
           </strong>
           <i aria-hidden="true">
             <b style={{ width: `${runnerProgress.percent}%` }} />
@@ -903,7 +902,7 @@ export function DistrictHub({
   onUseHealingItem: (id: string) => void;
   onStopActive: () => void;
 }) {
-  const [category, setCategory] = useState<DistrictHubCategory>("overview");
+  const [category, setCategory] = useState<DistrictHubCategory>(() => districtSkillTabs(state, districtId)[0]?.id ?? "actions");
 
   const district = getDistrict(districtId)!;
   const unlocked = Boolean(state.districts[districtId]?.unlocked);
@@ -914,21 +913,21 @@ export function DistrictHub({
   const completion = districtCompletionBreakdown(state, districtId);
   const localStanding = state.districtStanding[districtId]?.standing ?? 0;
   const dominantFaction = district.associatedFactions[0];
-  useEffect(() => setCategory("overview"), [districtId]);
+  const defaultCategory = skillTabs[0]?.id ?? "actions";
+  useEffect(() => setCategory(defaultCategory), [districtId]);
   useEffect(() => {
-    if (openCategoryRequest?.category) setCategory(openCategoryRequest.category);
+    if (openCategoryRequest?.category) setCategory(openCategoryRequest.category === "overview" ? defaultCategory : openCategoryRequest.category);
   }, [openCategoryRequest?.token]);
   return (
     <section className="district-hub rpg-shell campaign-district" style={{"--district-accent":districtAccents[districtId]} as CSSProperties}>
       <div className="location-bar"><button className="secondary-button" onClick={onBack}>Back to districts</button><div><strong>{district.name}</strong><span>Train skills, craft gear and visit services</span></div></div>
-      <NetworkHero title={[district.name.split(" ")[0].toUpperCase(), district.name.split(" ").slice(1).join(" ").toUpperCase()]} eyebrow="YOUR DISTRICT. YOUR CONTACTS. YOUR OPPORTUNITIES." description={district.description} status={`${threatTier(threat).toUpperCase()} THREAT / STANDING ${localStanding}`} progress={{ label: "DISTRICT / COMPLETION", value: completion.total, maximum: 100, suffix: "%", note: activeActivity?.districtId === districtId ? `LIVE: ${activeActivity.name.toUpperCase()}` : `${factions.find(faction => faction.id === dominantFaction)?.name.toUpperCase() ?? "CONTESTED TERRITORY"}` }} actions={<><button className="rpg-primary" onClick={() => setCategory(skillTabs[0]?.id ?? "overview")}>Find local work <ArrowUpRight size={17} /></button><button className="rpg-text-button" onClick={onBack}>Back to city <ChevronRight size={15} /></button></>} />
-      <nav className="rpg-section-nav district-primary-tabs" aria-label="District activities">
-        <button className={category === "overview" ? "selected" : ""} aria-current={category === "overview" ? "page" : undefined} onClick={() => setCategory("overview")}><MapPin size={16} />Overview</button>
+      <NetworkHero title={[district.name.split(" ")[0].toUpperCase(), district.name.split(" ").slice(1).join(" ").toUpperCase()]} eyebrow="YOUR DISTRICT. YOUR CONTACTS. YOUR OPPORTUNITIES." description={district.description} status={`${threatTier(threat).toUpperCase()} THREAT / STANDING ${localStanding}`} progress={{ label: "DISTRICT / COMPLETION", value: completion.total, maximum: 100, suffix: "%", note: activeActivity?.districtId === districtId ? `LIVE: ${activeActivity.name.toUpperCase()}` : `${factions.find(faction => faction.id === dominantFaction)?.name.toUpperCase() ?? "CONTESTED TERRITORY"}` }} actions={<><button className="rpg-primary" onClick={() => setCategory(defaultCategory)}>Find local work <ArrowUpRight size={17} /></button><button className="rpg-text-button" onClick={onBack}>Back to city <ChevronRight size={15} /></button></>} />
+      <nav className="rpg-section-nav district-primary-tabs" aria-label="District activities" style={{ "--services-row": Math.floor((skillTabs.length + 1) / 3) + 1, "--services-column": (skillTabs.length + 1) % 3 + 1, "--services-narrow-row": Math.floor((skillTabs.length + 1) / 2) + 1, "--services-narrow-column": (skillTabs.length + 1) % 2 + 1 } as CSSProperties}>
         {skillTabs.map(skillTab => {
           const Icon = districtSkillIcons[skillTab.skillId];
           return <button key={skillTab.id} className={category === skillTab.id ? "selected" : ""} aria-current={category === skillTab.id ? "page" : undefined} onClick={() => setCategory(skillTab.id)}><Icon size={16} />{skillTab.label}<small>Lv {state.skills[skillTab.skillId].level}</small></button>;
         })}
-        {systemSummaries.length > 0 && <button className={systemSummaries.some(summary => summary.id === category) ? "selected" : ""} aria-current={systemSummaries.some(summary => summary.id === category) ? "page" : undefined} onClick={() => setCategory(systemSummaries[0].id)}><Store size={16} />Services</button>}
+        {systemSummaries.length > 0 && <button className={`district-services-tab ${systemSummaries.some(summary => summary.id === category) ? "selected" : ""}`} aria-current={systemSummaries.some(summary => summary.id === category) ? "page" : undefined} onClick={() => setCategory(systemSummaries[0].id)}><Store size={16} />Services</button>}
       </nav>
       {systemSummaries.some(summary => summary.id === category) && <nav className="network-tabs district-service-tabs" aria-label="District services">{systemSummaries.map(summary => <button key={summary.id} className={category === summary.id ? "active" : ""} aria-current={category === summary.id ? "page" : undefined} onClick={() => setCategory(summary.id)}>{summary.label}</button>)}</nav>}
       {!unlocked && <CompactRequirementList state={state} districtId={districtId} requirements={district.unlockRequirements} />}
@@ -943,12 +942,6 @@ export function DistrictHub({
           <ThreatMeter value={threat} tier={threatTier(threat)} />
         </div>
       </details>
-      {category === "overview" ? (
-        <>
-          <DistrictJourney state={state} districtId={districtId} /><DistrictSkillGrid state={state} tabs={skillTabs} onOpen={setCategory} />
-          <DistrictActivityGrid summaries={systemSummaries} onOpen={setCategory} />
-        </>
-      ) : (
         <DistrictActivityMenu
           state={state}
           districtId={districtId}
@@ -970,7 +963,6 @@ export function DistrictHub({
           onUseHealingItem={onUseHealingItem}
           onStopActive={onStopActive}
         />
-      )}
 
       </div>
     </section>
@@ -2346,7 +2338,7 @@ function BlackMarketPanel({
   onListItem: (itemId: string, strategy: BlackMarketStrategy) => void;
 }) {
   const eligible = blackMarketEligibleItems(state);
-  const heat = state.resources.heat;
+  const heat = Math.floor(state.resources.heat);
   const strategies: BlackMarketStrategy[] = ["quickSale", "standard", "highBid", "privateBuyer"];
   return (
     <NeonPanel>
@@ -3484,7 +3476,7 @@ const inventoryRarityRanks: Record<string, number> = {
   Rare: 3,
   Epic: 4,
   Legendary: 5,
-  Relic: 5,
+  Relic: 7,
   Prototype: 6,
   Iconic: 6,
 };
@@ -3677,7 +3669,7 @@ function InventoryTab({
           <div className={`inventory-detail rarity-${selectedItem.rarity.toLowerCase()}`}>
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">{selectedItem.rarity} / {selectedItem.type} / Qty {selectedCount}</p>
+                <p className="eyebrow">{selectedItem.iconic ? "★ Iconic" : selectedItem.rarity} / {selectedItem.type} / Qty {selectedCount}</p>
                 <h2>{selectedItem.name} {state.upgradeLevels[activeId] ? `+${state.upgradeLevels[activeId]}` : ""}</h2>
               </div>
               <EquipmentTypeIconBadge item={selectedItem} />
@@ -3777,6 +3769,7 @@ function ResourceWallet({ state }: { state: GameState }) {
 const statComparisonOrder: Array<keyof ItemStats> = ["damage", "armor", "maxHp", "attackSpeed", "accuracy", "dodge", "critChance", "critDamage", "armorPenetration", "heatModifier", "neuralInstabilityModifier"];
 
 function StatComparisonLine({ state, itemId, compareItemId }: { state: GameState; itemId: string; compareItemId?: string }) {
+  if (getItem(itemId)?.type === "Weapon") return <WeaponSummary state={state} itemId={itemId} compareItemId={compareItemId} />;
   const stats = scaledStats(state, itemId);
   const compareStats = compareItemId ? scaledStats(state, compareItemId) : {};
   const keys = statComparisonOrder.filter((key) => stats[key] || compareStats[key]);
@@ -3866,7 +3859,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
   const [detailOpen,setDetailOpen] = useState(false);
   const navigation = usePlayerNavigation();
   useEffect(() => { if(navigation.recipeId){setSelectedRecipeId(navigation.recipeId);setDetailOpen(true);} },[navigation.recipeId,navigation.recipeRequest]);
-  const selectedRecipe = recipes.find(recipe => recipe.id === selectedRecipeId) ?? recipes[0] ?? null;
+  const selectedRecipe = recipes.find(recipe => recipe.id === (selectedRecipeId ? legacyRecipeAliases[selectedRecipeId] ?? selectedRecipeId : null)) ?? recipes[0] ?? null;
   const selectedOutput = selectedRecipe ? getItem(selectedRecipe.outputItemId) : null;
   const selectedCosts = selectedRecipe ? scaledCraftingCosts(state, selectedRecipe) : {};
   const selectedMissingEntries = Object.entries(selectedCosts).filter(([id, amount]) => getOwnedCount(state, id) < amount);
@@ -4150,7 +4143,7 @@ export function CharacterTab({
         <p className="muted">Equipped Cyberware Instability: {cyberwareLoad(state)}%</p>
         <p className="muted">Status: {effectiveNeuralInstability(state)}% / {neuralInstabilityTierName(effectiveNeuralInstability(state))}</p>
         <Progress value={effectiveNeuralInstability(state)} />
-        <p className="muted">Heat: {state.resources.heat}% / {heatTier(state.resources.heat)}</p>
+        <p className="muted">Heat: {Math.floor(state.resources.heat)}% / {heatTier(state.resources.heat)}</p>
         <Progress value={state.resources.heat} />
       </article>
       {state.activeRipperdocEffects?.length ? (
@@ -5681,7 +5674,9 @@ function SimCacheSection({ state, onRun }: { state: GameState; onRun: (count: nu
           <h2>{state.simulationRecap.activityName}</h2>
           <div className="inventory-grid">
             <Metric label="Completions" value={state.simulationRecap.completions} />
-            <Metric label="XP" value={state.simulationRecap.xpGained} />
+            <Metric label="Skill XP" value={state.simulationRecap.xpGained} />
+            <Metric label="Character XP" value={state.simulationRecap.characterXpGained ?? 0} />
+            <Metric label="Character levels" value={state.simulationRecap.characterLevelsGained ?? 0} />
             <Metric label="Mastery XP" value={state.simulationRecap.masteryXpGained} />
             <Metric label="Pool XP" value={state.simulationRecap.poolXpGained} />
             <Metric label="Heat" value={state.simulationRecap.heatChange} />
@@ -5794,7 +5789,9 @@ function OfflineRecap({ state, onClose, onUpdate }: { state: GameState; onClose:
         <p className="muted">{recap.message ?? `${recap.actionName} continued while you were away.`}</p>
         <div className="inventory-grid">
           <Metric label="Completions" value={recap.completions} />
-          <Metric label="XP" value={recap.xpGained} />
+          <Metric label="Skill XP" value={recap.xpGained} />
+          <Metric label="Character XP" value={recap.characterXpGained ?? 0} />
+          <Metric label="Character levels" value={recap.characterLevelsGained ?? 0} />
           <Metric label="Levels" value={recap.levelsGained} />
           <Metric label="Mastery XP" value={recap.masteryXpGained} />
           <Metric label="Heat" value={recap.heatGained} />
@@ -5835,7 +5832,7 @@ function EquipmentTypeIconBadge({ item, fallbackSlot, fallbackKind }: { item?: R
   const icon = equipmentIconForItem(item, fallbackSlot, fallbackKind);
   if (!icon) return null;
   return (
-    <span className={`equipment-icon-badge equipment-icon-${icon.className}`} title={icon.title} aria-label={icon.title}>
+    <span className={`equipment-icon-badge equipment-icon-${icon.className} ${item?.weaponDistrict ? `weapon-art-${item.weaponDistrict}` : ""}`} data-iconic={item?.iconic ? "true" : undefined} data-variant={item?.weaponVariant === "Precision" ? "PRC" : item?.weaponVariant === "Rapid" ? "RPD" : item?.weaponVariant ? "PWR" : undefined} title={item?.weaponVariant ? `${icon.title} / ${item.weaponVariant} / ${item.weaponDistrict}` : icon.title} aria-label={icon.title}>
       {icon.src ? <img src={icon.src} alt="" /> : icon.label}
     </span>
   );

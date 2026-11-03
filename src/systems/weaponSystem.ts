@@ -28,6 +28,7 @@ export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, x
     current.level += 1;
     levels += 1;
   }
+  if (current.level >= 99) current.xp = 0;
   state.weaponClasses[weaponClass] = current;
   unlockWeaponMilestones(state, weaponClass);
   if (levels) pushCategorizedLog(state, "Combat", `${weaponClassName(weaponClass)} reached weapon class level ${current.level}.`);
@@ -37,9 +38,10 @@ export function addWeaponClassXp(state: GameState, weaponClass: WeaponClassId, x
 }
 
 export function weaponClassBonus(state: GameState, weaponClass: WeaponClassId) {
+  const mastery = Math.min(.05, Math.max(0, (state.weaponClasses[weaponClass]?.level ?? 1) - 1) * .0006);
   const level = state.rpg.attributes[weaponClass === "bluntWeapons" || weaponClass === "heavyWeapons" ? "body" : weaponClass === "smartWeapons" ? "intelligence" : "reflexes"] - 3;
   return {
-    damage: Math.floor(level / 5) * 0.01,
+    damage: Math.floor(level / 5) * 0.01 + mastery,
     unarmedDamage: weaponClass === "bluntWeapons" ? Math.floor(level / 4) : 0,
     dropChance: Math.floor(level / 25) * 0.01,
     jobSuccess: Math.floor(level / 20) * 0.01,

@@ -25,12 +25,13 @@ export function recipeImprovesGear(state: GameState, recipe: CraftingRecipe) {
   });
 }
 export interface RecipeBrowserOptions {
-  category: string; subcategory: string; query: string; ready: boolean; district: boolean;
+  variant?: string; category: string; subcategory: string; query: string; ready: boolean; district: boolean;
   upgrades: boolean; favoritesOnly: boolean; favorites: string[]; showLocked: boolean; sort: string; direction: string;
 }
 export function browseRecipes(state: GameState, options: RecipeBrowserOptions) {
-  const ranks: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 3, Epic: 4, Legendary: 5, Relic: 5, Prototype: 6 };
+  const ranks: Record<string, number> = { Common: 1, Uncommon: 2, Rare: 3, Epic: 4, Legendary: 5, Relic: 7, Prototype: 6 };
   return recipes.filter(recipe =>
+    (!options.variant || options.variant === "All" || getItem(recipe.outputItemId)?.type !== "Weapon" || getItem(recipe.outputItemId)?.weaponVariant === options.variant) &&
     (options.category === "All" || recipe.category === options.category) &&
     (options.subcategory === "All" || recipeSubcategory(recipe) === options.subcategory) &&
     recipe.name.toLowerCase().includes(options.query.trim().toLowerCase()) &&

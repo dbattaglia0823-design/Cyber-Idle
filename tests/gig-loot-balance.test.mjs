@@ -13,7 +13,7 @@ test('guaranteed payouts cannot flood equipment or software; finale keeps its si
     const gear=Object.keys(missionItemRewards(mission,clear)).filter(id=>equipment.has(getItem(id)?.type));
     assert.deepEqual(gear,!mission.sideGig && mission.act===7 ? ['rpg-afterimage-os'] : [], mission.id);
   }
-  for(const pool of Object.values(gigUniquePools)) for(const id of pool) assert.ok(!recipes.some(r=>r.outputItemId===id),id);
+  for(const pool of Object.values(gigUniquePools)) for(const id of pool) assert.ok(getItem(id)?.type === "Weapon" || !recipes.some(r=>r.outputItemId===id),id);
   assert.ok(gigUniquePools.neonRow.every(id=>['Common','Uncommon'].includes(getItem(id).rarity)));
 });
 
@@ -42,5 +42,5 @@ test('gig loot rolls only at settlement, preserves equipped gear and cannot pay 
   assert.equal(next.equippedGear.weapon,weapon);
   assert.equal(resolveRpgMission(next,gig.choices[0].id,()=>0),next);
   const miss=resolveRpgMission(state,gig.choices[0].id,()=>.99);
-  assert.equal(miss.inventory[gigUniquePools[gig.district][0]],undefined);
+  assert.equal(miss.inventory[gigUniquePools[gig.district][0]],state.inventory[gigUniquePools[gig.district][0]]);
 });

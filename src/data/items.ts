@@ -1,3 +1,5 @@
+import { makeBossIconicItems } from "./bossIconics";
+import { expandWeaponVariants, districtSpecialtyWeapons, consolidateWeaponModels } from "./weaponProgression";
 import { cyberdeckItems } from "./cyberdecks";
 import { quickhackItems } from "./quickhacks";
 import type { AttachmentCategory, CyberwareSlot, GearSlot, ItemDefinition, ItemRarity, WeaponClassId } from "../types";
@@ -29,7 +31,7 @@ export const gearSlots: Array<{ id: GearSlot; label: string }> = [
   { id: "accessory2", label: "Accessory 2" },
 ];
 
-export const items: ItemDefinition[] = [
+const baseItems: ItemDefinition[] = [
   ...quickhackItems,
   ...cyberdeckItems,
   ...endgameItems,
@@ -234,10 +236,23 @@ export const items: ItemDefinition[] = [
   component("drone-eye", "Drone Eye", "A cracked optical unit useful for scanner work.", 30),
 ];
 
+const consolidated = consolidateWeaponModels([...baseItems, ...districtSpecialtyWeapons(baseItems)]);
+export const legacyWeaponAliases = consolidated.aliases;
+export function canonicalWeaponId(id: string) { return legacyWeaponAliases[id] ?? id; }
+const regularItems = expandWeaponVariants([...baseItems.filter(item=>item.type!=="Weapon"), ...consolidated.models]);
+export const items: ItemDefinition[] = [...regularItems, ...makeBossIconicItems(regularItems)];
+
 export const itemNames = Object.fromEntries(items.map((item) => [item.id, item.name]));
 
+const itemById = new Map(items.map(item => [item.id, item]));
 export function getItem(id: string) {
-  return items.find((item) => item.id === id);
+  return itemById.get(canonicalWeaponId(id));
+}
+export function weaponVariantDropId(id: string, random: () => number = Math.random) {
+  const model = getItem(id)?.weaponModel;
+  if (!model) return id;
+  const ids = [model, `${model}-rapid`, `${model}-precision`];
+  return ids[Math.min(2, Math.max(0, Math.floor(random() * 3)))];
 }
 
 function resource(id: string, name: string, description: string, type: "Resource" | "Material", sellValue: number): ItemDefinition {

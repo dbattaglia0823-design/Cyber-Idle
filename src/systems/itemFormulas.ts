@@ -1,3 +1,4 @@
+import { weaponVariants } from "../data/weaponProgression";
 import { getItem } from "../data/items";
 import type { GameState, ItemDefinition, ItemStats } from "../types";
 
@@ -37,7 +38,13 @@ export function scaledStats(state: GameState, itemId: string): ItemStats {
   const stats = item?.stats ?? {};
   return Object.fromEntries(Object.entries(stats).map(([key, value]) => {
     if (typeof value !== "number") return [key, value];
+    if (key === "attackSpeed") return [key, value];
+    if (key === "critChance" && item?.weaponVariant) {
+      const variantBonus = weaponVariants[item.weaponVariant].crit;
+      return [key, Number((Math.max(0, value - variantBonus) * scale + variantBonus).toFixed(3))];
+    }
     const scaled = value * scale;
+    if (key === "damage" && item?.type === "Weapon") return [key, Number(scaled.toFixed(2))];
     if (Math.abs(value) < 1 || key.toLowerCase().includes("chance") || key.toLowerCase().includes("modifier")) {
       return [key, Number(scaled.toFixed(3))];
     }

@@ -1,3 +1,4 @@
+import { canonicalWeaponId } from "./items";
 import type { PercentDropEntry } from "../types";
 
 export const percentDropTables: Record<string, PercentDropEntry[]> = {
@@ -83,3 +84,5 @@ function drop(
     affectedByScenarioModifiers: true,
   };
 }
+
+for (const table of Object.values(percentDropTables)) for (const entry of table) entry.itemId = canonicalWeaponId(entry.itemId);

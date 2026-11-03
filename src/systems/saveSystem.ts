@@ -1,9 +1,14 @@
+import { normalizeBossIconicOwnership } from "./bossIconicLoot";
+import { normalizeIconicMemory } from "./iconicMemory";
+import { migrateRetiredWeapons } from "./weaponMigration";
+import { MAX_CHARACTER_LEVEL, attributePointBudget, perkPointBudget } from "../data/characterBuild";
+import { enforceCharacterPointBudget } from "./runnerProgression";
 import { skillActions } from "../data/skills";
 import { grantStarterQuickhacks } from "./quickhackSystem";
 import { spentPerkPoints } from "./perkSystem";
 import { startingResources } from "../data/resources";
 import { normalizeRpgState } from "./rpgState";
-import { createInitialState, normalizeLogEntries, SAVE_VERSION } from "./gameState";
+import { createInitialState, normalizeLogEntries, pushCategorizedLog, SAVE_VERSION } from "./gameState";
 import { calculateMaxHP } from "./healthSystem";
 import type { GameState } from "../types";
 
@@ -288,16 +293,21 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     if (oldPool) { pools[target].xp += Number.isFinite(oldPool.xp) ? Math.max(0, oldPool.xp) : 0; pools[target].spent += Number.isFinite(oldPool.spent) ? Math.max(0, oldPool.spent) : 0; }
     delete skillMap[retired]; delete pools[retired];
   }
+  migrateRetiredWeapons(normalized);
+  if (!saved.rpg?.iconicLootSeed) normalized.rpg.iconicLootSeed=(Math.trunc(saved.lastSavedAt ?? initial.lastSavedAt)>>>0)||1;
+  normalizeBossIconicOwnership(normalized);
+  if(normalized.currentCombat) normalized.currentCombat={...normalized.currentCombat,iconicMemory:normalizeIconicMemory(normalized.currentCombat.iconicMemory)};
   if (normalized.activeAction && !skillActions.some(action => action.id === normalized.activeAction!.actionId)) normalized.activeAction = null;
   // Transfer legacy character investment once, before recalculating health.
   if (!saved.rpg?.attributeProgressionVersion) {
-    const runnerLevel = Math.min(30, Math.max(normalized.rpg.level, 1 + Math.ceil((normalized.skills.combat.level - 1) / 5)));
+    const runnerLevel = Math.min(MAX_CHARACTER_LEVEL, Math.max(normalized.rpg.level, 1 + Math.ceil((normalized.skills.combat.level - 1) / 5)));
     const gained = runnerLevel - normalized.rpg.level;
     normalized.rpg.level = runnerLevel;
-    normalized.rpg.attributePoints = Math.min(65, normalized.rpg.attributePoints + gained * 2);
-    normalized.rpg.perkPoints = Math.min(31, normalized.rpg.perkPoints + gained + spentPerkPoints(normalized));
+    normalized.rpg.attributePoints = Math.min(attributePointBudget(runnerLevel), normalized.rpg.attributePoints + attributePointBudget(runnerLevel) - attributePointBudget(runnerLevel - gained));
+    normalized.rpg.perkPoints = Math.min(perkPointBudget(runnerLevel), normalized.rpg.perkPoints + perkPointBudget(runnerLevel) - perkPointBudget(runnerLevel - gained) + spentPerkPoints(normalized));
     normalized.rpg.attributeProgressionVersion = 1;
   }
+  if (enforceCharacterPointBudget(normalized)) pushCategorizedLog(normalized, "World", "Build points refunded to fit the level-30 specialization budget. Reassign your attributes and perks; character level and inventory are preserved.");
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
   normalized.health.currentHp = Math.max(0, Math.min(maxHp, Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp));

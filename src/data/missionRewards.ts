@@ -1,4 +1,4 @@
-import { getItem } from "./items";
+import { getItem, items, canonicalWeaponId } from "./items";
 import { recipes } from "./recipes";
 import { districtLevelBands } from "./levelBands";
 import { materialStage } from "./materialSupply";
@@ -14,7 +14,7 @@ import type { DistrictId } from "../types";
 // Retired activities provide an archive of items; equipment is separated from supply payouts.
 const archivedRewardPools: Record<DistrictId, string[]> = Object.fromEntries(rpgMissions.map(mission => {
   const ids = new Set<string>();
-  const add = (id: string) => { if (id && !["credits", "heat", "reputation"].includes(id)) ids.add(id); };
+  const add = (id: string) => { id = canonicalWeaponId(id); if (id && !["credits", "heat", "reputation"].includes(id)) ids.add(id); };
   for (const operation of operations.filter(entry => entry.districtId === mission.district)) {
     for (const drop of [...operation.rareDrops, ...(bosses.find(boss => boss.id === operation.bossId)?.drops ?? [])]) add(drop.id);
     for (const rewards of [operation.completionRewards, operation.firstClearRewards, operation.repeatClearRewards]) {
@@ -55,8 +55,14 @@ for (const mission of rpgMissions) {
     assigned.add(id);
   }
 }
-for (let act = 0; act < 7; act++) gigUniquePools[districts[act]].push('rpg-weapon-' + (act + 1));
+for (let act = 0; act < 7; act++) gigUniquePools[districts[act]].push(canonicalWeaponId('rpg-weapon-' + (act + 1)));
 missionRewardPools.skylineCore.push("boss-data-key");
+for (const district of districts) {
+  gigUniquePools[district] = [...new Set(gigUniquePools[district].flatMap(id => {
+    const item = getItem(id);
+    return item?.type === "Weapon" ? items.filter(weapon => weapon.weaponModel === item.weaponModel).map(weapon => weapon.id) : [id];
+  }))];
+}
 export const GIG_UNIQUE_CHANCE = 0.05;
 
 /** Preview and guaranteed payout are deterministic; rolling happens only on a completed gig. */
@@ -85,5 +91,21 @@ export function gigUniqueCandidates(mission: RpgMission, inventory: Record<strin
 export function rollGigUnique(mission: RpgMission, random: () => number = Math.random, inventory: Record<string, number> = {}): string | undefined {
   const pool = gigUniqueCandidates(mission, inventory);
   if (!mission.sideGig || !pool.length || random() >= GIG_UNIQUE_CHANCE) return undefined;
+  return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
+}
+
+// At most one current local model per category, with three variants. Advanced
+// districts never dilute their weapon rolls with starter or previous-zone gear.
+export const districtWeaponLootPools = Object.fromEntries(districts.map(district => {
+  const models = new Map<string, string>();
+  for (const weapon of items.filter(item => item.type === "Weapon" && item.weaponDistrict === district && item.weaponVariant === "Power").sort((a,b) => (b.requiredLevel ?? 1) - (a.requiredLevel ?? 1))) {
+    if (models.has(weapon.weaponClass!)) continue;
+    models.set(weapon.weaponClass!, weapon.id);
+  }
+  return [district, items.filter(item => item.weaponDistrict === district && models.get(item.weaponClass!) === item.weaponModel).map(item => item.id)];
+})) as Record<DistrictId, string[]>;
+export function rollDistrictWeapon(district: DistrictId, chance: number, random: () => number = Math.random) {
+  if (random() >= chance) return undefined;
+  const pool = districtWeaponLootPools[district];
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }

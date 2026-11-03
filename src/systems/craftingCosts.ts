@@ -1,3 +1,4 @@
+import { rarityWeaponQuality } from "../data/weaponProgression";
 import { getItem } from "../data/items";
 import { resourceSourceHint } from "../data/resourceTiers";
 import { getActiveModifiers } from "./modifiers";
@@ -10,7 +11,7 @@ const rarityScale: Record<ItemRarity, number> = {
 export function scaledCraftingCosts(state: GameState, recipe: CraftingRecipe) {
   const output = getItem(recipe.outputItemId);
   const equipment = output && ["Weapon", "Armor", "Cyberware", "WeaponMod", "WeaponAttachment"].includes(output.type);
-  const multiplier = equipment ? rarityScale[output.rarity] : 1;
+  const multiplier = output?.type === "Weapon" ? rarityWeaponQuality[output.rarity].cost : equipment ? rarityScale[output.rarity] : 1;
   const reduction = Math.max(0, Math.min(0.5, getActiveModifiers(state).craftingCostReduction));
   // Recipes are the complete bill of materials. Rarity changes quantities only;
   // it must never inject components from districts that are still locked.

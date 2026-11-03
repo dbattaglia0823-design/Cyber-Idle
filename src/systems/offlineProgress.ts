@@ -1,4 +1,5 @@
 import { processActionCompletion, getSkillAction } from "./actionProcessing";
+import { totalCharacterXp } from "./characterProgression";
 import { scaledCraftingCosts } from "./craftingCosts";
 import { processCrafting, getRecipe } from "./craftingProcessing";
 import { processCombat, getEnemy } from "./combatProcessing";
@@ -87,6 +88,8 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     capped: now-state.lastSavedAt>cap,
     timeAwayMs: elapsed, actionName: name, completions,
     xpGained: totalSkillXp(next) - totalSkillXp(state),
+    characterXpGained: totalCharacterXp(next) - totalCharacterXp(state),
+    characterLevelsGained: next.rpg.level - state.rpg.level,
     levelsGained: sumLevels(next.skills) - sumLevels(state.skills),
     masteryXpGained: totalMasteryXp(next) - totalMasteryXp(state),
     masteryLevelsGained: sumLevels(next.actionMastery) - sumLevels(state.actionMastery),

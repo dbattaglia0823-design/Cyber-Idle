@@ -31,6 +31,8 @@ export function canUseVendor(state: GameState, vendor: VendorDefinition) {
 }
 
 export function vendorItemUnlocked(state: GameState, entry: VendorItemEntry) {
+  const equipment = getItem(entry.itemId);
+  if (equipment?.type === "Weapon" && equipment.weaponDistrict && !state.districts[equipment.weaponDistrict]?.unlocked) return false;
   if (entry.requiredDistrictUnlock && !state.districts[entry.requiredDistrictUnlock]?.unlocked) return false;
   if (entry.requiredUnlock && !state.worldUnlocks[entry.requiredUnlock] && !state.unlocks[entry.requiredUnlock]) return false;
   return Object.entries(entry.requiredFactionRank ?? {}).every(([factionId, rank]) => {
