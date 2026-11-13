@@ -70,7 +70,9 @@ test('Character centralizes gear, implants, progression, recovery and presets', 
     if (section === 'gear') {
       assert.match(html, /Equipped gear/);
       assert.match(html, /Search inventory/);
-      assert.match(html, /aria-label="Selected item"/);
+      assert.match(html, /aria-label="Selected inventory item"/);
+      assert.match(html, /inventory-detail-layer/);
+      assert.match(html, /Back to inventory/);
       assert.match(html, /Resources &amp; currencies/);
       assert.match(html, /runner-stash-layout/);
     }
