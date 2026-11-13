@@ -5,7 +5,7 @@ import { renderToStaticMarkup as render } from 'react-dom/server';
 import { createInitialState, cloneState } from '../src/systems/gameState.ts';
 import { normalizeSave } from '../src/systems/saveSystem.ts';
 import { toggleInventoryLock } from '../src/systems/inventoryLocks.ts';
-import { canQuickSellInventoryItem, inventorySellAllButOneCount, quickSellInventoryItem, quickSellAllButOne } from '../src/systems/inventorySellSystem.ts';
+import { canQuickSellInventoryItem, inventorySellAllButOneCount, inventorySellAllCount, inventoryQuickSellValue, quickSellInventoryItem, quickSellAllButOne, quickSellAll } from '../src/systems/inventorySellSystem.ts';
 import { canSellVendorItem, sellVendorItem } from '../src/systems/vendorSystem.ts';
 import { canSellCyberwareToRipperdoc, sellCyberwareToRipperdoc } from '../src/systems/ripperdocSystem.ts';
 import { blackMarketEligibleItems, listBlackMarketItem } from '../src/systems/blackMarketSystem.ts';
@@ -33,6 +33,8 @@ test('locking protects all copies from single, bulk, vendor, clinic and black-ma
   assert.equal(inventorySellAllButOneCount(locked, item.id), 0);
   assert.equal(quickSellInventoryItem(locked, item.id), locked);
   assert.equal(quickSellAllButOne(locked, item.id), locked);
+  assert.equal(inventorySellAllCount(locked, item.id), 0);
+  assert.equal(quickSellAll(locked, item.id), locked);
   assert.equal(canSellVendorItem(locked, 'vendor-neon-street', item.id), false);
   assert.equal(sellVendorItem(locked, 'vendor-neon-street', item.id), locked);
   const clinic = ripperdocClinics[0];
@@ -44,6 +46,32 @@ test('locking protects all copies from single, bulk, vendor, clinic and black-ma
   assert.ok(canQuickSellInventoryItem(unlocked, item.id));
   assert.ok(canSellVendorItem(unlocked, 'vendor-neon-street', item.id));
   assert.equal(quickSellAllButOne(unlocked, item.id).inventory[item.id], 1);
+});
+
+
+test('Sell all clears eligible stacks, credits the full payout, and preserves equipped copies', () => {
+  const state = stocked();
+  const price = inventoryQuickSellValue(state, item.id);
+  const credits = state.resources.credits;
+  assert.ok(price > 0);
+  assert.equal(inventorySellAllCount(state, item.id), 3);
+  assert.equal(inventorySellAllButOneCount(state, item.id), 2);
+  const sold = quickSellAll(state, item.id);
+  assert.equal(sold.inventory[item.id] ?? 0, 0);
+  assert.equal(sold.resources.credits, credits + 3 * price);
+  assert.equal(state.inventory[item.id], 3, 'selling must not mutate the original state');
+  assert.equal(quickSellAll(sold, item.id), sold, 'empty stacks cannot be sold twice');
+
+  const equipped = stocked();
+  equipped.equippedCyberware[item.slot] = item.id;
+  assert.equal(inventorySellAllCount(equipped, item.id), 2);
+  assert.equal(inventorySellAllButOneCount(equipped, item.id), 2);
+  const soldSpare = quickSellAll(equipped, item.id);
+  assert.equal(soldSpare.inventory[item.id], 1);
+  assert.equal(soldSpare.equippedCyberware[item.slot], item.id);
+  assert.equal(soldSpare.resources.credits, equipped.resources.credits + 2 * price);
+  assert.equal(inventorySellAllCount(soldSpare, item.id), 0);
+  assert.equal(quickSellAll(soldSpare, item.id), soldSpare);
 });
 
 test('locks survive save normalization and cloning; old saves receive an empty lock map', () => {
@@ -101,6 +129,9 @@ test('inventory retains lock and item actions in its selectable detail sheet', (
     assert.match(html, /Back to inventory/);
     assert.match(html, /Locked against selling/);
     assert.match(html, /item-action-dock/);
+    assert.match(html, /Sell all but 1/);
+    assert.match(html, /Sell all ·/);
+    assert.doesNotMatch(html, /More actions/);
     assert.doesNotMatch(html, /aria-modal="true"/);
   } finally { globalThis.localStorage = original; }
 });

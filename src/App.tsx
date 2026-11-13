@@ -117,7 +117,7 @@ import { recipes, legacyRecipeAliases } from "./data/recipes";
 import { getItem, gearSlots } from "./data/items";
 import { cyberwareInstabilityLoad, cyberwareLoad, effectiveNeuralInstability, scaledStats } from "./systems/itemFormulas";
 import { equipItem, unequipCyberware, unequipGear, useItem } from "./systems/equipmentSystem";
-import { canQuickSellInventoryItem, inventoryQuickSellValue, inventorySellAllButOneCount, quickSellAllButOne, quickSellInventoryItem } from "./systems/inventorySellSystem";
+import { canQuickSellInventoryItem, inventoryQuickSellValue, inventorySellAllButOneCount, inventorySellAllCount, quickSellAllButOne, quickSellAll, quickSellInventoryItem } from "./systems/inventorySellSystem";
 import { canAffordItemUpgrade, itemUpgradeCost, upgradeItem } from "./systems/upgradeSystem";
 import { scaledCraftingCosts } from "./systems/craftingCosts";
 import { compatibleAttachments, compatibleMods, equippedWeaponClass, installAttachment, installWeaponMod, removeAttachment, removeWeaponMod, weaponXpForNextLevel } from "./systems/weaponSystem";
@@ -3556,6 +3556,7 @@ function InventoryTab({
   onUse,
   onSell,
   onSellAllButOne,
+  onSellAll,
   onToggleLock,
   onUpgrade,
   onInstallAttachment,
@@ -3573,6 +3574,7 @@ function InventoryTab({
   onUse: (id: string) => void;
   onSell: (id: string) => void;
   onSellAllButOne: (id: string) => void;
+  onSellAll: (id: string) => void;
   onToggleLock: (id: string) => void;
   onUpgrade: (id: string) => void;
   onInstallAttachment: (weaponId: string, attachmentId: string) => void;
@@ -3645,6 +3647,7 @@ function InventoryTab({
   const selectedQuickSellValue = activeId ? inventoryQuickSellValue(state, activeId) : 0;
   const selectedCanSell = activeId ? canQuickSellInventoryItem(state, activeId) : false;
   const selectedBulkSellCount = activeId ? inventorySellAllButOneCount(state, activeId) : 0;
+  const selectedAllSellCount = activeId ? inventorySellAllCount(state, activeId) : 0;
   const selectedEquippedGearSlot = activeId ? gearSlots.find((slot) => state.equippedGear[slot.id] === activeId)?.id : undefined;
   const selectedEquippedCyberwareSlot = activeId ? cyberwareSlots.find((slot) => state.equippedCyberware[slot.id] === activeId)?.id : undefined;
   const selectedIsEquipped = Boolean(selectedEquippedGearSlot || selectedEquippedCyberwareSlot);
@@ -3775,7 +3778,8 @@ function InventoryTab({
 {selectedItem.maxUpgradeLevel && <EquipmentUpgradeButton state={state} itemId={activeId} onUpgrade={onUpgrade} />}
 {selectedItem.useEffect && <button className="secondary-button full" onClick={() => onUse(activeId)}>Use</button>}
 <button className="secondary-button full" disabled={!selectedCanSell} onClick={() => onSell(activeId)}>{state.inventoryLocks?.[activeId] ? "Locked against selling" : !selectedCanSell ? "No spare copies to sell" : `Sell · ${selectedQuickSellValue.toLocaleString()} credits`}</button>
-<details className="bulk-sell-menu"><summary>More actions</summary><button className="secondary-button full" disabled={!selectedCanSell || selectedBulkSellCount === 0} onClick={() => onSellAllButOne(activeId)}>Sell all but 1 for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} Credits</button></details>
+<button className="secondary-button full" disabled={selectedBulkSellCount === 0 || !selectedCanSell} onClick={() => onSellAllButOne(activeId)}>Sell all but 1 · {selectedBulkSellCount.toLocaleString()} for {(selectedQuickSellValue * selectedBulkSellCount).toLocaleString()} credits</button>
+<button className="secondary-button full" disabled={selectedAllSellCount === 0} title={selectedIsEquipped ? "Equipped copies are protected" : "Sell every available copy of this item"} onClick={() => onSellAll(activeId)}>Sell all · {selectedAllSellCount.toLocaleString()} for {(selectedQuickSellValue * selectedAllSellCount).toLocaleString()} credits</button>
             </ItemActionDock>
           </div>
         ) : (
@@ -4112,6 +4116,7 @@ export function CharacterTab({
               onUse={(id) => onUpdate((current) => useItem(current, id))}
               onSell={(id) => onUpdate((current) => quickSellInventoryItem(current, id))}
               onSellAllButOne={(id) => onUpdate((current) => quickSellAllButOne(current, id))}
+              onSellAll={(id) => onUpdate((current) => quickSellAll(current, id))}
               onToggleLock={(id) => onUpdate((current) => toggleInventoryLock(current, id))}
               onUpgrade={(id) => onUpdate((current) => upgradeItem(current, id))}
               onInstallAttachment={(weaponId, attachmentId) => onUpdate((current) => installAttachment(current, weaponId, attachmentId))}
