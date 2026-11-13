@@ -18,3 +18,26 @@
  .recipe-detail-layer .card-action-footer{position:sticky;bottom:-14px;padding:10px 0;background:#0c151f;z-index:3;border-top:1px solid #33485e}
  .app-shell:has(.recipe-sheet-open) :is(.floating-sim-cache,.back-to-top){visibility:hidden}
 }
+
+
+/* The inventory reuses the crafting sheet's focus management, but opens as a
+   proper overlay at every viewport size instead of a second long page column. */
+.runner-stash-layout.inventory-stash-layout{grid-template-columns:minmax(0,1fr)}
+.recipe-detail-layer.inventory-detail-layer:not(.recipe-sheet-open){display:none}
+.recipe-detail-layer.inventory-detail-layer.recipe-sheet-open{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72)}
+.inventory-detail-layer .recipe-sheet-scrim{display:block;position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent}
+.app-shell .inventory-detail-layer .runner-item-inspector{position:relative!important;top:auto!important;align-self:auto;z-index:1;display:block;width:min(640px,100%);max-width:640px;max-height:calc(100dvh - 32px);margin:0;padding:16px;overflow-y:auto;overscroll-behavior:contain;border:1px solid #4d758b;border-radius:12px;background:#0c151f;box-shadow:0 18px 48px #000b}
+.inventory-detail-layer .recipe-sheet-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:-16px;z-index:4;padding:10px 0;margin-bottom:14px;background:#0c151f;border-bottom:1px solid #33485e}
+.inventory-detail-layer .recipe-sheet-toolbar>strong{font-size:12px;color:#a8c4da}
+.inventory-detail-layer .recipe-sheet-toolbar>button{min-height:44px;font-size:12px}
+.inventory-detail-layer .runner-item-inspector .detail-back{display:none}
+.app-shell:has(.inventory-detail-layer.recipe-sheet-open) :is(.floating-sim-cache,.back-to-top){visibility:hidden}
+@media(max-width:760px){
+ .recipe-detail-layer.inventory-detail-layer.recipe-sheet-open{align-items:end;padding:8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ .app-shell .inventory-detail-layer .runner-item-inspector{max-height:88dvh;padding:14px;border-radius:12px 12px 4px 4px}
+ .inventory-detail-layer .recipe-sheet-toolbar{top:-14px}
+ /* The old inventory dock was fixed above the game navigation; inside a sheet
+    it must remain in the sheet's scroll flow so actions never cover item info. */
+ .inventory-detail-layer .item-action-anchor.dock-visible{min-height:0}
+ .inventory-detail-layer .dock-visible .item-action-dock{position:static;left:auto;right:auto;bottom:auto;z-index:auto;display:grid;grid-template-columns:1fr;width:100%;max-height:none;margin:0;padding:0;overflow:visible;border:0;background:transparent;box-shadow:none}
+}

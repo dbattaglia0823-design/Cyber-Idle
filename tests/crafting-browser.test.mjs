@@ -62,3 +62,27 @@ test('mobile recipe detail sheet exposes a modal and a clear return action',()=>
     assert.match(html,/Recipe requirements/);
   }finally{globalThis.window=original;}
 });
+
+test('inventory details open a labeled dialog even on desktop, without changing the crafting default',()=>{
+  const original=globalThis.window;
+  globalThis.window={matchMedia:()=>({matches:false})};
+  try{
+    const props={
+      onClose(){},
+      className:'panel runner-item-inspector',
+      title:'Item details',
+      backLabel:'Back to inventory',
+      dialogLabel:'Selected inventory item',
+      modalOnDesktop:true,
+    };
+    const closed=render(createElement(CraftingDetailSheet,{...props,open:false},'Item actions'));
+    assert.match(closed,/inventory-detail-layer/);
+    assert.doesNotMatch(closed,/aria-modal="true"/);
+    const open=render(createElement(CraftingDetailSheet,{...props,open:true},'Item actions'));
+    assert.match(open,/aria-modal="true"/);
+    assert.match(open,/role="dialog"/);
+    assert.match(open,/Selected inventory item/);
+    assert.match(open,/Back to inventory/);
+    assert.match(open,/Item actions/);
+  }finally{globalThis.window=original;}
+});
