@@ -28,6 +28,15 @@ export function quickSellAllButOne(state: GameState, itemId: string) {
   return quickSellInventoryItem(state, itemId, inventorySellAllButOneCount(state, itemId));
 }
 
+// Sell every eligible inventory copy, but never remove equipped or locked items.
+export function inventorySellAllCount(state: GameState, itemId: string) {
+  return canQuickSellInventoryItem(state, itemId) ? spareInventoryCopies(state, itemId) : 0;
+}
+
+export function quickSellAll(state: GameState, itemId: string) {
+  return quickSellInventoryItem(state, itemId, inventorySellAllCount(state, itemId));
+}
+
 export function quickSellInventoryItem(state: GameState, itemId: string, quantity = 1) {
   if (!canQuickSellInventoryItem(state, itemId)) return state;
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > spareInventoryCopies(state, itemId)) return state;
