@@ -3589,6 +3589,7 @@ function InventoryTab({
   const [sortMode, setSortMode] = useRememberedState<InventorySortMode>("inventory-sort", "rarity", inventorySortModes);
   const [sortDirection, setSortDirection] = useRememberedState<InventorySortDirection>("inventory-direction", "desc", ["asc", "desc"]);
   const [selectedId, setSelectedId] = useRememberedState<string | null>("inventory-selected", null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [upgradesOnly, setUpgradesOnly] = useRememberedState("inventory-upgrades", false);
   const [lockedOnly, setLockedOnly] = useRememberedState("inventory-locked", false);
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
@@ -3637,7 +3638,8 @@ function InventoryTab({
     if (sortedValue !== 0) return sortedValue;
     return (leftItem?.name ?? itemNames[leftId] ?? leftId).localeCompare(rightItem?.name ?? itemNames[rightId] ?? rightId);
   });
-  const activeId = selectedId && sorted.some(([id]) => id === selectedId) ? selectedId : sorted[0]?.[0] ?? null;
+  const activeId = selectedId && sorted.some(([id]) => id === selectedId) ? selectedId : null;
+  useEffect(() => { if (detailOpen && !activeId) setDetailOpen(false); }, [detailOpen, activeId]);
   const selectedItem = activeId ? getItem(activeId) : null;
   const selectedCount = activeId ? state.inventory[activeId] ?? 0 : 0;
   const selectedQuickSellValue = activeId ? inventoryQuickSellValue(state, activeId) : 0;
@@ -3659,7 +3661,7 @@ function InventoryTab({
         <div className="slot-grid">{gearSlots.map(slot => {
           const id = state.equippedGear[slot.id];
           const item = id ? getItem(id) : undefined;
-          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); setSelectedId(id ?? null); revealDetail(".runner-item-inspector"); }}>
+          return <button key={slot.id} className={"slot-card " + (gearSlot === slot.id ? "active" : "")} aria-pressed={gearSlot === slot.id} onClick={() => { setGearSlot(slot.id); setFilter("All"); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); setSelectedId(id ?? null); if (id) setDetailOpen(true); }}>
             <EquipmentTypeIconBadge item={item} fallbackSlot={slot.id} fallbackKind="gear" /><span>{slot.label}</span><strong>{item?.name ?? "Empty slot"}{id && state.upgradeLevels[id] ? " +" + state.upgradeLevels[id] : ""}</strong><small>{item ? "Inspect / replace" : "Find equipment"}</small>
           </button>;
         })}</div>
@@ -3669,12 +3671,12 @@ function InventoryTab({
         notices={notices}
         onReviewNotice={(key) => {
           const itemId = key.replace(/^inventory:/, "");
-          if (getItem(itemId)) { setSelectedId(itemId); setFilter("All"); setGearSlot(null); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); }
+          if (getItem(itemId)) { setSelectedId(itemId); setFilter("All"); setGearSlot(null); setQuery(""); setUpgradesOnly(false); setLockedOnly(false); setDetailOpen(true); }
           onReviewNotice(key);
         }}
         onReviewAll={onReviewAllNotices}
       />
-      <div className="runner-stash-layout">
+      <div className="runner-stash-layout inventory-stash-layout">
       <article className="panel runner-stash" tabIndex={-1}>
         <div className="panel-heading">
           <div>
@@ -3716,7 +3718,7 @@ function InventoryTab({
             const active = activeId === id;
             const equippedLabel = equippedItemLabel(state, id);
             return (
-              <button key={id} className={`inventory-slot ${active ? "active" : ""} ${item ? `rarity-${item.rarity.toLowerCase()}` : ""}`} aria-pressed={active} onClick={() => { setSelectedId(id); revealDetail(".runner-item-inspector"); }}>
+              <button key={id} className={`inventory-slot ${active ? "active" : ""} ${item ? `rarity-${item.rarity.toLowerCase()}` : ""}`} aria-pressed={active} onClick={() => { setSelectedId(id); setDetailOpen(true); }}>
                 {item ? <EquipmentTypeIconBadge item={item} /> : <span className="slot-fallback">{itemInitials(id)}</span>}
                 {equippedLabel && <span className="equipped-marker">{equippedLabel}</span>}
                 {state.inventoryLocks?.[id] && <span className="item-lock-marker">Locked</span>}
@@ -3727,7 +3729,7 @@ function InventoryTab({
           }) : <p className="muted">No matching items. Try another category or clear your search.<button className="secondary-button" onClick={() => { setFilter("All"); setQuery(""); setGearSlot(null); setUpgradesOnly(false); setLockedOnly(false); }}>Reset filters</button></p>}
         </div>
       </article>
-      <article className="panel runner-item-inspector" aria-label="Selected item" tabIndex={-1}><button className="detail-back secondary-button" onClick={() => revealDetail(".runner-stash .inventory-slot.active, .runner-stash")}>Back to inventory</button>
+      <CraftingDetailSheet key={activeId ?? "none"} open={detailOpen} onClose={() => setDetailOpen(false)} modalOnDesktop title="Item details" backLabel="Back to inventory" dialogLabel="Selected inventory item" className="panel runner-item-inspector">
         {activeId && selectedItem ? (
           <div className={`inventory-detail rarity-${selectedItem.rarity.toLowerCase()}`}>
             <div className="panel-heading">
@@ -3779,7 +3781,7 @@ function InventoryTab({
         ) : (
           <p className="muted">No item selected.</p>
         )}
-      </article>
+      </CraftingDetailSheet>
       </div>
     </section>
   );
