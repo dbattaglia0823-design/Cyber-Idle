@@ -85,13 +85,24 @@ test('upcoming unlocks show the next district and an unmet owned-equipment requi
   assert.doesNotMatch(html, /NaN|undefined/);
 });
 
-test('inventory exposes lock state, mobile controls and an affordable-upgrades filter', () => {
+test('inventory retains lock and item actions in its selectable detail sheet', () => {
   const state = toggleInventoryLock(stocked(), item.id);
-  const html = render(createElement(CharacterTab, { state, section: 'gear', onSection() {}, onUpdate() {}, onRecover() {}, onAutoHealChange() {} }));
-  assert.match(html, /Affordable upgrades/);
-  assert.match(html, /Locked items/);
-  assert.match(html, /Locked against selling/);
-  assert.match(html, /item-action-dock/);
+  const original = globalThis.localStorage;
+  // The inspector only shows item actions after a selection; simulate a saved selection.
+  globalThis.localStorage = {
+    getItem: key => key.endsWith('inventory-selected') ? JSON.stringify(item.id) : null,
+    setItem() {},
+  };
+  try {
+    const html = render(createElement(CharacterTab, { state, section: 'gear', onSection() {}, onUpdate() {}, onRecover() {}, onAutoHealChange() {} }));
+    assert.match(html, /Affordable upgrades/);
+    assert.match(html, /Locked items/);
+    assert.match(html, /inventory-detail-layer/);
+    assert.match(html, /Back to inventory/);
+    assert.match(html, /Locked against selling/);
+    assert.match(html, /item-action-dock/);
+    assert.doesNotMatch(html, /aria-modal="true"/);
+  } finally { globalThis.localStorage = original; }
 });
 
 test('affordable filter updates when upgrade materials become insufficient', () => {
