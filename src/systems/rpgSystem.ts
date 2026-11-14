@@ -335,7 +335,6 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   }
   if(!mission.sideGig && state.rpg.completed[mission.id])return state;
   const next = cloneState(state);
-  const repeated = Boolean(next.rpg.completed[mission.id]);
   next.rpg.completed[mission.id] = { outcome: choice.id, approach: e.approach, clears: (next.rpg.completed[mission.id]?.clears ?? 0) + 1 };
   next.rpg.active = null;
   const bonus = mission.sideGig ? contractBonus(e,gigPayout(mission,e.gigRisk)) : 0;
