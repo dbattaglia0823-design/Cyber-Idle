@@ -3,7 +3,6 @@ import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget } from "
 import { weaponDropFitsDistrict } from "../data/weaponProgression";
 import { rollDistrictWeapon } from "../data/missionRewards";
 import { getItem, items, weaponVariantDropId } from "../data/items";
-import { grantActivityCharacterXp } from "./characterProgression";
 import { combatZones } from "../data/combat";
 import { resourceNames } from "../data/resources";
 import { addSkillXp } from "./actionProcessing";
@@ -193,7 +192,7 @@ function completeKill(state: GameState, enemy: Enemy, durationMs: number, manual
   const heatDelta = calculateActionHeatGain(state, matchup.heatChange, durationMs, combatTagsForEnemy(enemy));
   state.resources.heat = Math.max(0, Math.min(100, state.resources.heat + heatDelta));
   addSkillXp(state, "combat", xpReward);
-  grantActivityCharacterXp(state, durationMs);
+  // Repeatable Street Combat advances combat skill, weapon mastery and loot only.
 
   const log = state.enemyLog[enemy.id] ?? { kills: 0, bestKillMs: null, discoveredDrops: {} };
   log.kills += 1;
