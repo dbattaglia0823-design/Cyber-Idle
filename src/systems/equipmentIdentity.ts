@@ -61,7 +61,7 @@ export function equippedArmorSetProgress(state: GameState): ArmorSetProgress[] {
   const counts = new Map<ArmorSetName, GearSlot[]>();
   for (const slot of armorSlots) {
     const item = getItem(state.equippedGear[slot] ?? "");
-    if (item?.type !== "Armor" || !item.setName || !(item.setName in armorSetIdentity)) continue;
+    if (item?.type !== "Armor" || item.slot !== slot || !item.setName || !(item.setName in armorSetIdentity)) continue;
     const name = item.setName as ArmorSetName;
     counts.set(name, [...(counts.get(name) ?? []), slot]);
   }
