@@ -1,4 +1,5 @@
 import { tacticalAbilityForAction } from "../data/tacticalAbilities";
+import { activeDistrictBounty, districtBountyById, type DistrictBountyOffer } from "../data/districtBounties";
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget, iconicNonAttack } from "./iconicCombat";
 import { addWeaponClassXp, equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import { grantCharacterXp } from "./characterProgression";
@@ -124,16 +125,18 @@ export function clearHeatWithFixer(state: GameState) {
   return next;
 }
 
-export function startRpgMission(state: GameState, id: string, risk: GigRisk = "standard", contract: GigContractId = "none", bossReplay = false) {
+export function startRpgMission(state: GameState, id: string, risk: GigRisk = "standard", contract: GigContractId = "none", bossReplay = false, bountyId?: string) {
   const mission = missionById(id);
   if(!Object.prototype.hasOwnProperty.call(gigContracts,contract)) return state;
   if (!mission || state.rpg.active || (bossReplay ? !canReplayBoss(state, mission) : !missionAvailable(state, mission))) return state;
+  const bounty = bountyId ? districtBountyById(state, mission, bountyId) : undefined;
+  if (bountyId && (!mission.sideGig || !bounty || bossReplay)) return state;
   if (!Object.prototype.hasOwnProperty.call(gigRisks, risk) || (mission.sideGig && (state.rpg.completed[id]?.clears ?? 0) < gigRisks[risk].clears)) return state;
   const next = cloneState(state);
   clearActiveActivityForSwitch(state, next, mission.title);
   next.selectedDistrict = mission.district;
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
-  next.rpg.active = { bossReplay, gigVariant: mission.sideGig ? (state.rpg.completed[id]?.clears ?? 0) % 3 : 0, contract: mission.sideGig ? { id:contract, injectors:0, interrupts:0, aimedHits:0 } : undefined, gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
+  next.rpg.active = { bossReplay, bounty: bounty ? { id: bounty.id, cycle: bounty.cycle } : undefined, gigVariant: bounty?.variant ?? (mission.sideGig ? (state.rpg.completed[id]?.clears ?? 0) % 3 : 0), contract: mission.sideGig ? { id:contract, injectors:0, interrupts:0, aimedHits:0 } : undefined, gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
     turn: 0, abilityClock: 0, abilityReadyAt: {}, ram: maxRam(next), meds: fieldInjectorCount(next), aimed: false, log: ["Fixer clinic check complete. Health restored; field injectors supplied for this mission."] };
   return next;
 }
@@ -170,9 +173,9 @@ export function tacticalStats(state: GameState) {
     heal: Math.min(0.75, (0.35 + a.technical * 0.015) * (1 + modifiers.healingReceived)),
   };
 }
-export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk: GigRisk = "standard") {
+export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk: GigRisk = "standard", bounty?: DistrictBountyOffer) {
   const boss = !mission.sideGig && enemyIndex === mission.enemies.length - 1;
-  if (mission.sideGig) return { boss: false, health: Math.round(Math.max(80, mainJobBalance[mission.district].health * progressionBalance.gigHealthRatio) * gigRisks[risk].health), damage: Math.max(10, mainJobBalance[mission.district].damage * progressionBalance.gigDamageRatio) * gigRisks[risk].damage };
+  if (mission.sideGig) return { boss: false, health: Math.round(Math.max(80, mainJobBalance[mission.district].health * progressionBalance.gigHealthRatio) * gigRisks[risk].health * (bounty?.healthMultiplier ?? 1)), damage: Math.max(10, mainJobBalance[mission.district].damage * progressionBalance.gigDamageRatio) * gigRisks[risk].damage * (bounty?.damageMultiplier ?? 1) };
   const tier = mainJobBalance[mission.district];
   return {
     boss,
@@ -181,6 +184,9 @@ export function missionEnemyStats(mission: RpgMission, enemyIndex: number, risk:
   };
 }
 
+export function missionEnemyName(state: GameState, mission: RpgMission, enemyIndex: number) {
+  return mission.sideGig ? activeDistrictBounty(state, mission)?.target ?? mission.enemies[enemyIndex] : mission.enemies[enemyIndex];
+}
 export function enemyIntent(state: GameState) {
   const active = state.rpg.active;
   const mission = active && missionById(active.missionId);
@@ -209,6 +215,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   const feedback = { damage: 0, taken: 0, blocked: 0, healing: 0, interrupted: false, action: action as string };
   const stats = tacticalStats(next), maxHp = calculateMaxHP(next);
   const traits = encounterTraits(mission, e.enemyIndex, e.turn, e.gigVariant);
+  const activeBounty = activeDistrictBounty(next, mission);
   const ability = tacticalAbilityForAction(action);
   const weaponAction = action === "attack" || action === "ability:body" || action === "ability:reflexes";
   const aimedAttack = weaponAction && e.aimed;
@@ -287,7 +294,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   e.log.push(`${hack?.name ?? labels[action]}${damage ? `: ${damage} damage` : ""}.`);
   if(stun && e.contract && e.enemyHp>0)e.contract.interrupts++;
   if (e.enemyHp <= 0) {
-    e.log.push(`${mission.enemies[e.enemyIndex]} neutralized.`);
+    e.log.push(`${missionEnemyName(next, mission, e.enemyIndex)} neutralized.`);
     iconicKill(next,e,maxHp);
     e.enemyIndex++;
     if (next.rpg.perks["second-wind"]) next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * 0.2));
@@ -305,9 +312,9 @@ export function performTactic(state: GameState, action: TacticalAction) {
     }
     if (!stun && next.health.currentHp > 0) {
       const charged = traits.charged;
-      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * iconicIncoming(next,e) * (evade ? 0.12 : cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk, activeBounty).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * iconicIncoming(next,e) * (evade ? 0.12 : cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
       feedback.taken += Math.min(next.health.currentHp, incoming);
-      const rawIncoming = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1));
+      const rawIncoming = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk, activeBounty).damage * (charged ? 1.8 : traits.recovery ? .8 : 1));
       feedback.blocked = Math.max(0, rawIncoming - incoming);
       next.health.currentHp = Math.max(0, next.health.currentHp - incoming);
       next.healthStatistics.totalDamageTaken += incoming;
@@ -326,7 +333,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   e.abilityClock = (e.abilityClock ?? 0) + 1;
   feedback.healing = Math.max(0, next.health.currentHp - state.health.currentHp + feedback.taken);
   feedback.interrupted = stun;
-  e.feedback = { ...feedback, target: mission.enemies[state.rpg.active!.enemyIndex], defeated: e.enemyIndex !== state.rpg.active!.enemyIndex || e.phase === "decision" };
+  e.feedback = { ...feedback, target: missionEnemyName(state, mission, state.rpg.active!.enemyIndex), defeated: e.enemyIndex !== state.rpg.active!.enemyIndex || e.phase === "decision" };
   e.log = e.log.slice(-12);
   return next;
 }
@@ -337,11 +344,11 @@ function setupEnemy(state: GameState, mission: RpgMission) {
   e.phase = "combat"; e.turn = 0; e.aimed = false;
   e.playerBleedDamage = 0; e.playerBleedTurns = 0;
   e.burnDamage = 0; e.burnTurns = 0; e.weaken = 0; e.weakenTurns = 0;
-  e.enemyMaxHp = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).health * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
+  e.enemyMaxHp = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk, activeDistrictBounty(state, mission)).health * (e.approach === "ghost" || (e.approach === "lifepath" && mission.enemies.length === 1) ? 0.75 : 1));
   e.enemyHp = e.enemyMaxHp;
   // RAM carries through patrols; kills no longer refill an entire cyberdeck.
   e.ram = Math.min(e.ram, maxRam(state));
-  e.log.push(`${missionEnemyStats(mission, e.enemyIndex).boss ? "Boss contact" : "Contact"}: ${mission.enemies[e.enemyIndex]}. Read the enemy intent before choosing your move.`);
+  e.log.push(`${missionEnemyStats(mission, e.enemyIndex).boss ? "Boss contact" : "Contact"}: ${missionEnemyName(state, mission, e.enemyIndex)}. Read the enemy intent before choosing your move.`);
 }
 
 export function leaveRpgMission(state: GameState) {
@@ -353,7 +360,7 @@ export function leaveRpgMission(state: GameState) {
 }
 export function retryRpgMission(state: GameState) {
   if (state.rpg.active?.phase !== "failed") return state;
-  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk, state.rpg.active.contract?.id, state.rpg.active.bossReplay);
+  return startRpgMission(leaveRpgMission(state), state.rpg.active.missionId, state.rpg.active.gigRisk, state.rpg.active.contract?.id, state.rpg.active.bossReplay, state.rpg.active.bounty?.id);
 }
 
 export function resolveRpgMission(state: GameState, choiceId: string, random: () => number = Math.random) {
@@ -368,23 +375,28 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
     return next;
   }
   if(!mission.sideGig && state.rpg.completed[mission.id])return state;
+  const bounty = activeDistrictBounty(state, mission);
   const next = cloneState(state);
   next.rpg.completed[mission.id] = { outcome: choice.id, approach: e.approach, clears: (next.rpg.completed[mission.id]?.clears ?? 0) + 1 };
   next.rpg.active = null;
   const bonus = mission.sideGig ? contractBonus(e,gigPayout(mission,e.gigRisk)) : 0;
-  const payout = gigPayout(mission, e.gigRisk) + choice.bonusCredits + bonus;
+  const payout = gigPayout(mission, e.gigRisk) + choice.bonusCredits + bonus + (bounty?.creditBonus ?? 0);
   next.resources.credits += payout;
   if (mission.sideGig) next.resources.heat = Math.max(0, next.resources.heat - 15);
-  next.resources.reputation = Math.max(0, next.resources.reputation + choice.reputation);
-  next.rpg.streetCred += mission.sideGig ? 2 : 10;
+  next.resources.reputation = Math.max(0, next.resources.reputation + choice.reputation + (bounty ? 2 : 0));
+  next.rpg.streetCred += mission.sideGig ? (bounty ? 3 : 2) : 10;
   grantCharacterXp(next, missionCharacterXp(state, mission));
   const loot = missionItemRewards(mission, state.rpg.completed[mission.id]?.clears ?? 0);
+  if (bounty) {
+    loot[bounty.rewardItemId] = (loot[bounty.rewardItemId] ?? 0) + bounty.rewardItemAmount;
+    next.rpg.bountyCycles = { ...next.rpg.bountyCycles, [mission.district]: Math.min(1000000, bounty.cycle + 1) };
+  }
   const fixer = fixers.find(entry => entry.name === mission.fixer);
   if (fixer) {
     const progress = next.fixerTrust[fixer.id] ?? { trust: 0, completedJobs: 0 };
     next.fixerTrust[fixer.id] = { ...progress, trust: progress.trust + (mission.sideGig ? 3 : 12), completedJobs: progress.completedJobs + 1 };
   }
-  addDistrictMasteryXp(next, mission.district, "action", mission.sideGig ? 40 + mission.act * 25 : 250 + mission.act * 100);
+  addDistrictMasteryXp(next, mission.district, "action", mission.sideGig ? 40 + mission.act * 25 + (bounty ? 25 : 0) : 250 + mission.act * 100);
   const dry = state.rpg.gigDryStreak?.[mission.id] ?? 0;
   let unique = mission.sideGig ? rollGigUnique(mission, random, state.inventory) : rollDistrictWeapon(mission.district, .25, random);
   if(mission.sideGig && !unique && dry>=9) {
@@ -406,12 +418,12 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
     }
   }
   for (const faction of factions.filter(entry => entry.districtInfluence.includes(mission.district))) next.factions[faction.id].reputation += mission.sideGig ? 2 : 5;
-  changeLocalStanding(next, mission.district, mission.sideGig ? 2 : 8, mission.title);
+  changeLocalStanding(next, mission.district, mission.sideGig ? (bounty ? 4 : 2) : 8, bounty?.title ?? mission.title);
   updateOperationAchievements(next);
   updateWorldUnlocks(next);
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
-  pushCategorizedLog(next, "World", `${mission.title}: ${choice.response}`);
-  emitRewardPopupGroup(next, { title: `${mission.title} complete`, category: "story", resources: { credits: payout, reputation: choice.reputation }, items: loot, story: [choice.response] });
+  pushCategorizedLog(next, "World", bounty ? `${bounty.title}: completed · +${bounty.creditBonus} bounty credits and materials.` : `${mission.title}: ${choice.response}`);
+  emitRewardPopupGroup(next, { title: `${bounty?.title ?? mission.title} complete`, category: "story", resources: { credits: payout, reputation: choice.reputation + (bounty ? 2 : 0) }, items: loot, story: [choice.response] });
   return next;
 }
 
