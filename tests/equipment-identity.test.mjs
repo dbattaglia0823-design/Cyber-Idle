@@ -84,8 +84,8 @@ test("set thresholds activate only on actual worn pieces and stop after unequipp
 });
 test("mixed pieces never count toward an unearned bonus or double count copies",()=>{
  const state=wear(createInitialState(),"neon-runner",3);
- state.equippedGear.hands="street-operator-hands";
  state.equippedGear.legs="street-operator-legs";
+ state.equippedGear.boots="street-operator-boots";
  state.inventory["neon-runner-boots"]=80;
  const sets=equippedArmorSetProgress(state);
  assert.equal(sets.find(s=>s.name==="Neon Runner").count,3);
@@ -97,7 +97,7 @@ test("mixed pieces never count toward an unearned bonus or double count copies",
  assert.ok(!sources.includes("Street Operator 3/5"));
  // A corrupt save with a headpiece in the chest slot must not unlock a set.
  state.equippedGear.chest="neon-runner-head";
- assert.ok(equippedArmorSetProgress(state).find(s=>s.name==="Neon Runner").count<=3);
+ assert.equal(equippedArmorSetProgress(state).find(s=>s.name==="Neon Runner").count,2);
 });
 test("equipping full armor improves real combat output while preserving old saves",()=>{
  const old=createInitialState(1000);
