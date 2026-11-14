@@ -4,6 +4,7 @@ import { migrateRetiredWeapons } from "./weaponMigration";
 import { MAX_CHARACTER_LEVEL, attributePointBudget, attributePointBudgetV2, perkPointBudget } from "../data/characterBuild";
 import { enforceCharacterPointBudget } from "./runnerProgression";
 import { skillActions } from "../data/skills";
+import { normalizeIdleQueue } from "./idleQueue";
 import { grantStarterQuickhacks } from "./quickhackSystem";
 import { spentPerkPoints } from "./perkSystem";
 import { startingResources } from "../data/resources";
@@ -123,6 +124,7 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     inventory: { ...initial.inventory, ...saved.inventory },
     inventoryLocks: Object.fromEntries(Object.entries(saved.inventoryLocks && typeof saved.inventoryLocks === "object" ? saved.inventoryLocks : {}).filter(([, value]) => value === true)),
     activeAction: saved.activeAction ?? null,
+    idleQueue: normalizeIdleQueue(saved.idleQueue),
     activeJob: null,
     activeCraft: saved.activeCraft ?? null,
     activeOperation: null,
@@ -298,6 +300,13 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
   normalizeBossIconicOwnership(normalized);
   if(normalized.currentCombat) normalized.currentCombat={...normalized.currentCombat,iconicMemory:normalizeIconicMemory(normalized.currentCombat.iconicMemory)};
   if (normalized.activeAction && !skillActions.some(action => action.id === normalized.activeAction!.actionId)) normalized.activeAction = null;
+  if (normalized.idleQueue.enabled && (
+    normalized.rpg.active || normalized.currentCombat || normalized.activeJob || normalized.activeOperation ||
+    (normalized.activeAction && normalized.idleQueue.steps[normalized.idleQueue.index]?.actionId !== normalized.activeAction.actionId)
+  )) {
+    normalized.idleQueue.enabled = false;
+    normalized.idleQueue.message = "Queue paused: a different foreground activity is active.";
+  }
   // Transfer legacy character investment once, before recalculating health.
   if (!saved.rpg?.attributeProgressionVersion) {
     const runnerLevel = Math.min(MAX_CHARACTER_LEVEL, Math.max(normalized.rpg.level, 1 + Math.ceil((normalized.skills.combat.level - 1) / 5)));
