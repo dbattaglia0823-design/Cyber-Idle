@@ -13,6 +13,7 @@ export const PlayerNavigation = createContext<{
   openMissions?: () => void;
   openCharacter?: (section: CharacterTool) => void;
   openIndex?: () => void;
+  openMenu?: () => void;
   recipeId?: string | null;
   recipeRequest?: number;
 }>({});
