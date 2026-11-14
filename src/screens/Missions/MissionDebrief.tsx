@@ -1,6 +1,7 @@
 import { attributePointBudget, perkPointBudget } from "../../data/characterBuild";
 import { contractBonus } from "../../data/gigContracts";
 import { gigPayout } from "../../systems/rpgSystem";
+import { totalCharacterXp } from "../../systems/characterProgression";
 import { CampaignFinale } from "./CampaignFinale";
 import { useState } from "react";
 import { recipes } from "../../data/recipes";
@@ -28,7 +29,7 @@ export function MissionDebrief({ before, after, onContinue }: { before: GameStat
   <p className="eyebrow">{replay ? "BOSS REMATCH COMPLETE" : mission.sideGig ? "GIG COMPLETE" : "BOSS DEFEATED / MAIN JOB COMPLETE"}</p><h2>{mission.title}</h2>
   <p>{replay ? "Practice complete. Your campaign choices and first-clear rewards are unchanged." : mission.choices.find(choice => choice.id === result?.outcome)?.response}</p>
   {!replay && !mission.sideGig && mission.act === 7 && <CampaignFinale state={after} />}
-  <div className="debrief-rewards"><div><span>Credits received</span><strong>+{(after.resources.credits - before.resources.credits).toLocaleString()}</strong></div><div><span>Character XP</span><strong>+{replay ? 0 : before.rpg.completed[mission.id] ? Math.round(mission.xp * .5) : mission.xp}</strong></div>{levels > 0 && <div><span>Runner level {after.rpg.level}</span><strong>+{attributePointBudget(after.rpg.level)-attributePointBudget(before.rpg.level)} attribute / +{perkPointBudget(after.rpg.level)-perkPointBudget(before.rpg.level)} perk points</strong></div>}</div>
+  <div className="debrief-rewards"><div><span>Credits received</span><strong>+{(after.resources.credits - before.resources.credits).toLocaleString()}</strong></div><div><span>Character XP</span><strong>+{totalCharacterXp(after) - totalCharacterXp(before)}</strong></div>{levels > 0 && <div><span>Runner level {after.rpg.level}</span><strong>+{attributePointBudget(after.rpg.level)-attributePointBudget(before.rpg.level)} attribute / +{perkPointBudget(after.rpg.level)-perkPointBudget(before.rpg.level)} perk points</strong></div>}</div>
 
   {mission.sideGig && before.rpg.active?.contract?.id && before.rpg.active.contract.id!=="none" && <p className="gig-contract-live">Optional objective: {contractBonus(before.rpg.active,gigPayout(mission,before.rpg.active.gigRisk))>0 ? `complete · +${contractBonus(before.rpg.active,gigPayout(mission,before.rpg.active.gigRisk))} credits included above` : "missed · base rewards kept"}</p>}
   {district && <div className="district-unlocked"><p className="eyebrow">DISTRICT UNLOCKED</p><h3>{district.name}</h3><p>Your main job opened the route. Your previous districts remain available for training, crafting and local gigs.</p></div>}
