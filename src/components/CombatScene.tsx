@@ -27,12 +27,12 @@ export function CombatScene({ target, pulse, incoming, aimed = false, danger = f
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
-  const hack = pulse?.action.startsWith("quickhack:") || pulse?.action === "hack" || pulse?.action === "disrupt";
-  const guarding = pulse?.action === "cover" || pulse?.action === "aim" || pulse?.action === "overclock";
+  const hack = pulse?.action.startsWith("quickhack:") || pulse?.action === "hack" || pulse?.action === "disrupt" || pulse?.action === "ability:intelligence";
+  const guarding = pulse?.action === "cover" || pulse?.action === "aim" || pulse?.action === "overclock" || pulse?.action === "ability:technical" || pulse?.action === "ability:cool";
   const attack = Boolean(pulse && pulse.damage > 0);
   const recoil = incoming?.amount ?? pulse?.taken ?? 0;
   const Icon = hack ? Cpu : melee ? Swords : Crosshair;
-  return <div ref={scene} className={`combat-scene ${danger ? "threat-charging" : ""} ${aimed ? "shot-primed" : ""}`} aria-label="Combat animation">
+  return <div ref={scene} className={`combat-scene ${danger ? "threat-charging" : ""} ${aimed ? "shot-primed" : ""} ${pulse?.action.startsWith("ability:") ? "scene-attribute-ability" : ""}`} aria-label="Combat animation">
     <div key={`runner-${pulse?.id ?? "ready"}`} className={`scene-fighter scene-runner ${attack ? "scene-firing" : ""} ${!incoming && recoil > 0 ? "scene-wounded" : ""} ${guarding ? "scene-guarding" : ""}`} aria-hidden="true">
       <UserRound size={40}/><span>RUNNER</span>{guarding && <Shield className="scene-shield" size={64}/>}
       {pulse && pulse.healing > 0 && <b className="scene-number scene-heal">+{pulse.healing}</b>}
@@ -44,7 +44,7 @@ export function CombatScene({ target, pulse, incoming, aimed = false, danger = f
       {pulse && <div key={pulse.id} className={`scene-exchange ${hack ? "scene-hack" : melee ? "scene-melee" : "scene-shot"}`}>
         {attack && <><i className="scene-projectile"/><i className="scene-impact"/></>}
         {pulse.interrupted && <Zap className="scene-interrupt" size={20}/>}
-        {pulse.action === "heal" && <HeartPulse className="scene-heal-ring" size={40}/>}
+        {(pulse.action === "heal" || pulse.action === "ability:technical") && <HeartPulse className="scene-heal-ring" size={40}/>}
       </div>}
       {incoming && incoming.amount > 0 && <i key={incoming.id} className="scene-counter"/>}
       {!incoming && pulse && pulse.taken > 0 && <i key={`counter-${pulse.id}`} className="scene-counter"/>}
