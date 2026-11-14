@@ -65,7 +65,7 @@ export function districtBountyOffers(state: GameState, mission: RpgMission): Dis
   const pressure = Math.min(0.25, Math.floor(cycle / 3) * 0.025);
   return kinds.map((_, slot) => {
     const kind = kinds[(slot + cycle) % kinds.length];
-    const target = targets[mission.district][(cycle + slot * 2) % targets[mission.district].length];
+    const target = targets[mission.district][(cycle + slot) % targets[mission.district].length];
     return {
       id: `${mission.district}:${cycle}:${slot}`,
       district: mission.district, cycle, kind, target,
