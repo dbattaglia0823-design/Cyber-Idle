@@ -2,7 +2,6 @@ import { startBossReplay, canReplayBoss } from "../systems/rpgSystem";
 import { MAX_CHARACTER_LEVEL } from "../data/characterBuild";
 import { CombatScene } from "./CombatScene";
 import { StartingBuildPicker } from "./StartingBuildPicker";
-import { UpcomingUnlocks } from "./UpcomingUnlocks";
 import { AttributePreview } from "./AttributePreview";
 import { GigOptions } from "./GigOptions";
 import { DistrictBountyBoard } from "./DistrictBountyBoard";
@@ -15,7 +14,6 @@ import type { CSSProperties } from "react";
 import { MissionDebrief } from "../screens/Missions/MissionDebrief";
 import { revealDetail } from "./PlayerNavigation";
 import { TacticalEncounter } from "../screens/Missions/TacticalEncounter";
-import { NextGoal } from "./NextGoal";
 import { ActivityCenter } from "./ActivityCenter";
 import { MainMenu, type CharacterTool } from "./MainMenu";
 import { mainJobBalance } from "../data/mainJobBalance";
@@ -41,7 +39,7 @@ type Update = (fn: (state: GameState) => GameState) => void;
 const approachNames: Record<MissionApproach, string> = { assault: "Kick the door", ghost: "Go in quiet", netrunner: "Own the network", lifepath: "Use your connections" };
 
 
-export type MainSection = "home" | "journal" | "character" | "progress" | "intel";
+export type MainSection = "home" | "journal" | "character";
 
 export function RpgHub({ state, onUpdate, onServices, page, onPage: setPage, inventoryNoticeCount = 0, onCharacterTool, children }: { state: GameState; onUpdate: Update; onServices: () => void; page: MainSection; onPage: (page: MainSection) => void; inventoryNoticeCount?: number; onCharacterTool?: (section: CharacterTool) => void; children?: ReactNode }) {
 
@@ -61,15 +59,18 @@ export function RpgHub({ state, onUpdate, onServices, page, onPage: setPage, inv
   const completed = mainChaptersCleared(state);
   const kit = state.rpg.starterClaimed;
   const selectedRisk = active?.gigRisk ?? ((state.rpg.completed[mission.id]?.clears ?? 0) >= gigRisks[gigRisk].clears ? gigRisk : "standard");
-  if (page === "home") return <section className="rpg-shell" data-section="home" aria-label="Main / Afterimage RPG"><ActivityCenter state={state} onUpdate={onUpdate} onMissions={() => setPage("journal")} /><NextGoal state={state} /><details className="activity-center-more"><summary>Character, missions and other sections</summary><MainMenu onOpen={setPage} onCharacter={section => { onCharacterTool?.(section); setPage("character"); }} activeMission={active ? mission.title : undefined} points={state.rpg.attributePoints + state.rpg.perkPoints} /><UpcomingUnlocks state={state} /></details></section>;
+  if (page === "home") return <section className="rpg-shell" data-section="home" aria-label="Main / Afterimage RPG">
+    <MainMenu onOpen={setPage} onCharacter={section => { onCharacterTool?.(section); setPage("character"); }} activeMission={active ? mission.title : undefined} points={state.rpg.attributePoints + state.rpg.perkPoints} />
+    <ActivityCenter state={state} onUpdate={onUpdate} onMissions={() => setPage("journal")} />
+  </section>;
   if (page === "journal" && settlementBefore && !active) return <section className="rpg-shell" data-section="debrief"><MissionDebrief before={settlementBefore} after={state} onContinue={() => { const previous = missionById(settlementBefore.rpg.active!.missionId)!; setSettlementBefore(null); setBountyId(undefined); setGigs(Boolean(previous.sideGig)); setSelected(previous.sideGig || settlementBefore.rpg.active?.bossReplay ? previous.id : next?.id ?? previous.id); }} /></section>;
   return <section className="rpg-shell campaign-district" style={{"--district-accent":districtAccents[mission.district]} as CSSProperties} data-section={page} aria-label="Main / Afterimage RPG">
     <NetworkHero compact title={["NEON", "AFTERIMAGE"]} eyebrow="YOUR NAME. YOUR RULES. YOUR CONSEQUENCES." description={<>Build a reputation. Bend the network.<br />Decide what survives the night.</>} status={<>PROFILE {String(state.rpg.level).padStart(2, "0")} <i /> STREET CRED {state.rpg.streetCred}</>} progress={{ label: "AFTERIMAGE / MAIN STORY", value: completed, maximum: 8, suffix: "/08", note: active ? "FIELD CONNECTION ACTIVE" : next ? `NEXT SIGNAL: ${next.fixer.toUpperCase()}` : "CAMPAIGN COMPLETE" }} actions={<><button className="rpg-primary" onClick={() => { setPage("journal"); setGigs(false); setSelected(next?.id ?? rpgMissions[7].id); }}>{active ? "Return to mission" : next ? "Track next lead" : "Review your ending"}<ArrowUpRight size={17} /></button><button className="rpg-text-button" onClick={() => setPage("character")}>Manage character <ChevronRight size={15} /></button></>} />
-    <div className="mobile-main-navigation"><MobileSectionMenu label="Main sections" value={page} onChange={setPage} options={[{ id: "home", label: "All sections" }, { id: "journal", label: "Missions" }, { id: "character", label: "Character" }, { id: "progress", label: "Progress" }, { id: "intel", label: "Field manual" }]} /><button className="secondary-button" onClick={onServices}>District services <ArrowUpRight size={15} /></button></div>
-    <div className="rpg-section-nav" role="tablist" aria-label="Runner network sections"><button onClick={() => setPage("home")}><Backpack size={16} />All sections</button>{([['journal','Missions',MessageSquare],['character','Character',UserRound],['progress','Progress',TrendingUp],['intel','Field manual',Terminal]] as const).map(([id,label,Icon]) => <button role="tab" aria-selected={page === id} key={id} onClick={() => setPage(id)} className={page === id ? "selected" : ""}><Icon size={16} />{label}{id === "character" && state.rpg.attributePoints + state.rpg.perkPoints > 0 && <b>{state.rpg.attributePoints + state.rpg.perkPoints}</b>}{id === "character" && inventoryNoticeCount > 0 && <b aria-label={`${inventoryNoticeCount} inventory updates`}>{inventoryNoticeCount} new</b>}</button>)}<button className="rpg-services" onClick={onServices}>District services <ArrowUpRight size={15} /></button></div>
+    <div className="mobile-main-navigation"><MobileSectionMenu label="Main sections" value={page} onChange={setPage} options={[{ id: "home", label: "Main" }, { id: "journal", label: "Missions" }, { id: "character", label: "Character" }]} /><button className="secondary-button" onClick={onServices}>District services <ArrowUpRight size={15} /></button></div>
+    <div className="rpg-section-nav" role="tablist" aria-label="Runner network sections"><button onClick={() => setPage("home")}><Backpack size={16} />Main</button>{([['journal','Missions',MessageSquare],['character','Character',UserRound]] as const).map(([id,label,Icon]) => <button role="tab" aria-selected={page === id} key={id} onClick={() => setPage(id)} className={page === id ? "selected" : ""}><Icon size={16} />{label}{id === "character" && state.rpg.attributePoints + state.rpg.perkPoints > 0 && <b>{state.rpg.attributePoints + state.rpg.perkPoints}</b>}{id === "character" && inventoryNoticeCount > 0 && <b aria-label={`${inventoryNoticeCount} inventory updates`}>{inventoryNoticeCount} new</b>}</button>)}<button className="rpg-services" onClick={onServices}>District services <ArrowUpRight size={15} /></button></div>
     {page === "journal" && kit && !active && state.resources.heat > 0 && <div className="rpg-kit"><div><p className="rpg-eyebrow">FIXER SERVICES / HEAT {Math.ceil(state.resources.heat)}</p><p>Repeatable actions build Heat over time; speed bonuses do not increase the rate. Local gig: −15 Heat / Fixer: 10 credits per Heat</p></div><button className="rpg-primary" disabled={Boolean(active) || state.resources.heat <= 0 || state.resources.credits < heatCleanupCost(state)} onClick={() => onUpdate(clearHeatWithFixer)}>Clear Heat / {heatCleanupCost(state)} credits</button></div>}
     {!kit && page === "journal" && <div className="rpg-kit"><Cpu size={28} /><div><h2>Your first call is waiting.</h2><p>Sable left a sidearm, armor, medicine, and a rechargeable quickhack deck. Claim the kit to begin. Existing equipment is kept.</p></div><button className="rpg-primary" onClick={() => { onUpdate(claimFieldKit); setPage("home"); }}>Claim field kit <ArrowRight size={16} /></button></div>}
-    {page !== "journal" && page !== "intel" ? <div className="main-section-content">{children}</div> : page === "intel" ? <FieldManual /> : <div className="rpg-journal">
+    {page !== "journal" ? <div className="main-section-content">{children}</div> : <div className="rpg-journal">
       <aside className="rpg-quest-list"><div className="rpg-list-heading"><span>YOUR JOURNAL</span><b>{completed}/8</b></div><div className="rpg-list-filters"><button className={!gigs ? "selected" : ""} onClick={() => { setGigs(false); if (!active) setSelected(next?.id ?? rpgMissions[7].id); setBountyId(undefined); }}>Main jobs</button><button className={gigs ? "selected" : ""} onClick={() => { setGigs(true); if (!active) { setSelected((rpgSideGigs.find(m => missionAvailable(state, m)) ?? rpgSideGigs[0]).id); setGigRisk("standard"); setBountyId(undefined); } }}>Local gigs</button></div>
         <label className="mobile-mission-picker">{gigs ? "Choose a local gig" : "Choose a main job"}<select value={mission.id} disabled={Boolean(active)} onChange={event => { setSelected(event.target.value); setGigRisk("standard"); setBountyId(undefined); }}>{(gigs ? rpgSideGigs : rpgMissions).map(entry => <option key={entry.id} value={entry.id}>{entry.act + 1}. {entry.title}</option>)}</select></label>
         {(gigs ? rpgSideGigs : rpgMissions).map(m => {
@@ -107,14 +108,14 @@ export function BuildPanel({ state, onUpdate }: { state: GameState; onUpdate: Up
 {perksIntroduced ? <PerkTrees state={state} onUpdate={onUpdate} /> : <details className="early-perks"><summary>Perks · {state.rpg.perkPoints} points saved</summary><p className="muted">Try a gig first, or choose now.</p><PerkTrees state={state} onUpdate={onUpdate} /></details>}<button className="rpg-text-button" disabled={Boolean(state.rpg.active)} onClick={()=>onUpdate(respecRpg)}>Refund points · free</button><p className="rpg-choice-warning">Change your build anytime outside missions. Ineligible gear is unequipped.</p></div>;
 }
 
-function FieldManual() {
+export function FieldManual() {
   const entries = [
     ["01 / Make a name", "Claim your field kit, spend your starting attribute and perk points, and answer Sable's call. Craft and upgrade district gear, then complete main jobs to open the next district. Each main job ends in a boss fight. Local gigs grant runner XP on the first clear, then remain repeatable for credits, components, and rare loot. District bounty boards offer three rotating named targets with bonus supplies and payouts; completing one refreshes only that district's board."],
     ["02 / Choose your approach", "Assault is always available. Cool unlocks stealth routes; Intelligence unlocks netrunner routes. Your starting lifepath opens special entrances. Failed attribute checks never block the main story."],
     ["03 / Read the threat", "Actions advance one turn. A charged burst is a warning to take cover or interrupt. Each attribute unlocks a signature ability at 8 points: Body breaches, Reflexes double-taps, Intelligence weakens, Technical patches, Cool evades. Their cooldowns persist across patrols; RAM recovers on non-interrupt turns."],
     ["04 / Keep moving", "Every deployment includes full health and two field injectors, with an extra injector from Field Medic. Health is shared with the rest of the game. Defeat allows a free retry. Missions wait while you're offline."],
     ["05 / Own the consequences", "Main-job decisions are permanent, alter your reputation or payout, and remain in your journal. The final job has three endings. Your earlier decisions determine the personal history carried into that ending."],
-    ["06 / Work the city", "District services contain vendors, crafting, cyberware, companions, and optional training. Main jobs supply crafting materials; local gigs fund upgrades and rarely drop unique gear. Starting idle work abandons an unfinished field mission."],
+    ["06 / Work the city", "District services contain vendors, crafting, cyberware, companions, and optional training. Main jobs supply crafting materials; local gigs fund upgrades and rarely drop unique gear. Crafting continues in the background while training, fighting or navigating missions; starting another foreground activity can interrupt a field mission."],
   ];
   return <div className="rpg-manual"><p className="rpg-eyebrow">FIELD MANUAL / READ BEFORE DEPLOYMENT</p><h2>The city won't wait. Your next turn will.</h2><div>{entries.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div>;
 }
