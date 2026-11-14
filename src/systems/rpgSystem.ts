@@ -155,7 +155,9 @@ export function tacticalStats(state: GameState) {
     armorPenetration: Math.min(.8, Math.max(0, tacticalWeaponStats(state).armorPenetration ?? 0) / 100),
     damage: Math.round(((20 + a.body * 0.8 + a.reflexes + state.rpg.level * 1.5) * tempo + gear) * (1 + Math.min(.25, modifiers.combatAttackSpeed)) * (1 + Math.min(0.5, modifiers.combatDamage) + mastery)),
     hack: Math.round((19 + a.intelligence * 3 + state.rpg.level) * (state.rpg.perks.synapse ? 1.4 : 1) * (1 + deckBonuses(state).damage + (state.rpg.perks["neural-sovereign"] ? .2 : 0))),
-    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + 0.35 * (armor * (1 + modifiers.combatDefense)) / (60 + armor * (1 + modifiers.combatDefense)) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
+    // Compensate for the smaller level-30 attribute pool without giving free
+    // specialization points or changing the 65% damage-reduction cap.
+    mitigation: Math.min(0.65, (a.technical - 3) * 0.015 + Math.min(0.11, Math.max(0, state.rpg.level - 1) * 0.004) + 0.35 * (armor * (1 + modifiers.combatDefense)) / (60 + armor * (1 + modifiers.combatDefense)) + Math.max(0, modifiers.damageReduction) + (state.rpg.perks["reactive-armor"] ? 0.2 : 0)),
     heal: Math.min(0.75, (0.35 + a.technical * 0.015) * (1 + modifiers.healingReceived)),
   };
 }
