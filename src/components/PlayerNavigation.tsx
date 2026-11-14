@@ -6,6 +6,9 @@ import type { CharacterTool } from "./MainMenu";
 export const PlayerNavigation = createContext<{
   openDistrict?: (id: DistrictId, category?: string) => void;
   openCrafting?: (recipeId?: string) => void;
+  openActivityCenter?: (recipeId?: string) => void;
+  activityRecipeId?: string | null;
+  activityRecipeRequest?: number;
   openMissions?: () => void;
   openCharacter?: (section: CharacterTool) => void;
   openIndex?: () => void;
