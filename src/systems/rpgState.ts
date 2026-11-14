@@ -6,7 +6,7 @@ import type { RpgState } from "../rpgTypes";
 import { allRpgMissions, rpgMissions } from "../data/rpgCampaign";
 
 export function createRpgState(): RpgState {
-  return { campaignXpVersion: 2, attributeProgressionVersion: 2, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
+  return { campaignXpVersion: 2, attributeProgressionVersion: 3, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
     attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
 }
 

@@ -156,7 +156,7 @@ test('old saves acquire the RPG profile without changing existing progress or ge
   const old=createInitialState(); delete old.rpg; old.saveVersion=8;
   old.skills.combat.level=75; old.resources.credits=9000; old.equippedGear.weapon='street-knife';
   const state=normalizeSave(old);
-  assert.equal(state.rpg.level,16); assert.equal(state.rpg.attributePoints,24);
+  assert.equal(state.rpg.level,16); assert.equal(state.rpg.attributePoints,28);
   assert.equal(state.resources.credits,9000); assert.equal(state.skills.combat.level,75);
   assert.equal(state.equippedGear.weapon,'street-knife');
   const copy=cloneState(state); copy.rpg.attributes.body=10;

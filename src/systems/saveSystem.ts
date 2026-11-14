@@ -1,7 +1,7 @@
 import { normalizeBossIconicOwnership } from "./bossIconicLoot";
 import { normalizeIconicMemory } from "./iconicMemory";
 import { migrateRetiredWeapons } from "./weaponMigration";
-import { MAX_CHARACTER_LEVEL, attributePointBudget, perkPointBudget } from "../data/characterBuild";
+import { MAX_CHARACTER_LEVEL, attributePointBudget, attributePointBudgetV2, perkPointBudget } from "../data/characterBuild";
 import { enforceCharacterPointBudget } from "./runnerProgression";
 import { skillActions } from "../data/skills";
 import { grantStarterQuickhacks } from "./quickhackSystem";
@@ -307,11 +307,20 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     normalized.rpg.perkPoints = Math.min(perkPointBudget(runnerLevel), normalized.rpg.perkPoints + perkPointBudget(runnerLevel) - perkPointBudget(runnerLevel - gained) + spentPerkPoints(normalized));
     normalized.rpg.attributeProgressionVersion = 1;
   }
+  const attributeVersion = saved.rpg?.attributeProgressionVersion ?? 0;
+  // Version 2 capped lifetime attributes at 40. Give those characters the
+  // newly earned budget difference once, including players already at level 30.
+  // Do not re-award points to new/version-3 saves or older 65-point saves.
+  const bonusAttributePoints = attributeVersion === 2
+    ? attributePointBudget(normalized.rpg.level) - attributePointBudgetV2(normalized.rpg.level)
+    : 0;
+  if (bonusAttributePoints > 0) normalized.rpg.attributePoints += bonusAttributePoints;
   const previousAttributePoints = normalized.rpg.attributePoints;
   const buildRefunded = enforceCharacterPointBudget(normalized);
-  normalized.rpg.attributeProgressionVersion = 2;
-  if (buildRefunded) pushCategorizedLog(normalized, "World", "Attributes and perks refunded for the tighter specialization budget. Reassign your points; runner level, inventory and equipment ownership are preserved.");
-  else if ((saved.rpg?.attributeProgressionVersion ?? 0) < 2 && previousAttributePoints > normalized.rpg.attributePoints) pushCategorizedLog(normalized, "World", "Unused attribute points adjusted to the new specialization budget. Allocated attributes remain unchanged.");
+  normalized.rpg.attributeProgressionVersion = 3;
+  if (buildRefunded) pushCategorizedLog(normalized, "World", "Attributes and perks refunded to fit the 49-point specialization budget. Reassign your points; runner level and owned items are preserved.");
+  else if (bonusAttributePoints > 0) pushCategorizedLog(normalized, "World", `Attribute budget expanded: +${bonusAttributePoints} unspent attribute points.`);
+  else if (attributeVersion < 2 && previousAttributePoints > normalized.rpg.attributePoints) pushCategorizedLog(normalized, "World", "Unused attribute points adjusted to the current specialization budget. Allocated attributes remain unchanged.");
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
   normalized.health.currentHp = Math.max(0, Math.min(maxHp, Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp));

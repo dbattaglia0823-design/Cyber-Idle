@@ -97,7 +97,7 @@ test('legacy character investment transfers once without deleting gear or progre
   old.upgradeLevels['street-knife'] = 4;
   const migrated = normalizeSave(old);
   assert.equal(migrated.rpg.level, 16);
-  assert.equal(migrated.rpg.attributePoints, 24);
+  assert.equal(migrated.rpg.attributePoints, 28);
   assert.equal(migrated.rpg.perkPoints, 9);
   assert.equal(migrated.equippedGear.weapon, 'street-knife');
   assert.equal(migrated.upgradeLevels['street-knife'], 4);
