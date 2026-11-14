@@ -11,7 +11,7 @@ const capped = () => {const state=createInitialState();grantActivityCharacterXp(
 test('level cap limits lifetime investment below all attributes and all perk trees',()=>{
  const state=capped();
  assert.equal(state.rpg.level,MAX_CHARACTER_LEVEL);
- assert.equal(state.rpg.attributePoints,65);assert.equal(state.rpg.perkPoints,16);
+ assert.equal(state.rpg.attributePoints,40);assert.equal(state.rpg.perkPoints,16);
  assert.ok(attributePointBudget(MAX_CHARACTER_LEVEL)<attributeDefinitions.length*17);
  assert.ok(perkPointBudget(MAX_CHARACTER_LEVEL)<rpgPerks.length);
  const before=structuredClone(state.rpg);
@@ -28,10 +28,10 @@ test('any attribute and its entire perk tree can be maxed within the budget',()=
   for(let pass=0;pass<tree.length;pass++)for(const perk of tree)state=buyRpgPerk(state,perk.id);
   assert.ok(tree.every(p=>state.rpg.perks[p.id]),attribute.id);
   assert.equal(state.rpg.perkPoints,16-tree.length);
-  assert.equal(state.rpg.attributePoints,48);
+  assert.equal(state.rpg.attributePoints,23);
   assert.deepEqual(normalizeSave(state).rpg,state.rpg);
   for(let i=0;i<3;i++)state=respecRpg(state);
-  assert.equal(state.rpg.attributePoints,65);assert.equal(state.rpg.perkPoints,16);
+  assert.equal(state.rpg.attributePoints,40);assert.equal(state.rpg.perkPoints,16);
  }
 });
 
@@ -44,6 +44,6 @@ test('old over-budget builds are refunded without resetting character progress',
  assert.equal(restored.rpg.level,30);
  assert.ok(Object.values(restored.rpg.attributes).every(v=>v===3));
  assert.deepEqual(restored.rpg.perks,{});
- assert.equal(restored.rpg.attributePoints,65);assert.equal(restored.rpg.perkPoints,16);
+ assert.equal(restored.rpg.attributePoints,40);assert.equal(restored.rpg.perkPoints,16);
  assert.deepEqual(normalizeSave(restored).rpg,restored.rpg);
 });
