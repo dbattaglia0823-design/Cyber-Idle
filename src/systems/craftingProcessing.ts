@@ -7,7 +7,6 @@ import { cloneState, pushCategorizedLog } from "./gameState";
 import { markRecipeManual } from "./manualDiscovery";
 import { addMasteryPoolXp } from "./masteryPool";
 import { emitRewardPopupGroup } from "./rewardPopups";
-import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { addDistrictMasteryXp } from "./districtMasteryProcessor";
 import { updateWorldUnlocks } from "./worldUnlocks";
 import type { CraftingRecipe, DistrictId, GameState } from "../types";
