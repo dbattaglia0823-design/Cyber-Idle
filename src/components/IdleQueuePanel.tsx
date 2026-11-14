@@ -21,7 +21,6 @@ export function IdleQueuePanel({ state, onUpdate }: { state: GameState; onUpdate
   const outputs = action ? idleQueueTargets(action) : [];
   const target = outputs.includes(targetId) ? targetId : outputs[0] ?? "";
   const craft = state.activeCraft && recipes.find(recipe => recipe.id === state.activeCraft?.recipeId);
-  const activeStep = queue.steps[queue.index];
   return <details className="idle-queue-panel">
     <summary>
       <span><strong>Idle activity queue</strong><small>{queue.enabled ? `Running · step ${queue.index + 1}/${queue.steps.length}` : queue.steps.length ? `${queue.steps.length} steps configured · paused` : "Build a sequence of resource targets"}{craft ? ` · Background craft: ${craft.name}` : ""}</small></span>
