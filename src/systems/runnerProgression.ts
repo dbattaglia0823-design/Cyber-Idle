@@ -16,8 +16,11 @@ export function itemAttributeRequirement(item: ItemDefinition) {
     attribute = item.weaponClass === "bluntWeapons" || item.weaponClass === "heavyWeapons" ? "body"
       : item.weaponClass === "smartWeapons" ? "intelligence" : "reflexes";
   }
-  // Guaranteed mission equipment remains usable immediately.
-  const level = !item.requiredSkill ? 3 : Math.min(18, 3 + Math.floor(((item.requiredLevel ?? 1) - 1) / 10));
+  // A 40-point runner build must be able to equip district gear without
+  // mandatory high investment in Body, Reflexes and Technical simultaneously.
+  // Item progression is still gated by district and crafting skill requirements.
+  const maximum = item.type === "Armor" ? 10 : item.type === "Weapon" ? 12 : item.type === "Cyberware" ? 12 : 18;
+  const level = !item.requiredSkill ? 3 : Math.min(maximum, 3 + Math.floor(((item.requiredLevel ?? 1) - 1) / 10));
   return { attribute, level, label: `${attributeDefinitions.find(entry => entry.id === attribute)!.name} ${level}` };
 }
 
