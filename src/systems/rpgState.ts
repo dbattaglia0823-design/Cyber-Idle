@@ -4,9 +4,7 @@ import { MAX_CHARACTER_LEVEL, attributePointBudget, perkPointBudget } from "../d
 import { mainJobXp, runnerXpNeeded } from "../data/campaignBalance";
 import type { RpgState } from "../rpgTypes";
 import { allRpgMissions, rpgMissions } from "../data/rpgCampaign";
-import { districtBountyById } from "../data/districtBounties";
 import { districts } from "../data/districts";
-import type { GameState } from "../types";
 
 export function createRpgState(): RpgState {
   return { campaignXpVersion: 2, attributeProgressionVersion: 3, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
@@ -66,8 +64,8 @@ export function normalizeRpgState(state?: RpgState): RpgState {
       if (e.bounty && mission.sideGig && typeof e.bounty.id === "string") {
         const district = mission.district;
         const cycle = next.bountyCycles?.[district] ?? 0;
-        const match = /^([a-zA-Z]+):(\\d+):([0-2])$/.exec(e.bounty.id);
-        if (match?.[1] === district && Number(match[2]) === cycle && e.bounty.cycle === cycle) {
+        const [boardDistrict, boardCycle, slot, extra] = e.bounty.id.split(":");
+        if (boardDistrict === district && boardCycle === String(cycle) && /^[012]$/.test(slot ?? "") && extra === undefined && e.bounty.cycle === cycle) {
           e.bounty = { id: e.bounty.id, cycle };
         } else e.bounty = undefined;
       } else e.bounty = undefined;
