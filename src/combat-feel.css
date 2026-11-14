@@ -20,3 +20,34 @@
 .portrait-impact .rpg-enemy-silhouette{animation:scene-stagger .35s ease-out}@media(prefers-reduced-motion:reduce){.portrait-impact .rpg-enemy-silhouette{animation:none}}
 
 .rpg-combat>.combat-scene{position:sticky;top:var(--combat-top,calc(var(--header-height,58px) + 8px));z-index:3}@media(max-width:760px){.combat-scene{min-height:108px;padding:8px 12px 24px;grid-template-columns:64px minmax(40px,1fr) 64px}.scene-fighter>svg:first-child{width:34px;height:34px}}
+
+
+/* Five build-defined tactical moves share the existing combat layout without
+   pushing basic controls off-screen on small phones. */
+.rpg-ability-panel{margin:14px 0;padding:12px;border:1px solid #454456;background:linear-gradient(135deg,#171b2b,#10131b)}
+.rpg-ability-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.rpg-ability-heading strong{color:#f1e660;font:10px Consolas,monospace;letter-spacing:.9px}
+.rpg-ability-heading small{font:9px Consolas,monospace;color:#a3b4c8;line-height:1.5}
+.rpg-ability-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.rpg-ability-grid .rpg-ability-button{display:flex;align-items:flex-start;gap:10px;min-height:84px;text-align:left;padding:12px;border:1px solid #657b8a;background:linear-gradient(145deg,#233346,#16212f);color:#dfeef7;border-radius:4px}
+.rpg-ability-button svg{flex-shrink:0;color:#6de4ed;margin-top:3px}
+.rpg-ability-button span{min-width:0}
+.rpg-ability-button strong{display:block;font-size:12px;margin:0 0 4px}
+.rpg-ability-button small{display:block;font-size:10px;line-height:1.45;color:#bdc9d9}
+.rpg-ability-button em{display:block;margin-top:7px;font:9px Consolas,monospace;font-style:normal;color:#6de4ed}
+.rpg-ability-grid .rpg-ability-button:disabled{opacity:.55;background:#141824;border-color:#3e4958}
+.rpg-ability-grid .rpg-ability-button:disabled em{color:#f5b4a8}
+.rpg-ability-locked{margin-top:10px;color:#98a9be;font-size:10px}
+.rpg-ability-locked summary{cursor:pointer;width:fit-content}
+.rpg-ability-locked p{margin:8px 0 0;line-height:1.6}
+.scene-attribute-ability .scene-lane>svg{color:#6de4ed;filter:drop-shadow(0 0 6px #6de4ed99)}
+@media(max-width:520px){
+ .rpg-ability-panel{padding:10px}
+ .rpg-ability-heading{align-items:flex-start;flex-direction:column;gap:3px}
+ .rpg-ability-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .rpg-ability-grid .rpg-ability-button{padding:10px 8px;min-height:90px;gap:7px}
+ .rpg-ability-button svg{width:17px}
+ .rpg-ability-button strong{font-size:11px}
+ .rpg-ability-button small{font-size:9px}
+}
+@media(max-width:350px){.rpg-ability-grid{grid-template-columns:1fr}}

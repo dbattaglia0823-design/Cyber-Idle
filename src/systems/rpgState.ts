@@ -29,7 +29,7 @@ export function cloneRpgState(state?: RpgState): RpgState {
   const base = createRpgState();
   return { ...base, ...state, bossIconicProgress: Object.fromEntries(Object.entries(state?.bossIconicProgress ?? {}).filter(([,p])=>p&&typeof p==="object").map(([id, p])=>[id,{...p,acquired:{...p.acquired}}])), gigDryStreak: { ...state?.gigDryStreak }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
     completed: Object.fromEntries(Object.entries(state?.completed ?? {}).map(([id, value]) => [id, { ...value }])),
-    active: state?.active ? { ...state.active, contract: state.active.contract ? { ...state.active.contract } : undefined, iconicMemory: state.active.iconicMemory ? {...state.active.iconicMemory} : undefined, log: [...(state.active.log ?? [])] } : null };
+    active: state?.active ? { ...state.active, abilityReadyAt: { ...state.active.abilityReadyAt }, contract: state.active.contract ? { ...state.active.contract } : undefined, iconicMemory: state.active.iconicMemory ? {...state.active.iconicMemory} : undefined, log: [...(state.active.log ?? [])] } : null };
 }
 
 export function normalizeRpgState(state?: RpgState): RpgState {
@@ -61,6 +61,12 @@ export function normalizeRpgState(state?: RpgState): RpgState {
       e.bossReplay = Boolean(e.bossReplay && !mission.sideGig && next.completed[mission.id]);
       e.iconicMemory = normalizeIconicMemory(e.iconicMemory);
       e.turn = integer(e.turn, 0, 100000); e.ram = integer(e.ram, 0, 40); e.meds = integer(e.meds, 0, 4);
+      e.abilityClock = integer(e.abilityClock ?? 0, 0, 100000);
+      e.abilityReadyAt = Object.fromEntries(
+        (["body", "reflexes", "intelligence", "technical", "cool"] as const)
+          .filter(key => e.abilityReadyAt?.[key] !== undefined)
+          .map(key => [key, integer(e.abilityReadyAt![key]!, 0, 100010)])
+      );
       e.playerBleedTurns = integer(e.playerBleedTurns ?? 0, 0, 2); e.playerBleedDamage = integer(e.playerBleedDamage ?? 0, 0, 100000);
     e.burnDamage = integer(e.burnDamage ?? 0, 0, 100000); e.burnTurns = integer(e.burnTurns ?? 0, 0, 4);
       e.weaken = Number.isFinite(e.weaken) ? Math.max(0, Math.min(.75, e.weaken!)) : 0; e.weakenTurns = integer(e.weakenTurns ?? 0, 0, 3);

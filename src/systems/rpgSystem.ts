@@ -1,3 +1,4 @@
+import { tacticalAbilityForAction } from "../data/tacticalAbilities";
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget, iconicNonAttack } from "./iconicCombat";
 import { addWeaponClassXp, equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import { grantCharacterXp } from "./characterProgression";
@@ -133,7 +134,7 @@ export function startRpgMission(state: GameState, id: string, risk: GigRisk = "s
   next.selectedDistrict = mission.district;
   next.health.currentHp = calculateMaxHP(next); next.health.lifeState = "alive";
   next.rpg.active = { bossReplay, gigVariant: mission.sideGig ? (state.rpg.completed[id]?.clears ?? 0) % 3 : 0, contract: mission.sideGig ? { id:contract, injectors:0, interrupts:0, aimedHits:0 } : undefined, gigRisk: mission.sideGig ? risk : "standard", missionId: id, phase: "briefing", approach: null, enemyIndex: 0, enemyHp: 0, enemyMaxHp: 0,
-    turn: 0, ram: maxRam(next), meds: fieldInjectorCount(next), aimed: false, log: ["Fixer clinic check complete. Health restored; field injectors supplied for this mission."] };
+    turn: 0, abilityClock: 0, abilityReadyAt: {}, ram: maxRam(next), meds: fieldInjectorCount(next), aimed: false, log: ["Fixer clinic check complete. Health restored; field injectors supplied for this mission."] };
   return next;
 }
 
@@ -185,9 +186,17 @@ export function enemyIntent(state: GameState) {
   const mission = active && missionById(active.missionId);
   return active && mission ? tacticalIntent(mission, active).attack : "Direct shot";
 }
+export function abilityCooldownRemaining(state: GameState, action: TacticalAction) {
+  const e = state.rpg.active, ability = tacticalAbilityForAction(action);
+  return e && ability ? Math.max(0, (e.abilityReadyAt?.[ability.attribute] ?? 0) - (e.abilityClock ?? 0)) : 0;
+}
 export function canUseTactic(state: GameState, action: TacticalAction) {
   const e = state.rpg.active;
   if (!e || e.phase !== "combat") return false;
+  const ability = tacticalAbilityForAction(action);
+  if (ability) return state.rpg.attributes[ability.attribute] >= ability.requiredAttribute
+    && e.ram >= ability.ramCost && abilityCooldownRemaining(state, action) === 0;
+  if (action.startsWith("ability:")) return false;
   if (action.startsWith("quickhack:") || ["hack", "disrupt", "burnout"].includes(action)) { const hack = quickhackForAction(state, action); return Boolean(hack && e.ram >= quickhackRamCost(state, hack)); }
   if (action === "heal") return e.meds > 0 && (state.health.currentHp < calculateMaxHP(state) || (e.playerBleedTurns ?? 0) > 0);
   if (action === "overclock") return e.ram < maxRam(state);
@@ -200,22 +209,31 @@ export function performTactic(state: GameState, action: TacticalAction) {
   const feedback = { damage: 0, taken: 0, blocked: 0, healing: 0, interrupted: false, action: action as string };
   const stats = tacticalStats(next), maxHp = calculateMaxHP(next);
   const traits = encounterTraits(mission, e.enemyIndex, e.turn, e.gigVariant);
-  const aimedAttack = action === "attack" && e.aimed;
+  const ability = tacticalAbilityForAction(action);
+  const weaponAction = action === "attack" || action === "ability:body" || action === "ability:reflexes";
+  const aimedAttack = weaponAction && e.aimed;
   const weapon = getItem(next.equippedGear.weapon ?? "");
   const signature = weapon?.weaponModel ?? next.equippedGear.weapon;
   if(e.contract){if(action==="heal")e.contract.injectors++;if(aimedAttack)e.contract.aimedHits++;}
   const wasBurning = (e.burnTurns ?? 0) > 0;
-  let damage = 0, stun = false, cover = false;
+  let damage = 0, stun = false, cover = false, evade = false;
+  if (ability) {
+    e.abilityReadyAt ??= {};
+    e.abilityReadyAt[ability.attribute] = (e.abilityClock ?? 0) + 1 + ability.cooldown;
+    e.ram -= ability.ramCost;
+  }
   const hack = quickhackForAction(next, action);
-  if (action === "attack") {
+  if (weaponAction) {
     if (weapon?.weaponVariant === "Rapid" && e.ram < maxRam(next)) { e.ram = Math.min(maxRam(next), e.ram + 1); e.log.push("Rapid cadence restored 1 RAM."); }
     damage = stats.damage * (e.approach === "assault" ? 1.15 : 1) * (e.aimed ? 1.8 + (next.rpg.perks.deadeye ? 0.4 : 0) + (weapon?.weaponVariant === "Precision" ? .15 : 0) : 1);
     if (next.rpg.perks["bullet-time"] && e.aimed) damage *= 1.35;
     if (next.rpg.perks.adrenaline && next.health.currentHp < maxHp / 2) damage *= 1.3;
     if (next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * 0.25) damage = e.enemyHp;
     e.aimed = false;
+    if (action === "ability:body") { damage *= 1.35; stun = true; }
+    if (action === "ability:reflexes") damage *= 1.55;
   }
-  const iconic = action === "attack" ? iconicWeaponHit(next,e,{mode:"field",damage,maxHp,enemyHp:e.enemyHp,enemyMaxHp:e.enemyMaxHp,armored:!!traits.armor,shielded:!!traits.shield,maxRam:maxRam(next)}) : undefined;
+  const iconic = weaponAction ? iconicWeaponHit(next,e,{mode:"field",damage,maxHp,enemyHp:e.enemyHp,enemyMaxHp:e.enemyMaxHp,armored:!!traits.armor,shielded:!!traits.shield,maxRam:maxRam(next)}) : undefined;
   if(iconic){
     damage*=iconic.multiplier;
     if(iconic.burn){e.burnDamage=Math.max(e.burnDamage??0,iconic.burn);e.burnTurns=Math.max(e.burnTurns??0,2);}
@@ -229,17 +247,32 @@ export function performTactic(state: GameState, action: TacticalAction) {
     if (hack.effect === "burn") { e.burnDamage = Math.round(stats.hack * (hack.potency ?? 0) * (e.approach === "netrunner" ? 1.35 : 1)); e.burnTurns = 3 + (next.rpg.perks["persistent-code"] ? 1 : 0); }
     if (hack.effect === "weaken") { e.weaken = hack.potency; e.weakenTurns = 2 + (next.rpg.perks["persistent-code"] ? 1 : 0); }
   }
-  if (action === "attack") addWeaponClassXp(next, equippedWeaponClass(next)!, Math.max(1, Math.round(mission.xp / (mission.enemies.length * 20))), true);
+  if (action === "ability:intelligence") {
+    damage = stats.hack * 1.1 * (e.approach === "netrunner" ? 1.35 : 1);
+    e.weaken = Math.min(0.42, 0.22 + next.rpg.attributes.intelligence * 0.01);
+    e.weakenTurns = 3; // Decrement after this action; two enemy turns remain.
+    e.log.push(`System Override weakened hostile damage by ${Math.round(e.weaken * 100)}%.`);
+  }
+  if (action === "ability:technical") {
+    cover = true;
+    e.playerBleedTurns = 0; e.playerBleedDamage = 0;
+    const healed = Math.min(maxHp - next.health.currentHp,
+      Math.round(maxHp * Math.min(0.27, 0.12 + next.rpg.attributes.technical * 0.007)));
+    next.health.currentHp += healed;
+    e.log.push(`Emergency Patch repaired ${healed} HP and cleansed bleeding.`);
+  }
+  if (action === "ability:cool") { cover = true; evade = true; e.aimed = true; }
+  if (weaponAction) addWeaponClassXp(next, equippedWeaponClass(next)!, Math.max(1, Math.round(mission.xp / (mission.enemies.length * 20))), true);
   if (action === "aim") { e.aimed = true; cover = true; }
   if (action === "cover") { cover = true; if (next.rpg.perks["vanishing-point"]) e.aimed = true; }
   if (action === "heal") { e.playerBleedTurns = 0; e.playerBleedDamage = 0; const beforeHp = next.health.currentHp; e.meds--; next.health.currentHp = Math.min(maxHp, next.health.currentHp + Math.round(maxHp * stats.heal)); e.log.push(`Field injector restored ${next.health.currentHp - beforeHp} HP.`); }
   if (action === "overclock") { e.ram = Math.min(maxRam(next), e.ram + 3); cover = true; }
   if (e.turn <= (next.rpg.perks["ghost-protocol"] ? 1 : 0) && next.rpg.perks.ambush) damage *= 1.6;
-  if (action === "attack" && !(next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * .25)) {
-    if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - stats.armorPenetration - (iconic?.penetration??0)/100); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
-    if (traits.shield) { damage *= 1 - traits.shield * (1-(iconic?.shieldPierce??0)); e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
+  if (weaponAction && !(next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * .25)) {
+    if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - (action === "ability:body" ? 0.25 : 0) - stats.armorPenetration - (iconic?.penetration??0)/100); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
+    if (traits.shield) { damage *= 1 - traits.shield * (action === "ability:body" ? 0.5 : 1) * (1-(iconic?.shieldPierce??0)); e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
   }
-  if(action==="attack" && signature===canonicalWeaponId("rpg-weapon-3") && (e.weakenTurns ?? 0)>0) {damage*=1.2;e.log.push("Sidearm exploited disabled movement.");}
+  if(weaponAction && signature===canonicalWeaponId("rpg-weapon-3") && (e.weakenTurns ?? 0)>0) {damage*=1.2;e.log.push("Sidearm exploited disabled movement.");}
   if(aimedAttack && signature===canonicalWeaponId("rpg-weapon-1") && e.ram<maxRam(next)){e.ram=Math.min(maxRam(next),e.ram+1);e.log.push("Sidearm rhythm restored 1 RAM.");}
   if(action==="cover" && signature===canonicalWeaponId("rpg-weapon-4")){const healing=Math.min(maxHp-next.health.currentHp,Math.round(maxHp*.03));next.health.currentHp+=healing;e.log.push(`Sidearm restored ${healing} HP.`);}
   damage = Math.round(damage + (iconic?.extra??0));
@@ -250,7 +283,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   feedback.damage = Math.min(e.enemyHp, damage);
   e.enemyHp = Math.max(0, e.enemyHp - damage);
   if ((e.burnTurns ?? 0) > 0) { feedback.damage += Math.min(e.enemyHp, e.burnDamage ?? 0); e.enemyHp = Math.max(0, e.enemyHp - (e.burnDamage ?? 0)); e.burnTurns!--; e.log.push(`Overheat: ${e.burnDamage} damage.`); }
-  const labels: Partial<Record<TacticalAction, string>> = { attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", burnout: "Synapse Burnout", heal: "Used field injector", overclock: "Recovered RAM from cover" };
+  const labels: Partial<Record<TacticalAction, string>> = { "ability:body": "Breach Strike", "ability:reflexes": "Double Tap", "ability:intelligence": "System Override", "ability:technical": "Emergency Patch", "ability:cool": "Ghost Step", attack: "Weapon attack", aim: "Aimed from cover", cover: "Took cover", hack: "Short Circuit", disrupt: "Reboot Optics", burnout: "Synapse Burnout", heal: "Used field injector", overclock: "Recovered RAM from cover" };
   e.log.push(`${hack?.name ?? labels[action]}${damage ? `: ${damage} damage` : ""}.`);
   if(stun && e.contract && e.enemyHp>0)e.contract.interrupts++;
   if (e.enemyHp <= 0) {
@@ -272,7 +305,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
     }
     if (!stun && next.health.currentHp > 0) {
       const charged = traits.charged;
-      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * iconicIncoming(next,e) * (cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
+      const incoming = Math.max(1, Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1) * (1 - stats.mitigation) * ((e.weakenTurns ?? 0) > 0 ? 1 - (e.weaken ?? 0) : 1) * iconicIncoming(next,e) * (evade ? 0.12 : cover ? Math.max(0.2, 0.45 - next.rpg.attributes.cool * 0.012) : 1)));
       feedback.taken += Math.min(next.health.currentHp, incoming);
       const rawIncoming = Math.round(missionEnemyStats(mission, e.enemyIndex, e.gigRisk).damage * (charged ? 1.8 : traits.recovery ? .8 : 1));
       feedback.blocked = Math.max(0, rawIncoming - incoming);
@@ -290,6 +323,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
     if (next.health.currentHp <= 0) { e.phase = "failed"; next.health.lifeState = "downed"; e.log.push("Your fixer pulled you out. Retry with a refreshed field kit, or leave and change your build."); }
   }
   if(stun && signature===canonicalWeaponId("rpg-weapon-7") && e.phase==="combat" && e.enemyIndex===state.rpg.active!.enemyIndex){e.aimed=true;e.log.push("Sidearm readied an aimed shot.");}
+  e.abilityClock = (e.abilityClock ?? 0) + 1;
   feedback.healing = Math.max(0, next.health.currentHp - state.health.currentHp + feedback.taken);
   feedback.interrupted = stun;
   e.feedback = { ...feedback, target: mission.enemies[state.rpg.active!.enemyIndex], defeated: e.enemyIndex !== state.rpg.active!.enemyIndex || e.phase === "decision" };
