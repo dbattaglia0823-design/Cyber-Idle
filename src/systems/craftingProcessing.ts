@@ -1,4 +1,3 @@
-import { grantActivityCharacterXp } from "./characterProgression";
 import { recipes, legacyRecipeAliases } from "../data/recipes";
 import { addMasteryXp, addSkillXp } from "./actionProcessing";
 import { addItem, removeItem } from "./collectionSystem";
@@ -54,7 +53,7 @@ export function processCrafting(state: GameState, now = Date.now()) {
       break;
     }
     completeCraft(next, recipe);
-    grantActivityCharacterXp(next, next.activeCraft.durationMs);
+    // Crafting advances the relevant skill and mastery, not runner level.
     next.activeCraft = {
       ...next.activeCraft,
       startedAt: next.activeCraft.startedAt + next.activeCraft.durationMs,
