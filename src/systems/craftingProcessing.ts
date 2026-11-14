@@ -28,7 +28,8 @@ export function startCraft(state: GameState, recipeId: string, now = Date.now())
   const recipe = getRecipe(recipeId);
   if (!recipe || !canCraft(state, recipe)) return state;
   const next = cloneState(state);
-  clearActiveActivityForSwitch(state, next, recipe.name);
+  // Background crafting does not interrupt skill training, combat, missions or queues.
+  pushCategorizedLog(next, "World", state.activeCraft ? `Changed background crafting to ${recipe.name}.` : `Started background crafting: ${recipe.name}.`);
   next.activeCraft = {
     recipeId,
     startedAt: now,
@@ -41,11 +42,11 @@ export function stopCraft(state: GameState) {
   return { ...state, activeCraft: null };
 }
 
-export function processCrafting(state: GameState, now = Date.now()) {
+export function processCrafting(state: GameState, now = Date.now(), maxCompletions = 100) {
   if (!state.activeCraft || now - state.activeCraft.startedAt < state.activeCraft.durationMs) return state;
   const next = cloneState(state);
   let guard = 0;
-  while (next.activeCraft && now - next.activeCraft.startedAt >= next.activeCraft.durationMs && guard < 100) {
+  while (next.activeCraft && now - next.activeCraft.startedAt >= next.activeCraft.durationMs && guard < Math.max(1, Math.min(100, maxCompletions))) {
     const recipe = getRecipe(next.activeCraft.recipeId);
     if (!recipe || !canCraft(next, recipe)) {
       pushCategorizedLog(next, "Warning", "Crafting stopped because materials are missing.");
