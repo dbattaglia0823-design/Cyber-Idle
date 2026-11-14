@@ -25,7 +25,7 @@ import { equippedDeck, installedQuickhacks, quickhackRamCost } from "../systems/
 import { NetworkHero } from "./NetworkHero";
 import { playerCombatStats } from "../systems/formulas";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, Backpack, TrendingUp, Check, ChevronRight, Cpu, Crosshair, HeartPulse, LockKeyhole, MapPin, MessageSquare, Radio, Shield, Skull, Sparkles, Target, Terminal, UserRound, Zap } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Backpack, Check, ChevronRight, Cpu, Crosshair, HeartPulse, LockKeyhole, MapPin, MessageSquare, Radio, Shield, Skull, Sparkles, Target, UserRound, Zap } from "lucide-react";
 import { attributeDefinitions, rpgMissions, rpgSideGigs, rpgPerks, type RpgMission } from "../data/rpgCampaign";
 import { districts } from "../data/districts";
 import { getItem } from "../data/items";
