@@ -1,6 +1,7 @@
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget, iconicNonAttack } from "./iconicCombat";
 import { addWeaponClassXp, equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
 import { grantCharacterXp } from "./characterProgression";
+import { MAX_CHARACTER_LEVEL } from "../data/characterBuild";
 import { contractBonus, gigContracts, type GigContractId } from "../data/gigContracts";
 import { gigUniqueCandidates } from "../data/missionRewards";
 import { tacticalWeaponPower, tacticalWeaponStats, tacticalWeaponTempo } from "./tacticalEquipment";
@@ -106,6 +107,13 @@ export const gigRisks = {
   elite: { label: "Elite", payout: 2, health: 1.75, damage: 1.45, clears: 3 },
 } as const;
 export function gigPayout(mission: RpgMission, risk: GigRisk = "standard") { return Math.round(mission.reward * (mission.sideGig ? gigRisks[risk].payout : 1)); }
+
+// One-time gig XP rewards exploration. Repeat clears stay worthwhile for
+// credits, materials, standing, district mastery and rare items, not runner XP.
+export function missionCharacterXp(state: GameState, mission: RpgMission) {
+  if (state.rpg.level >= MAX_CHARACTER_LEVEL || state.rpg.completed[mission.id]) return 0;
+  return mission.xp;
+}
 export function heatCleanupCost(state: GameState) { return Math.ceil(Math.max(0, state.resources.heat) * 10); }
 export function clearHeatWithFixer(state: GameState) {
   const cost = heatCleanupCost(state);
@@ -336,7 +344,7 @@ export function resolveRpgMission(state: GameState, choiceId: string, random: ()
   if (mission.sideGig) next.resources.heat = Math.max(0, next.resources.heat - 15);
   next.resources.reputation = Math.max(0, next.resources.reputation + choice.reputation);
   next.rpg.streetCred += mission.sideGig ? 2 : 10;
-  grantCharacterXp(next, repeated ? Math.round(mission.xp * 0.5) : mission.xp);
+  grantCharacterXp(next, missionCharacterXp(state, mission));
   const loot = missionItemRewards(mission, state.rpg.completed[mission.id]?.clears ?? 0);
   const fixer = fixers.find(entry => entry.name === mission.fixer);
   if (fixer) {
