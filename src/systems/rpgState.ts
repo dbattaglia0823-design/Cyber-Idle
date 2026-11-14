@@ -8,7 +8,7 @@ import { districts } from "../data/districts";
 
 export function createRpgState(): RpgState {
   return { campaignXpVersion: 2, attributeProgressionVersion: 3, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
-    attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, bountyCycles: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
+    attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, bountyCycles: Object.fromEntries(districts.map(({id}) => [id, 0])), active: null, ending: null, streetCred: 0, starterClaimed: false };
 }
 
 // Shared by mission rewards, eligible activity rewards, and save normalization.
@@ -28,7 +28,7 @@ export function addRunnerXp(rpg: RpgState, amount: number) {
 
 export function cloneRpgState(state?: RpgState): RpgState {
   const base = createRpgState();
-  return { ...base, ...state, bossIconicProgress: Object.fromEntries(Object.entries(state?.bossIconicProgress ?? {}).filter(([,p])=>p&&typeof p==="object").map(([id, p])=>[id,{...p,acquired:{...p.acquired}}])), gigDryStreak: { ...state?.gigDryStreak }, bountyCycles: { ...state?.bountyCycles }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
+  return { ...base, ...state, bossIconicProgress: Object.fromEntries(Object.entries(state?.bossIconicProgress ?? {}).filter(([,p])=>p&&typeof p==="object").map(([id, p])=>[id,{...p,acquired:{...p.acquired}}])), gigDryStreak: { ...state?.gigDryStreak }, bountyCycles: { ...base.bountyCycles, ...state?.bountyCycles }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
     completed: Object.fromEntries(Object.entries(state?.completed ?? {}).map(([id, value]) => [id, { ...value }])),
     active: state?.active ? { ...state.active, bounty: state.active.bounty ? { ...state.active.bounty } : undefined, abilityReadyAt: { ...state.active.abilityReadyAt }, contract: state.active.contract ? { ...state.active.contract } : undefined, iconicMemory: state.active.iconicMemory ? {...state.active.iconicMemory} : undefined, log: [...(state.active.log ?? [])] } : null };
 }
