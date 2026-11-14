@@ -141,12 +141,15 @@ test('defeat offers a free fresh retry and switching to idle work clears the fie
   assert.equal(state.rpg.active,null); assert.ok(state.activeAction);
 });
 
-test('local gigs replenish supplies and award half XP on repeat without resetting story choices',()=>{
+test('local gigs grant runner XP only on first clear while preserving repeat supplies and choices',()=>{
   let state=fresh();
   for(let n=1;n<=2;n++) {
+    const priorLevel=state.rpg.level,priorXp=state.rpg.xp;
     state=fight(chooseMissionApproach(startRpgMission(state,rpgSideGigs[0].id),'assault'));
     state=resolveRpgMission(state,'extract');
     assert.equal(state.rpg.completed[rpgSideGigs[0].id].clears,n);
+    if(n===1)assert.ok(state.rpg.level>priorLevel || state.rpg.xp>priorXp);
+    else {assert.equal(state.rpg.level,priorLevel);assert.equal(state.rpg.xp,priorXp);}
   }
   assert.equal(mainChaptersCleared(state),0); assert.ok(state.inventory['basic-med-injector']>=9);
   assert.ok(getItemSources('rpg-weapon-1',state).some(source=>source.name===rpgSideGigs[0].title));
