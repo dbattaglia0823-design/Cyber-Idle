@@ -21,8 +21,8 @@ export function grantCharacterXp(state: GameState, amount: number) {
   return levels;
 }
 
-// Only completed activity time counts. Skill XP multipliers and short loops
-// cannot inflate character progression. Carry sub-point XP through save/reload.
+// Only completed eligible activity time counts toward runner XP (e.g. crafting and combat).
+// Repeatable skill actions do not call this helper. Carry fractional XP through saves.
 export function grantActivityCharacterXp(state: GameState, elapsedMs: number) {
   if (!Number.isFinite(elapsedMs) || elapsedMs <= 0 || state.rpg.level >= MAX_CHARACTER_LEVEL) return;
   let remaining = elapsedMs;

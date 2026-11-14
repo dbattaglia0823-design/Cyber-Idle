@@ -16,9 +16,9 @@ test('thirty minutes of completed work grants a level and points regardless of l
  grantActivityCharacterXp(slow,1800000);
  assert.equal(fast.rpg.level,2); assert.equal(fast.rpg.xp,0);
  assert.equal(slow.rpg.level,fast.rpg.level);
- assert.equal(fast.rpg.attributePoints,9); assert.equal(fast.rpg.perkPoints,2);
+ assert.equal(fast.rpg.attributePoints,8); assert.equal(fast.rpg.perkPoints,2);
  grantActivityCharacterXp(fast,3600000);
- assert.equal(fast.rpg.level,4); assert.equal(fast.rpg.attributePoints,13);
+ assert.equal(fast.rpg.level,4); assert.equal(fast.rpg.attributePoints,10);
  assert.ok(fast.rewardPopups.some(p=>p.title==='Runner level 4'));
 });
 
@@ -41,7 +41,7 @@ test('mission XP and training share overflow, rewards, normalization and level c
  assert.equal(state.rpg.level,2);assert.equal(state.rpg.xp,20);
  grantActivityCharacterXp(state,1e10);
  assert.equal(state.rpg.level,30);assert.equal(state.rpg.xp,0);
- assert.equal(state.rpg.attributePoints,65);assert.equal(state.rpg.perkPoints,16);
+ assert.equal(state.rpg.attributePoints,40);assert.equal(state.rpg.perkPoints,16);
  const before=JSON.stringify(state.rpg);
  for(const n of [Infinity,NaN,-1,0,1800000])grantActivityCharacterXp(state,n);
  assert.equal(JSON.stringify(state.rpg),before);
@@ -51,7 +51,7 @@ test('mission XP and training share overflow, rewards, normalization and level c
  assert.deepEqual(normalizeSave(restored).rpg,restored.rpg);
 });
 
-test('live skill work and offline work grant matching character XP; partial loops do not',()=>{
+test('live, offline and partial skill actions earn skill XP but no runner XP',()=>{
  const initial=startSkillAction(createInitialState(1000),'hack-public-terminal',1000);
  assert.equal(processActionCompletion(initial,1001).rpg.xp,0);
  const random=Math.random;Math.random=()=>0.5;
@@ -59,16 +59,20 @@ test('live skill work and offline work grant matching character XP; partial loop
   let online=structuredClone(initial);
   for(let now=2000;now<=1861000;now+=1000)online=processActionCompletion(online,now);
   const offline=applyOfflineProgress(initial,1861000);
-  assert.equal(online.rpg.level,2);assert.equal(offline.rpg.level,2);
-  assert.equal(online.rpg.xp,offline.rpg.xp);
-  assert.equal(offline.offlineRecap.characterLevelsGained,1);
-  assert.ok(offline.offlineRecap.characterXpGained>=160);
-  assert.equal(online.rpg.attributePoints,offline.rpg.attributePoints);
-  assert.ok(Math.abs(online.rpg.activityXpFraction-offline.rpg.activityXpFraction)<1e-8);
+  assert.equal(online.rpg.level,1);assert.equal(offline.rpg.level,1);
+  assert.equal(online.rpg.xp,0);assert.equal(offline.rpg.xp,0);
+  assert.equal(offline.offlineRecap.characterLevelsGained,0);
+  assert.equal(offline.offlineRecap.characterXpGained,0);
+  assert.equal(online.rpg.attributePoints,7);assert.equal(offline.rpg.attributePoints,7);
+  assert.equal(online.rpg.activityXpFraction??0,0);
+  assert.equal(offline.rpg.activityXpFraction??0,0);
+  assert.ok(offline.offlineRecap.levelsGained>0 || offline.skills.hacking.xp>initial.skills.hacking.xp);
+  assert.deepEqual(online.skills.hacking,offline.skills.hacking);
+  assert.deepEqual(online.actionMastery['hack-public-terminal'],offline.actionMastery['hack-public-terminal']);
  }finally{Math.random=random;}
 });
 
-test('crafting counts only successful completed crafts; Sim Cache advances character XP',()=>{
+test('crafting grants runner XP, while skill-action Sim Caches only train skills',()=>{
  let state=createInitialState(1000);state.resources.scrap=12;
  state=startCraft(state,'recipe-street-knife',1000);
  assert.ok(state.activeCraft);
@@ -84,8 +88,10 @@ test('crafting counts only successful completed crafts; Sim Cache advances chara
  state.manualDiscovery.skillActions['hack-public-terminal']=true;
  state.inventory[simCacheTypes[0].itemId]=1;
  const simulated=runBasicSimCache(state,1);
- assert.ok(simulated.rpg.xp>0);
- assert.equal(simulated.simulationRecap.characterXpGained,simulated.rpg.xp);
+ assert.equal(simulated.rpg.xp,0);
+ assert.equal(simulated.rpg.level,1);
+ assert.equal(simulated.simulationRecap.characterXpGained,0);
+ assert.ok(simulated.simulationRecap.xpGained>0);
 });
 
 test('defeated district enemies grant character XP',()=>{

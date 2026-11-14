@@ -307,7 +307,11 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     normalized.rpg.perkPoints = Math.min(perkPointBudget(runnerLevel), normalized.rpg.perkPoints + perkPointBudget(runnerLevel) - perkPointBudget(runnerLevel - gained) + spentPerkPoints(normalized));
     normalized.rpg.attributeProgressionVersion = 1;
   }
-  if (enforceCharacterPointBudget(normalized)) pushCategorizedLog(normalized, "World", "Build points refunded to fit the level-30 specialization budget. Reassign your attributes and perks; character level and inventory are preserved.");
+  const previousAttributePoints = normalized.rpg.attributePoints;
+  const buildRefunded = enforceCharacterPointBudget(normalized);
+  normalized.rpg.attributeProgressionVersion = 2;
+  if (buildRefunded) pushCategorizedLog(normalized, "World", "Attributes and perks refunded for the tighter specialization budget. Reassign your points; runner level, inventory and equipment ownership are preserved.");
+  else if ((saved.rpg?.attributeProgressionVersion ?? 0) < 2 && previousAttributePoints > normalized.rpg.attributePoints) pushCategorizedLog(normalized, "World", "Unused attribute points adjusted to the new specialization budget. Allocated attributes remain unchanged.");
   const maxHp = calculateMaxHP(normalized);
   if (!saved.health) normalized.health.currentHp = maxHp;
   normalized.health.currentHp = Math.max(0, Math.min(maxHp, Number.isFinite(normalized.health.currentHp) ? normalized.health.currentHp : maxHp));

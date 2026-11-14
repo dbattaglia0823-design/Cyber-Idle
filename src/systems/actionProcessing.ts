@@ -1,4 +1,3 @@
-import { grantActivityCharacterXp } from "./characterProgression";
 import { introductoryTrainingMultiplier } from "../data/progressionPacing";
 import { resourceNames } from "../data/resources";
 import { skillActions, skillNames } from "../data/skills";
@@ -97,7 +96,7 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     const heatDelta = action.heatChange ? calculateActionHeatGain(next, action.heatChange, next.activeAction.durationMs, action.tags) : 0;
     if (heatDelta) next.resources.heat = Math.max(0, Math.min(100, next.resources.heat + heatDelta));
     const neuralDelta = 0;
-    grantActivityCharacterXp(next, next.activeAction.durationMs);
+    // Training improves this skill, mastery and district progress; never runner XP.
     const levelUps = addSkillXp(next, action.skillId, xpReward);
     const masteryReward = Math.round(actionMasteryXpReward(next, action) * (1 + getActiveModifiers(next).masteryXpGain));
     const masteryUps = addMasteryXp(next, action.id, masteryReward);

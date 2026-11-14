@@ -124,7 +124,7 @@ function simulateAction(state: GameState, simulatedMs: number, recap: Simulation
       state.resources.heat += heat;
       recap.heatChange += heat;
     }
-    grantActivityCharacterXp(state, state.activeAction!.durationMs * efficiency.skillXp);
+    // Simulated skill actions follow live training: no runner XP.
     recap.completions += 1;
     applyRiskEvents(state);
   }
