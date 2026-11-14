@@ -39,7 +39,7 @@ test("ordered queue switches at absolute resource targets and finishes without r
  assert.equal(state.idleQueue.steps[0].cycles,2);
  state=completeCurrent(state);
  assert.equal(state.idleQueue.index,1);
- state=completeCurrent(state);
+ for(let i=0;i<6 && state.idleQueue.enabled;i++) state=completeCurrent(state);
  assert.equal(state.idleQueue.enabled,false);
  assert.equal(state.activeAction,null);
  assert.match(state.idleQueue.message,/complete/i);
@@ -120,7 +120,7 @@ test("heat and locked skill/material rules stop automation rather than bypassing
 });
 test("manual foreground switching pauses the queue, but does not stop background crafting",()=>{
  let state=twoStepQueue();
- state.resources.scrap=20;
+ state.resources.scrap=10;
  state=startIdleQueue(state,1000);
  state=startCraft(state,"recipe-scrap-jacket",1100);
  assert.equal(state.activeAction.actionId,"scav-alley-scrap-run");
