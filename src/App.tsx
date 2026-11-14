@@ -827,7 +827,7 @@ export function CityTab({
   onBuyVendorItem: (vendorId: string, itemId: string) => void;
   onSellVendorItem: (vendorId: string, itemId: string) => void;
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
-  onCraft: (id: string) => void;
+  onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
@@ -937,7 +937,7 @@ export function DistrictHub({
   onBuyVendorItem: (vendorId: string, itemId: string) => void;
   onSellVendorItem: (vendorId: string, itemId: string) => void;
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
-  onCraft: (id: string) => void;
+  onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
@@ -1464,7 +1464,7 @@ function DistrictActivityMenu({
   onBuyVendorItem: (vendorId: string, itemId: string) => void;
   onSellVendorItem: (vendorId: string, itemId: string) => void;
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
-  onCraft: (id: string) => void;
+  onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
@@ -1564,7 +1564,7 @@ function DistrictSkillWorkPanel({
   skillId: SkillId;
   onStartSkill: (id: string) => void;
   onStartCombat: (id: string) => void;
-  onCraft: (id: string) => void;
+  onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
   onUseHealingItem: (id: string) => void;
   onStopActive: () => void;
@@ -3926,9 +3926,12 @@ function itemUseSummary(itemId: string) {
   return uses.length ? uses.join(", ") : "collection, sale, or future unlocks";
 }
 
-function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCraft: (id: string) => void; onStopCraft: () => void }) {
+function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void; onStopCraft: () => void }) {
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [targetCraftMode, setTargetCraftMode] = useState<"target"|"continuous">("target");
+  const [craftTargetCount,setCraftTargetCount] = useState(10);
+  const [protectIngredients,setProtectIngredients] = useState(true);
   const [selectedRecipeId, setSelectedRecipeId] = useRememberedState<string | null>("crafting-selected", null);
   const [detailOpen,setDetailOpen] = useState(false);
   const navigation = usePlayerNavigation();
@@ -4017,14 +4020,22 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                 <span className="requirement-row">+{selectedRecipe.masteryXpReward} Mastery XP</span>
               </RequirementBulletList>
               <TagList tags={selectedRecipe.tags} />
+              {selectedActive && state.activeCraft?.targetQuantity && <p className="fine">Crafting target: {state.activeCraft.completedQuantity ?? 0} / {state.activeCraft.targetQuantity} produced. {state.activeCraft.reserveMaterials ? "Ingredients protected from skill work." : "Ingredient protection disabled."}</p>}
+              <section className="craft-target-options" aria-label="Crafting automation">
+                <label>Craft mode<select aria-label="Crafting mode" value={targetCraftMode} onChange={e=>setTargetCraftMode(e.target.value as "target"|"continuous")}><option value="target">Target quantity</option><option value="continuous">Repeat until materials run out</option></select></label>
+                {targetCraftMode === "target" && <label>Items to produce<input aria-label="Craft output target" type="number" min={1} max={2000} step={1} value={craftTargetCount} onChange={e=>setCraftTargetCount(Number(e.target.value))}/></label>}
+                <label className="craft-protect-option"><input type="checkbox" checked={protectIngredients} onChange={e=>setProtectIngredients(e.target.checked)}/> Protect ingredients from automated skill spending</label>
+                <p className="fine">{targetCraftMode === "target" ? "Stops automatically once the requested number of output items is produced." : "Repeats until recipe requirements can no longer be met."} Crafting remains independent of skill work.</p>
+                <button type="button" className="secondary-button" onClick={()=>navigation.openActivityCenter?.(selectedRecipe.id)}>Gather missing materials in Activity Center</button>
+              </section>
               <CardActionFooter
                 active={selectedActive}
                 progress={selectedProgress}
                 locked={selectedLocked}
-                disabled={selectedMissing}
+                disabled={selectedMissing || (targetCraftMode === "target" && (!Number.isSafeInteger(craftTargetCount) || craftTargetCount < 1 || craftTargetCount > 2000))}
                 startLabel={selectedLocked ? "Requirements not met" : selectedMissing ? "Missing materials" : "Start crafting"}
                 stopLabel="Stop Craft"
-                onStart={() => onCraft(selectedRecipe.id)}
+                onStart={() => onCraft(selectedRecipe.id, targetCraftMode === "target" ? craftTargetCount : undefined, protectIngredients)}
                 onStop={onStopCraft}
               />
             </>
