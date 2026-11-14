@@ -101,3 +101,34 @@
 .district-bounty-selected{margin:12px 0 0!important;border-left:2px solid var(--rpg-yellow);padding-left:10px;color:#c7d4e4;line-height:1.6;font-size:11px}
 @media(max-width:600px){.district-bounty-board{padding:12px}.district-bounty-options{grid-template-columns:1fr}.district-bounty-options button{min-height:72px}}
 @media(prefers-reduced-motion:reduce){.district-bounty-options button{transition:none}}
+
+
+/* Loadout insight: compare actual character stats rather than summing raw
+   item rolls. Set tiers and weapon tuning work without new save fields. */
+.equipment-impact,.equipment-set-list,.weapon-tuning-status{margin:14px 0;padding:12px;border:1px solid #3d4b59;background:#111924;color:#dce8ef}
+.equipment-impact h3,.equipment-set-list h3,.weapon-tuning-status h3{margin:0 0 8px;font-size:13px;color:#f1e660}
+.equipment-impact .fine,.weapon-tuning-status .fine{font-size:10px;line-height:1.5;color:#a6b8ca}
+.equipment-impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:7px;margin-top:10px}
+.equipment-impact-grid>span{display:flex;flex-direction:column;gap:4px;border:1px solid #354255;background:#182331;padding:9px;min-width:0}
+.equipment-impact-grid small{font-size:9px;color:#a6b9cb}
+.equipment-impact-grid strong{font-size:16px;color:#eff4f8;font-variant-numeric:tabular-nums}
+.equipment-impact-grid em{font:10px Consolas,monospace;font-style:normal}
+.equipment-impact-grid em.better,.equipment-impact-grid .better{color:#75dfb4}
+.equipment-impact-grid em.worse,.equipment-impact-grid .worse{color:#ff9aab}
+.equipment-impact-grid em.same,.equipment-impact-grid .same{color:#9cacbf}
+.equipment-set-preview{margin-top:10px!important;font-size:11px;line-height:1.6;color:#b8d9eb}
+.equipment-set-row{border-top:1px solid #364455;padding:10px 0 4px;margin-top:9px}
+.equipment-set-row>strong{display:block;font-size:12px;color:#c9ebf0}
+.equipment-set-row>small{display:block;font-size:10px;color:#a4bbcb;line-height:1.5;margin:5px 0}
+.equipment-set-row>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.equipment-set-row>div>span{display:flex;flex-direction:column;gap:3px;padding:7px;border:1px solid #3c4b59;font-size:10px;line-height:1.4}
+.equipment-set-row>div>span b{font-size:9px}
+.equipment-set-row>div>span small{font-size:9px;color:#bdd1dd;line-height:1.4}
+.equipment-set-row .set-active{border-color:#63cbb2;background:#63cbb211;color:#80f0cd}
+.equipment-set-row .set-locked{color:#929cae;background:#141923;opacity:.78}
+.weapon-tuning-status>p:not(.fine){display:flex;flex-direction:column;gap:3px;padding:8px 0;border-top:1px solid #344153;font-size:10px}
+.weapon-tuning-status>p small{color:#a9bdce;line-height:1.45}
+.weapon-tuning-status .tuning-active strong{color:#75dfb4}
+.weapon-tuning-status .tuning-locked strong{color:#a6aabb}
+@media(max-width:520px){.equipment-impact,.equipment-set-list,.weapon-tuning-status{padding:10px}.equipment-set-row>div{grid-template-columns:1fr}.equipment-impact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.equipment-impact *,.equipment-set-list *,.weapon-tuning-status *{animation:none;transition:none}}
