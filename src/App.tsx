@@ -284,7 +284,7 @@ function App() {
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
   const [tab, setTab] = useState<TabId>("field");
   const [recipeRequest, setRecipeRequest] = useState<{ id: string | null; token: number }>({ id: null, token: 0 });
-  const [activityRecipeRequest, setActivityRecipeRequest] = useState<{ id: string | null; token: number }>({ id: null, token: 0 });
+  const [activityRecipeRequest, setActivityRecipeRequest] = useState<{ id: string | null; quantity?: number; token: number }>({ id: null, token: 0 });
   const [mainSection, setMainSection] = useState<MainSection>("home");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
@@ -398,8 +398,9 @@ function App() {
       recipeId: recipeRequest.id,
       recipeRequest: recipeRequest.token,
       activityRecipeId: activityRecipeRequest.id,
+      activityRecipeQuantity: activityRecipeRequest.quantity,
       activityRecipeRequest: activityRecipeRequest.token,
-      openActivityCenter: recipeId => { setActivityRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("field"); setMainSection("home"); },
+      openActivityCenter: (recipeId,quantity) => { setActivityRecipeRequest(current => ({ id: recipeId ?? null, quantity, token: current.token + 1 })); setTab("field"); setMainSection("home"); },
       openDistrict: (districtId, category) => { setTab("city"); setCityOpenRequest({ districtId, category: category as DistrictHubCategory, token: Date.now() });  },
       openCrafting: recipeId => { setRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("city"); setCityOpenRequest({ districtId: state.selectedDistrict, category: "crafting", token: Date.now() });  },
       openMissions: () => { setTab("field"); setMainSection("journal");  },
@@ -4026,7 +4027,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                 {targetCraftMode === "target" && <label>Items to produce<input aria-label="Craft output target" type="number" min={1} max={2000} step={1} value={craftTargetCount} onChange={e=>setCraftTargetCount(Number(e.target.value))}/></label>}
                 <label className="craft-protect-option"><input type="checkbox" checked={protectIngredients} onChange={e=>setProtectIngredients(e.target.checked)}/> Protect ingredients from automated skill spending</label>
                 <p className="fine">{targetCraftMode === "target" ? "Stops automatically once the requested number of output items is produced." : "Repeats until recipe requirements can no longer be met."} Crafting remains independent of skill work.</p>
-                <button type="button" className="secondary-button" onClick={()=>navigation.openActivityCenter?.(selectedRecipe.id)}>Gather missing materials in Activity Center</button>
+                <button type="button" className="secondary-button" onClick={()=>navigation.openActivityCenter?.(selectedRecipe.id,targetCraftMode === "target" ? craftTargetCount : undefined)}>Gather missing materials in Activity Center</button>
               </section>
               <CardActionFooter
                 active={selectedActive}
