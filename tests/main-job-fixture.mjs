@@ -18,7 +18,9 @@ export function prepareMainJob(state, mission, focus = 'body') {
   const profile = mainJobBalance[mission.district];
   const armorPrefix = profile.armor.replace(/-chest$/, '');
   const gear = [profile.weapon, ...['chest','head','hands','legs','boots'].map(slot => armorPrefix + '-' + slot)].filter(id => getItem(id));
-  const requirements = { body: 3, reflexes: 3, intelligence: 3, technical: 3 + mission.act * 2, cool: focus === 'cool' ? 4 + mission.act : 3 };
+  // Reserve points for the player's combat specialty and local equipment.
+  // Technical 10 is enough for four stage upgrades in a 40-point build.
+  const requirements = { body: 3, reflexes: 3, intelligence: 3, technical: 3 + mission.act, cool: focus === 'cool' ? 4 + mission.act : 3 };
   for (const id of gear) {
     const requirement = itemAttributeRequirement(getItem(id));
     requirements[requirement.attribute] = Math.max(requirements[requirement.attribute], requirement.level);
