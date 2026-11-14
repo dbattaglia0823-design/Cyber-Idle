@@ -169,3 +169,57 @@
 .topbar-craft-indicator{display:block;max-width:200px;font:9px Consolas,monospace;color:#87dadd;line-height:1.4;white-space:normal}
 @media(max-width:850px){.idle-queue-builder{grid-template-columns:repeat(2,minmax(0,1fr))}.idle-queue-builder>button{grid-column:span 2}.topbar-craft-indicator{max-width:140px;font-size:8px}}
 @media(max-width:500px){.idle-queue-panel{width:calc(100% - 14px);margin:8px auto}.idle-queue-content{padding:10px}.idle-queue-panel>summary{padding:12px}.idle-queue-builder{grid-template-columns:1fr 1fr}.idle-queue-builder label:nth-child(1),.idle-queue-builder label:nth-child(2){grid-column:span 2}.idle-queue-steps article{align-items:flex-start;flex-direction:column}.idle-queue-controls button{flex:1}.topbar-craft-indicator{display:none}}
+
+
+/* The home tab is now an operations workspace; other game sections remain one tap away. */
+.activity-center{display:flex;flex-direction:column;gap:15px;margin:0 auto 16px;width:100%;max-width:1200px;color:#dce8ef}
+.activity-center-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #37515c;background:linear-gradient(125deg,#16272c,#121a27);padding:19px 20px}
+.activity-center-heading h1{font-size:clamp(23px,3vw,34px);line-height:1.2;color:#eff8f9;margin:4px 0 7px}
+.activity-center-heading .fine{font-size:11px;color:#a8c1ce;line-height:1.5;margin:0}
+.activity-center-live{white-space:nowrap;color:#72d9cf;border:1px solid #3e6e71;padding:7px 10px;font:10px Consolas,monospace}
+.activity-center-lanes,.activity-center-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.activity-lane,.activity-center-tool{min-width:0;background:linear-gradient(145deg,#1a2431,#121b27);border:1px solid #354858;padding:15px 16px}
+.activity-lane{display:flex;flex-direction:column;gap:9px;min-height:190px}
+.activity-lane-title,.activity-tool-heading{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.activity-lane-title>span{display:flex;align-items:center;gap:8px;font-size:11px;color:#c9e0e9;font-weight:700}
+.activity-lane-title>b{font:9px Consolas,monospace;color:#7fdace;border:1px solid #45676b;padding:5px}
+.activity-lane h2,.activity-center-tool h2{font-size:17px;margin:0;color:#eef6f8;line-height:1.3}
+.activity-lane>.fine,.activity-center-tool>.fine{font-size:11px;color:#aac1cf;line-height:1.5;margin:0}
+.activity-lane-status{display:flex;flex-wrap:wrap;align-items:center;gap:7px;color:#88dacf;font-size:10px;line-height:1.45}
+.activity-lane-status strong{font-size:11px}
+.activity-lane-status small{color:#b1c9d8;width:100%;font-size:10px;line-height:1.5}
+.activity-meter{height:6px;width:100%;background:#2a3749;border-radius:10px;overflow:hidden}
+.activity-meter>span{display:block;height:100%;background:#73dcd1;transition:width .2s}
+.activity-center-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.activity-center-actions button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:9px 12px;font-size:11px}
+.activity-center-tool{display:flex;flex-direction:column;gap:12px}
+.activity-tool-heading{padding-bottom:10px;border-bottom:1px solid #344957}
+.activity-tool-heading .eyebrow{font-size:9px;margin:0 0 6px}
+.activity-tool-heading svg{color:#77d8d2}
+.activity-control-fields{display:grid;grid-template-columns:minmax(0,2fr) minmax(110px,1fr);gap:10px}
+.activity-control-fields label,.craft-target-options>label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b9cbd5}
+.activity-center select,.activity-center input[type=number],.craft-target-options select,.craft-target-options input[type=number]{min-height:36px;min-width:0;width:100%;color:#eff6f8;background:#111c27;border:1px solid #506677;padding:8px;font-size:11px;border-radius:4px}
+.activity-check,.craft-protect-option{display:flex!important;flex-direction:row!important;align-items:start;gap:9px;font-size:10px!important;color:#cadde5!important;line-height:1.5}
+.activity-check input,.craft-protect-option input{accent-color:#75d9dd;flex-shrink:0;margin-top:2px}
+.activity-preset-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.activity-preset-buttons button{border:1px solid #4b6371;background:#172a35;color:#c5d6e2;border-radius:4px;cursor:pointer;text-align:left;font-size:10px;padding:9px 10px;flex:1 1 130px}
+.activity-preset-buttons button.selected{background:#224144;border-color:#75d9dd;color:#e2fbfa}
+.activity-center-tool h3{font-size:12px;color:#d5e8ee;margin:0}
+.activity-plan-preview{border:1px solid #304957;background:#101b27;padding:8px;display:flex;flex-direction:column;gap:4px}
+.activity-plan-preview>div{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;padding:5px 2px;border-bottom:1px solid #2f4050;font-size:10px}
+.activity-plan-preview>div:last-child{border-bottom:0}
+.activity-plan-preview small{font-size:9px;color:#adc4d0}
+.activity-plan-warning{display:flex;align-items:start;gap:8px;border:1px solid #765b4a;background:#282022;padding:10px;font-size:10px;line-height:1.5;color:#f1cebd}
+.activity-plan-warning p{font-size:10px;margin:5px 0 0}
+.activity-plan-warning svg{flex-shrink:0}
+.activity-center-tool>.primary-button{min-height:38px}
+.activity-center .idle-queue-panel{width:100%;max-width:100%;margin:0}
+.activity-center-more{max-width:1200px;margin:0 auto 12px;border:1px solid #33485a;padding:10px 15px;background:#151f2b}
+.activity-center-more>summary{font-size:12px;font-weight:650;cursor:pointer;color:#b8dce5;padding:7px}
+.activity-center-more .main-menu{margin:12px 0}
+.craft-target-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;background:#131f2a;border:1px solid #3e5662}
+.craft-target-options>.craft-protect-option,.craft-target-options>.fine,.craft-target-options>button{grid-column:1/-1}
+.craft-target-options>.fine{font-size:11px;color:#abc0cf;line-height:1.5;margin:0}
+@media(max-width:780px){.activity-center-lanes,.activity-center-tools{grid-template-columns:1fr}.activity-center-heading{padding:14px}.activity-lane{min-height:0}}
+@media(max-width:460px){.activity-center{padding:0 8px}.activity-center-heading{align-items:flex-start;flex-direction:column;gap:7px}.activity-lane,.activity-center-tool{padding:12px}.activity-control-fields{grid-template-columns:1fr}.activity-center-actions button{flex:1 1 45%}.craft-target-options{grid-template-columns:1fr}.activity-preset-buttons button{flex:1 1 46%}}
+@media(prefers-reduced-motion:reduce){.activity-meter>span{transition:none}}

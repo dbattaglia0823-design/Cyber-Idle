@@ -18,6 +18,7 @@ import { addItem, discoverItem } from "./collectionSystem";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { meetsActionAccessRequirement } from "./actionAccess";
+import { reservedCraftMaterial } from "./craftAutomation";
 import { idleQueueAfterCompletion, idleQueueAfterBlocked } from "./idleQueue";
 import type { EnemyDrop, GameState, ResourceId, RewardBundle, SkillAction, SkillId } from "../types";
 
@@ -27,7 +28,7 @@ export function getSkillAction(actionId: string) {
 
 export function canAffordRewards(state: GameState, rewards: RewardBundle) {
   return Object.entries(rewards).every(([resource, amount]) => {
-    return (amount ?? 0) >= 0 || state.resources[resource as ResourceId] >= Math.abs(amount ?? 0);
+    return (amount ?? 0) >= 0 || state.resources[resource as ResourceId] - reservedCraftMaterial(state, resource) >= Math.abs(amount ?? 0);
   });
 }
 

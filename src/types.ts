@@ -478,6 +478,12 @@ export interface ActiveCraft {
   recipeId: string;
   startedAt: number;
   durationMs: number;
+  /** Target number of output items; undefined preserves legacy continuous crafting. */
+  targetQuantity?: number;
+  /** Number of output items completed since this craft was started. */
+  completedQuantity?: number;
+  /** Protect current/remaining ingredients from automated skill spending. */
+  reserveMaterials?: boolean;
 }
 
 export interface ActiveOperation {
