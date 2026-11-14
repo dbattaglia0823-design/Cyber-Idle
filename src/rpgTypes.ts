@@ -2,7 +2,7 @@ export interface IconicCombatMemory { weaponId: string; hits: number; guard?: nu
 export interface BossIconicProgress { victories: number; dryStreak: number; acquired: Record<string, boolean> }
 export type AttributeId = "body" | "reflexes" | "intelligence" | "technical" | "cool";
 export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
-export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock" | `quickhack:${string}`;
+export type TacticalAction = "attack" | "aim" | "cover" | "hack" | "disrupt" | "burnout" | "heal" | "overclock" | `quickhack:${string}` | `ability:${AttributeId}`;
 export type GigRisk = "standard" | "dangerous" | "elite";
 export interface RpgEncounter {
   bossReplay?: boolean;
@@ -17,6 +17,8 @@ export interface RpgEncounter {
   weaken?: number;
   weakenTurns?: number;
   gigRisk?: GigRisk;
+  abilityClock?: number;
+  abilityReadyAt?: Partial<Record<AttributeId, number>>;
   missionId: string;
   phase: "briefing" | "combat" | "decision" | "failed";
   approach: MissionApproach | null;
