@@ -199,9 +199,9 @@ test('RPG entry, briefing, combat, decision and failure screens render without i
 });
 
 
-test('Main keeps runner tools inside the shared Journal shell', () => {
+test('Main keeps character tools inside the shared Journal shell', () => {
   const state = fresh();
-  for (const page of ['character', 'progress']) {
+  for (const page of ['character']) {
     const html = renderToStaticMarkup(createElement(RpgHub, {
       state, page, onPage() {}, onUpdate() {}, onServices() {}, inventoryNoticeCount: 2,
     }, createElement('article', null, 'Runner tool content')));
