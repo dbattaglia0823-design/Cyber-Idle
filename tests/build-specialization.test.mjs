@@ -19,6 +19,40 @@ test('level cap limits lifetime investment below all attributes and all perk tre
  assert.deepEqual(state.rpg,before);
 });
 
+test('level 30 permits exactly two maxed attributes with six points for a third',()=>{
+ assert.equal(attributePointBudget(1),7);
+ assert.equal(attributePointBudget(6),12);
+ assert.equal(attributePointBudget(7),14);
+ assert.equal(attributePointBudget(30),40);
+ let state=capped();
+ for(let i=0;i<17;i++)state=spendAttribute(state,'body');
+ for(let i=0;i<17;i++)state=spendAttribute(state,'reflexes');
+ assert.equal(state.rpg.attributes.body,20);
+ assert.equal(state.rpg.attributes.reflexes,20);
+ assert.equal(state.rpg.attributePoints,6);
+ for(let i=0;i<17;i++)state=spendAttribute(state,'intelligence');
+ assert.equal(state.rpg.attributes.intelligence,9);
+ assert.equal(state.rpg.attributePoints,0);
+ assert.ok(Object.values(state.rpg.attributes).filter(n=>n===20).length<=2);
+});
+
+test('old level-30 builds are refunded once while preserving runner and skill progress',()=>{
+ const old=capped();
+ old.rpg.attributeProgressionVersion=1;
+ Object.assign(old.rpg.attributes,{body:20,reflexes:20,intelligence:20,technical:14,cool:6});
+ old.rpg.attributePoints=0;
+ old.skills.scavenging.level=99;
+ old.inventory['street-knife']=1;
+ const normalized=normalizeSave(old);
+ assert.equal(normalized.rpg.level,30);
+ assert.equal(normalized.rpg.attributePoints,40);
+ assert.equal(normalized.rpg.attributeProgressionVersion,2);
+ assert.deepEqual(Object.values(normalized.rpg.attributes),[3,3,3,3,3]);
+ assert.equal(normalized.skills.scavenging.level,99);
+ assert.equal(normalized.inventory['street-knife'],1);
+ assert.deepEqual(normalizeSave(normalized).rpg,normalized.rpg);
+});
+
 test('any attribute and its entire perk tree can be maxed within the budget',()=>{
  for(const attribute of attributeDefinitions){
   let state=capped();
