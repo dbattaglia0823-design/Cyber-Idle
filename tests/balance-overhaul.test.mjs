@@ -35,7 +35,7 @@ test('legacy completed jobs receive their XP difference once without replaying r
     const loaded = normalizeSave(s);
     assert.equal(loaded.rpg.level, 5);
     assert.equal(loaded.rpg.xp, 0);
-    assert.equal(loaded.rpg.attributePoints, s.rpg.attributePoints + 3);
+    assert.equal(loaded.rpg.attributePoints, s.rpg.attributePoints + 4);
     assert.equal(loaded.rpg.perkPoints, s.rpg.perkPoints + 2);
     assert.deepEqual(loaded.rpg.completed, s.rpg.completed);
     assert.deepEqual(loaded.inventory, s.inventory);
