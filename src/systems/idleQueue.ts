@@ -48,7 +48,8 @@ export function normalizeIdleQueue(raw: Partial<IdleQueueState> | null | undefin
   return {
     enabled: Boolean(raw.enabled && index < steps.length), steps, index,
     nextId: Math.max(bounded(raw.nextId, 1, 1, 10_000_000), ...steps.map(x => Number(x.id.slice(1)) + 1)),
-    heatLimit: bounded(raw.heatLimit, DEFAULT_IDLE_QUEUE_HEAT_LIMIT, 10, 99),
+    heatLimit: typeof raw.heatLimit === "number" && Number.isFinite(raw.heatLimit) && raw.heatLimit >= 10 && raw.heatLimit <= 99
+      ? Math.floor(raw.heatLimit) : DEFAULT_IDLE_QUEUE_HEAT_LIMIT,
     message: typeof raw.message === "string" ? raw.message.slice(0, 180) : "",
   };
 }
