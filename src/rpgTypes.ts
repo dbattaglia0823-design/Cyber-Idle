@@ -1,4 +1,5 @@
 export interface IconicCombatMemory { weaponId: string; hits: number; guard?: number; weakHits?: number; ramWard?: boolean; heals?: number; marked?: boolean; retaliation?: boolean; momentum?: number; tempoCharges?: number; burnDamage?: number; burnTicks?: number }
+import type { DistrictId } from "./types";
 export interface BossIconicProgress { victories: number; dryStreak: number; acquired: Record<string, boolean> }
 export type AttributeId = "body" | "reflexes" | "intelligence" | "technical" | "cool";
 export type MissionApproach = "assault" | "ghost" | "netrunner" | "lifepath";
@@ -8,6 +9,7 @@ export interface RpgEncounter {
   bossReplay?: boolean;
   iconicMemory?: IconicCombatMemory;
   gigVariant?: number;
+  bounty?: { id: string; cycle: number };
   contract?: { id: "none" | "clean" | "precision" | "disruption"; injectors: number; interrupts: number; aimedHits: number };
   feedback?: { damage: number; taken: number; blocked: number; healing: number; interrupted: boolean; target?: string; defeated?: boolean; action: string };
   playerBleedTurns?: number;
@@ -36,6 +38,7 @@ export interface RpgState {
   bossIconicProgress?: Record<string, BossIconicProgress>;
   activityXpFraction?: number;
   gigDryStreak?: Record<string, number>;
+  bountyCycles?: Partial<Record<DistrictId, number>>;
   quickhackVersion?: number;
   quickhackLoadouts?: Record<string, string[]>;
   campaignXpVersion?: number;
