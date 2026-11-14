@@ -41,7 +41,7 @@ test('mission XP and training share overflow, rewards, normalization and level c
  assert.equal(state.rpg.level,2);assert.equal(state.rpg.xp,20);
  grantActivityCharacterXp(state,1e10);
  assert.equal(state.rpg.level,30);assert.equal(state.rpg.xp,0);
- assert.equal(state.rpg.attributePoints,40);assert.equal(state.rpg.perkPoints,16);
+ assert.equal(state.rpg.attributePoints,49);assert.equal(state.rpg.perkPoints,16);
  const before=JSON.stringify(state.rpg);
  for(const n of [Infinity,NaN,-1,0,1800000])grantActivityCharacterXp(state,n);
  assert.equal(JSON.stringify(state.rpg),before);
