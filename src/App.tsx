@@ -225,7 +225,6 @@ import { updateWorldUnlocks } from "./systems/worldUnlocks";
 import { campaignOperations } from "./data/campaign";
 import { campaignProgress, canAssembleLegacy, assembleLegacy, highThreatUnlocked, startHighThreat, prestigeSkill, collectionPercent, claimCollectionReward } from "./systems/endgameProgress";
 import { startAutoSave } from "./systems/autoSave";
-import { IdleQueuePanel } from "./components/IdleQueuePanel";
 import { processParallelWork } from "./systems/parallelWork";
 import { getItemSources } from "./systems/itemSourceLookup";
 import type { ActiveModifiers, AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, EnemyDrop, FactionId, GameState, GearSlot, ItemDefinition, ItemRarity, ItemStats, ItemType, JobContract, OperationDefinition, OperationRoute, OperationRouteId, ResourceId, RewardBundle, RipperdocService, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry, WeaponClassId } from "./types";
@@ -285,6 +284,7 @@ function App() {
   const [tabNoticesEnabled, setTabNoticesEnabled] = useState(loadTabNoticesEnabled);
   const [tab, setTab] = useState<TabId>("field");
   const [recipeRequest, setRecipeRequest] = useState<{ id: string | null; token: number }>({ id: null, token: 0 });
+  const [activityRecipeRequest, setActivityRecipeRequest] = useState<{ id: string | null; token: number }>({ id: null, token: 0 });
   const [mainSection, setMainSection] = useState<MainSection>("home");
   const [now, setNow] = useState(Date.now());
   const [exported, setExported] = useState("");
@@ -397,6 +397,9 @@ function App() {
     <PlayerNavigation.Provider value={{
       recipeId: recipeRequest.id,
       recipeRequest: recipeRequest.token,
+      activityRecipeId: activityRecipeRequest.id,
+      activityRecipeRequest: activityRecipeRequest.token,
+      openActivityCenter: recipeId => { setActivityRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("field"); setMainSection("home"); },
       openDistrict: (districtId, category) => { setTab("city"); setCityOpenRequest({ districtId, category: category as DistrictHubCategory, token: Date.now() });  },
       openCrafting: recipeId => { setRecipeRequest(current => ({ id: recipeId ?? null, token: current.token + 1 })); setTab("city"); setCityOpenRequest({ districtId: state.selectedDistrict, category: "crafting", token: Date.now() });  },
       openMissions: () => { setTab("field"); setMainSection("journal");  },
@@ -442,7 +445,6 @@ function App() {
         )}
         {tab === "city" && (
           <>
-          <IdleQueuePanel state={state} onUpdate={setState} />
           <CityTab
             state={state}
             openRequest={cityOpenRequest}
@@ -454,7 +456,7 @@ function App() {
             onBuyVendorItem={(vendorId, itemId) => setState((current) => buyVendorItem(current, vendorId, itemId))}
             onSellVendorItem={(vendorId, itemId) => setState((current) => sellVendorItem(current, vendorId, itemId))}
             onListBlackMarket={(itemId, strategy) => setState((current) => listBlackMarketItem(current, itemId, strategy))}
-            onCraft={(id) => setState((current) => startCraft(current, id))}
+            onCraft={(id, quantity, reserve) => setState((current) => startCraft(current, id, Date.now(), quantity, reserve))}
             onStopCraft={() => setState(stopCraft)}
             onBuyHousing={(id) => setState((current) => buyHousing(current, id))}
             onSetResidence={(id) => setState((current) => setActiveResidence(current, id))}
