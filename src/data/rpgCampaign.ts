@@ -3,11 +3,11 @@ import type { AttributeId } from "../rpgTypes";
 import type { ActiveModifiers, DistrictId, StartingPathId } from "../types";
 
 export const attributeDefinitions: Array<{ id: AttributeId; name: string; description: string; bonusDescription: string; bonuses: Partial<ActiveModifiers> }> = [
-  { id: "body", name: "Body", description: "More health, stronger direct attacks and better healing.", bonusDescription: "+2% max HP and +1% healing per point above 3.", bonuses: { combatMaxHp: 0.02, healingReceived: 0.01 } },
-  { id: "reflexes", name: "Reflexes", description: "Stronger weapon attacks and aimed shots. Strike before the counterattack.", bonusDescription: "+1% weapon damage and +0.5% attack speed per point above 3.", bonuses: { combatDamage: 0.01, combatAttackSpeed: 0.005 } },
-  { id: "intelligence", name: "Intelligence", description: "More RAM and quickhack damage. Open netrunner routes.", bonusDescription: "+1% hacking XP and +0.5% job success per point above 3. RAM and quickhack damage also scale with Intelligence.", bonuses: { skillXp: { hacking: 0.01 }, jobSuccessChance: 0.005 } },
-  { id: "technical", name: "Technical", description: "Better field medicine and damage reduction. Improve your crafting efficiency.", bonusDescription: "+1% armor, 1% lower crafting costs and 1% lower upgrade credit costs per point above 3. Each point unlocks another upgrade level.", bonuses: { combatDefense: 0.01, craftingCostReduction: 0.01, upgradeCostReduction: 0.01 } },
-  { id: "cool", name: "Cool", description: "Stronger opening attacks and cover. Open silent infiltration routes.", bonusDescription: "+0.25% damage reduction and 1% lower heat gain per point above 3.", bonuses: { damageReduction: 0.0025, heatGain: -0.01 } },
+  { id: "body", name: "Body", description: "More health, stronger direct attacks and better healing. Body 8 unlocks Breach Strike.", bonusDescription: "+2% max HP and +1% healing per point above 3.", bonuses: { combatMaxHp: 0.02, healingReceived: 0.01 } },
+  { id: "reflexes", name: "Reflexes", description: "Stronger weapon attacks and aimed shots. Reflexes 8 unlocks Double Tap.", bonusDescription: "+1% weapon damage and +0.5% attack speed per point above 3.", bonuses: { combatDamage: 0.01, combatAttackSpeed: 0.005 } },
+  { id: "intelligence", name: "Intelligence", description: "More RAM and quickhack damage. Intelligence 8 unlocks System Override.", bonusDescription: "+1% hacking XP and +0.5% job success per point above 3. RAM and quickhack damage also scale with Intelligence.", bonuses: { skillXp: { hacking: 0.01 }, jobSuccessChance: 0.005 } },
+  { id: "technical", name: "Technical", description: "Better field medicine and damage reduction. Technical 8 unlocks Emergency Patch.", bonusDescription: "+1% armor, 1% lower crafting costs and 1% lower upgrade credit costs per point above 3. Each point unlocks another upgrade level.", bonuses: { combatDefense: 0.01, craftingCostReduction: 0.01, upgradeCostReduction: 0.01 } },
+  { id: "cool", name: "Cool", description: "Stronger opening attacks and cover. Cool 8 unlocks Ghost Step.", bonusDescription: "+0.25% damage reduction and 1% lower heat gain per point above 3.", bonuses: { damageReduction: 0.0025, heatGain: -0.01 } },
 ];
 export { rpgPerks } from "./rpgPerks";
 
