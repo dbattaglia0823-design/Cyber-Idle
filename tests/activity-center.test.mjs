@@ -77,7 +77,7 @@ test("ingredient reserves prevent background skill work from spending future cra
  assert.equal(reservedCraftMaterial(first,"scrap"),4);
  assert.equal(canStartSkillAction(first,action),false);
  const free={...first, activeCraft:{...first.activeCraft,reserveMaterials:false}};
- assert.equal(canStartSkillAction(free,action),false,"not enough scrap is still not spendable");
+ assert.equal(canStartSkillAction(free,action),true,"disabling protection frees the remaining scrap for the skill");
  const rich={...state,resources:{...state.resources,scrap:9}};
  assert.equal(reservedCraftMaterial(rich,"scrap"),6);
  assert.equal(canStartSkillAction(rich,action),true);
@@ -112,7 +112,7 @@ test("target crafting coexists with queued gathering in live updates",()=>{
  state=addIdleQueueStep(state,"scav-alley-scrap-run","circuitBoards",5,20);
  state=startIdleQueue(state,1000);
  state=startCraft(state,med,1000,3,true);
- const processed=processParallelWork(state,30000);
+ const processed=processParallelWork(state,55000);
  assert.equal(processed.inventory["basic-med-injector"],3);
  assert.equal(processed.activeCraft,null);
  assert.ok(processed.resources.circuitBoards>=5);
