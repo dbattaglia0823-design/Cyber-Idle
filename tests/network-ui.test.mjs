@@ -110,7 +110,7 @@ test('Main begins with always-visible compact navigation, followed by Activity C
   assert.match(html, /Menu &amp; other sections/);
   assert.doesNotMatch(html, /activity-center-more|Character, missions and other sections|YOUR NEXT GOAL|class="next-goal"/);
   const nav=html.split('aria-label="Main section selection"')[1]?.split('</nav>')[0]??'';
-  assert.doesNotMatch(nav, /Field [Mm]anual|<strong>Progress</strong>/);
+  assert.doesNotMatch(nav, /Field [Mm]anual|Progress<\/strong>/);
   assert.equal((nav.match(/<button /g) ?? []).length, 8);
 });
 
