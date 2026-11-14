@@ -10,7 +10,7 @@ export function createRpgState(): RpgState {
     attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
 }
 
-// Shared by mission rewards, idle training, and save normalization.
+// Shared by mission rewards, eligible activity rewards, and save normalization.
 export function addRunnerXp(rpg: RpgState, amount: number) {
   if (!Number.isFinite(amount) || amount < 0) return 0;
   const before = rpg.level;
