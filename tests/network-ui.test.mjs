@@ -48,11 +48,19 @@ test('every district uses the Main hero and horizontal skill tabs', () => {
 });
 
 test('all personal terminal sections render inside the shared shell', () => {
-  for (const section of ['story', 'companions', 'itemIndex', 'simCache', 'settings']) {
-    const html = renderToStaticMarkup(createElement(MoreTab, { state: stateForUi(), section, exported: '', importPayload: '', saveSlots: [], activeSaveSlot: 1 }));
+  for (const section of ['progress', 'fieldManual', 'story', 'companions', 'itemIndex', 'simCache', 'settings']) {
+    const html = renderToStaticMarkup(createElement(MoreTab, { state: stateForUi(), section, onUpdate() {}, exported: '', importPayload: '', saveSlots: [], activeSaveSlot: 1 }));
     assert.match(html, /Your network/);
     assert.match(html, /aria-label="Menu sections"/);
     assert.match(html, /network-disclosure/);
+    assert.match(html, /Progress/);
+    assert.match(html, /Field Manual/);
+    if (section === 'fieldManual') {
+      assert.match(html, /FIELD MANUAL/);
+      assert.match(html, /Read the threat/);
+      assert.doesNotMatch(html, /main-menu-card/);
+    }
+    if (section === 'progress') assert.match(html, /Collection|Progress|Mastery/);
     assert.doesNotMatch(html, /NaN|undefined/);
   }
 });
