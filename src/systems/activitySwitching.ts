@@ -1,5 +1,4 @@
 import { operations } from "../data/operations";
-import { recipes } from "../data/recipes";
 import { jobs } from "../data/jobs";
 import { skillActions } from "../data/skills";
 import { combatZones } from "../data/combat";
