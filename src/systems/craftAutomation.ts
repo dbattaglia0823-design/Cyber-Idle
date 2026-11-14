@@ -36,6 +36,6 @@ export function craftTargetStatus(state: GameState) {
   const total = craft.targetQuantity ?? 0;
   const completed = craft.completedQuantity ?? 0;
   const needs = scaledCraftingCosts(state, recipe);
-  const reserves = Object.fromEntries(Object.keys(needs).map(id => [id, reservedCraftMaterial(state, id)]).filter(([, value]) => value > 0));
+  const reserves = Object.fromEntries(Object.keys(needs).map(id => [id, reservedCraftMaterial(state, id)]).filter(([, value]) => Number(value) > 0));
   return { recipe, total, completed, remainingCycles: craftRemainingCycles(state, craft), reserves };
 }
