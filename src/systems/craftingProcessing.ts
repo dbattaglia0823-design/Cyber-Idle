@@ -3,6 +3,7 @@ import { addMasteryXp, addSkillXp } from "./actionProcessing";
 import { addItem, removeItem } from "./collectionSystem";
 import { adjustedDurationMs, getActiveModifiers } from "./modifiers";
 import { scaledCraftingCosts } from "./craftingCosts";
+import { MAX_CRAFT_TARGET } from "./craftAutomation";
 import { cloneState, pushCategorizedLog } from "./gameState";
 import { markRecipeManual } from "./manualDiscovery";
 import { addMasteryPoolXp } from "./masteryPool";
@@ -22,10 +23,11 @@ export function canCraft(state: GameState, recipe: CraftingRecipe) {
   return Object.entries(adjustCraftingCosts(state, recipe)).every(([id, amount]) => getCount(state, id) >= amount);
 }
 
-export function startCraft(state: GameState, recipeId: string, now = Date.now()) {
+export function startCraft(state: GameState, recipeId: string, now = Date.now(), targetQuantity?: number, reserveMaterials = true) {
   recipeId = legacyRecipeAliases[recipeId] ?? recipeId;
   const recipe = getRecipe(recipeId);
   if (!recipe || !canCraft(state, recipe)) return state;
+  if (targetQuantity !== undefined && (!Number.isSafeInteger(targetQuantity) || targetQuantity < 1 || targetQuantity > MAX_CRAFT_TARGET)) return state;
   const next = cloneState(state);
   // Background crafting does not interrupt skill training, combat, missions or queues.
   pushCategorizedLog(next, "World", state.activeCraft ? `Changed background crafting to ${recipe.name}.` : `Started background crafting: ${recipe.name}.`);
@@ -33,6 +35,8 @@ export function startCraft(state: GameState, recipeId: string, now = Date.now())
     recipeId,
     startedAt: now,
     durationMs: adjustedDurationMs(state, recipe.durationMs, recipe.tags),
+    targetQuantity, completedQuantity: targetQuantity ? 0 : undefined,
+    reserveMaterials,
   };
   return next;
 }
@@ -46,6 +50,10 @@ export function processCrafting(state: GameState, now = Date.now(), maxCompletio
   const next = cloneState(state);
   let guard = 0;
   while (next.activeCraft && now - next.activeCraft.startedAt >= next.activeCraft.durationMs && guard < Math.max(1, Math.min(100, maxCompletions))) {
+    if (next.activeCraft.targetQuantity && (next.activeCraft.completedQuantity ?? 0) >= next.activeCraft.targetQuantity) {
+      next.activeCraft = null;
+      break;
+    }
     const recipe = getRecipe(next.activeCraft.recipeId);
     if (!recipe || !canCraft(next, recipe)) {
       pushCategorizedLog(next, "Warning", "Crafting stopped because materials are missing.");
@@ -53,6 +61,15 @@ export function processCrafting(state: GameState, now = Date.now(), maxCompletio
       break;
     }
     completeCraft(next, recipe);
+    if (next.activeCraft.targetQuantity) {
+      next.activeCraft.completedQuantity = (next.activeCraft.completedQuantity ?? 0) + recipe.outputQuantity;
+      if (next.activeCraft.completedQuantity >= next.activeCraft.targetQuantity) {
+        pushCategorizedLog(next, "World", `Crafting target met: ${recipe.name} ${next.activeCraft.completedQuantity}/${next.activeCraft.targetQuantity} produced.`);
+        next.activeCraft = null;
+        guard += 1;
+        break;
+      }
+    }
     // Crafting advances the relevant skill and mastery, not runner level.
     next.activeCraft = {
       ...next.activeCraft,
