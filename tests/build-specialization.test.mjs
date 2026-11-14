@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInitialState } from '../src/systems/gameState.ts';
-import { grantActivityCharacterXp } from '../src/systems/characterProgression.ts';
+import { grantCharacterXp } from '../src/systems/characterProgression.ts';
 import { MAX_CHARACTER_LEVEL, attributePointBudget, perkPointBudget } from '../src/data/characterBuild.ts';
 import { attributeDefinitions, rpgPerks } from '../src/data/rpgCampaign.ts';
 import { spendAttribute, buyRpgPerk, respecRpg } from '../src/systems/rpgSystem.ts';
 import { normalizeSave } from '../src/systems/saveSystem.ts';
-const capped = () => {const state=createInitialState();grantActivityCharacterXp(state,1e10);return state;};
+const capped = () => {const state=createInitialState();grantCharacterXp(state,1e10);return state;};
 
 test('level cap limits lifetime investment below all attributes and all perk trees',()=>{
  const state=capped();
@@ -15,7 +15,7 @@ test('level cap limits lifetime investment below all attributes and all perk tre
  assert.ok(attributePointBudget(MAX_CHARACTER_LEVEL)<attributeDefinitions.length*17);
  assert.ok(perkPointBudget(MAX_CHARACTER_LEVEL)<rpgPerks.length);
  const before=structuredClone(state.rpg);
- grantActivityCharacterXp(state,1e10);
+ grantCharacterXp(state,1e10);
  assert.deepEqual(state.rpg,before);
 });
 

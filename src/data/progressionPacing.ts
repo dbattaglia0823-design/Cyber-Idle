@@ -9,5 +9,6 @@ export function trainingXpPerSecond(level: number) {
 export function pacedActionXp(level: number, durationMs: number, originalXp: number) {
   return Math.max(originalXp, Math.round(trainingXpPerSecond(level) * durationMs / 1000));
 }
-// Accelerate only introductory skill training, not the long-term XP curve.
-export function introductoryTrainingMultiplier(level: number) { return level < 5 ? 1.25 : 1; }
+// Give new players a quicker first few skill unlocks without compressing the
+// established level-5+ curve or late-district progression.
+export function introductoryTrainingMultiplier(level: number) { return level < 5 ? 1.5 : 1; }

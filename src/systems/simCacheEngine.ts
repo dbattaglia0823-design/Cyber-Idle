@@ -1,5 +1,5 @@
 import { combatSimEligibility } from "./combatSimulation";
-import { grantActivityCharacterXp, totalCharacterXp } from "./characterProgression";
+import { totalCharacterXp } from "./characterProgression";
 import { simCacheTypes } from "../data/simCache";
 import { balanceConfig } from "../data/balanceConfig";
 import { actionMasteryXpReward, actionXpRewardWithMastery, addMasteryXp, addSkillXp, applyRewards, canStartSkillAction, grantActionItems, getSkillAction } from "./actionProcessing";
@@ -140,7 +140,7 @@ function simulateCraft(state: GameState, simulatedMs: number, recap: SimulationR
       break;
     }
     completeCraft(state, recipe, recap.efficiency.masteryXp, false, false);
-    grantActivityCharacterXp(state, state.activeCraft!.durationMs * recap.efficiency.skillXp);
+    // Simulated crafts follow live crafting: skill XP only.
     recap.completions += 1;
     recap.xpGained += recipe.xpReward;
     recap.masteryXpGained += Math.round(recipe.masteryXpReward * recap.efficiency.masteryXp);

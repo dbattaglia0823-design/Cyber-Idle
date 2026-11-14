@@ -5,7 +5,9 @@ import { performance } from 'node:perf_hooks';
 const started=performance.now();
 for(const approach of ['assault','netrunner','ghost']){
   const result=simulateCampaign({approach,maxChapters:1});
-  console.log(JSON.stringify({approach,completed:result.completed,minutes:Math.round(result.totalHours*60),gigs:result.gigs,cycles:result.cycles,minHp:result.rows[0]?.minHp,error:result.error}));
-  if(result.completed!==1||result.totalHours>1)process.exitCode=1;
+  const runnerLevel=result.rows[0]?.runnerLevel;
+  console.log(JSON.stringify({approach,completed:result.completed,minutes:Math.round(result.totalHours*60),runnerLevel,gigs:result.gigs,cycles:result.cycles,minHp:result.rows[0]?.minHp,error:result.error}));
+  // No first-hour path should max the runner or skip ahead in the chapter curve.
+  if(result.completed!==1||result.totalHours>1||runnerLevel<5||runnerLevel>6)process.exitCode=1;
 }
 console.log(`Audit runtime: ${Math.round(performance.now()-started)} ms`);

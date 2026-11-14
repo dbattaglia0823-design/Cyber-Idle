@@ -6,6 +6,14 @@ Run `npm run audit:first-hour`. This uses the existing deterministic material-le
 
 Before this pass, the first district took approximately 52–53 minutes for assault, netrunner and ghost approaches, with 632 training/gathering cycles and three local gigs. After adding 25% training XP **only below skill level 5**, the estimate is 45–46 minutes, with 529 cycles and three gigs. Midgame and endgame training rates are unchanged. Early preparation now recommends the existing starter chest armor instead of implying level-18 armor is necessary.
 
+## Runner XP rebalance and first-hour flow — November 2026
+
+Runner experience now comes from main jobs and the *first clear* of each district's local gig. Skill actions, repeat crafting, Street Combat, and either type of Sim Cache still award their own skill XP, mastery, supplies, credits and loot, but cannot raise the runner to level 30 before leaving Neon Row. Repeat gigs continue paying credits, rotated materials, district mastery and rare drops; their runner XP stops after the first clear.
+
+Runner level and allocated attributes from older saves are preserved (no level reset, rollback or retroactive subtraction). A newly earned runner still has a level-30 cap and the 49-point lifetime attribute budget. Mission reward previews distinguish first-clear from repeat XP, and debriefs display the XP actually earned. The opening goal now routes to Dead Drop once a build and basic gear are in place, with crafting as an optional strengthening route. Early skill XP has a 50% bonus below skill level 5, replacing the previous 25% bonus; levels 5–150 are unchanged.
+
+`npm run audit:first-hour` verifies each opening chapter completes within one estimated hour and ends around runner level 5–6; deterministic time estimates are not physical-device playtests.
+
 ## Combat, gigs and loot
 
 Story encounter profiles are preserved. Repeat gigs rotate local, plated and regenerating patrols; their preview and enemy intent explain the counters. Optional clean, precision and disruption contracts award 25% extra base credits on success. Missing the objective keeps the base payout. Counters persist through reloads and reset on retry.

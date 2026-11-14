@@ -16,7 +16,7 @@ const fresh = () => chooseStartingPath(createInitialState(), 'streetborn');
 test('new-player guidance follows real preparation and never gates starting a mission', () => {
  let s = fresh(); assert.equal(playerJourneyStep(s), 'kit');
  s = claimFieldKit(s); assert.equal(playerJourneyStep(s), 'attributes');
- s = spendAttribute(s, 'body'); assert.equal(playerJourneyStep(s), 'prepare');
+ s = spendAttribute(s, 'body'); assert.equal(playerJourneyStep(s), 'mission');
  s.equippedGear.weapon = undefined; assert.equal(playerJourneyStep(s), 'equipment');
  s = startRpgMission(s, 'dead-drop'); assert.equal(playerJourneyStep(s), 'briefing');
  s = chooseMissionApproach(s, 'assault'); assert.equal(playerJourneyStep(s), 'combat');

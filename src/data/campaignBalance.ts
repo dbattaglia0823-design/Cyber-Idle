@@ -1,6 +1,6 @@
-// Missions grant major runner XP; crafting and district combat also advance runner levels.
-// Repeatable skill actions do not grant runner XP.
-export const runnerTrainingLevelMs = 30 * 60 * 1000;
+// Runner XP comes from main-story chapters and the first clear of each local gig.
+// Repeatable training, crafting, Street Combat and gig farming grant skill/mastery,
+// resources or credits without boosting character levels.
 export const campaignRunnerTargets = [5, 9, 13, 17, 21, 25, 28, 30] as const;
 export const runnerXpNeeded = (level: number) => 100 + level * 60;
 export function mainJobXp(act: number) {

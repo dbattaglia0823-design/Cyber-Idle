@@ -7,6 +7,8 @@ import { beginRunner, claimFieldKit, applyStartingBuild, startingBuilds, respecR
 import { normalizeSave } from '../src/systems/saveSystem.ts';
 import { BuildPanel } from '../src/components/RpgHub.tsx';
 import { NextGoal } from '../src/components/NextGoal.tsx';
+import { playerJourneyStep } from '../src/screens/Start/playerJourney.ts';
+import { PlayerNavigation } from '../src/components/PlayerNavigation.tsx';
 
 test('starting an origin equips its free kit once and survives save reload',()=>{
   for(const origin of ['streetborn','outrider','corporateDefector']) {
@@ -51,6 +53,12 @@ test('fresh character shows a compact build choice and keeps advanced choices av
   const next=render(createElement(NextGoal,{state}));
   assert.match(next,/Starter gear equipped/);
   assert.doesNotMatch(next,/journey-checklist|journey-preparation/);
+  const selected=applyStartingBuild(state,'weapons');
+  assert.equal(playerJourneyStep(selected),'mission');
+  const guided=render(createElement(PlayerNavigation.Provider,{value:{openMissions(){},openCrafting(){}}},createElement(NextGoal,{state:selected})));
+  assert.match(guided,/Open missions/);
+  assert.match(guided,/Optional: craft/);
+  assert.doesNotMatch(guided,/Prepare for the first boss/);
   state.rpg.completed['neon-gig']={clears:1};
   assert.doesNotMatch(render(createElement(BuildPanel,{state,onUpdate(){}})),/early-perks/);
 });
