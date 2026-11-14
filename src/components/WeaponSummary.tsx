@@ -1,4 +1,5 @@
 import { weaponClasses } from "../data/weaponClasses";
+import { weaponClassIdentity } from "../systems/equipmentIdentity";
 import { getItem } from "../data/items";
 import { districts } from "../data/districts";
 import { weaponVariants, weaponDistrictOrder } from "../data/weaponProgression";
@@ -15,6 +16,8 @@ export function WeaponSummary({ state, itemId, compareItemId }: { state: GameSta
  const before = compareItemId ? { ...state, equippedGear: { ...state.equippedGear, weapon: compareItemId } } : undefined;
  const combat = calculatePlayerCombatStats(selected), old = before && calculatePlayerCombatStats(before);
  const profile = weaponCombatProfile(selected), stats = scaledStats(state, itemId);
+ const tuning = item.weaponClass ? weaponClassIdentity[item.weaponClass] : undefined;
+ const upgrade = state.upgradeLevels[itemId] ?? 0;
  const rows: Array<[string, number, number | undefined, string, boolean]> = [
    ["Damage", stats.damage ?? 0, before ? scaledStats(state, compareItemId!).damage ?? 0 : undefined, "", false],
    ["Interval", combat.attackSpeedMs / 1000, old ? old.attackSpeedMs / 1000 : undefined, "s", true],
@@ -30,6 +33,7 @@ export function WeaponSummary({ state, itemId, compareItemId }: { state: GameSta
      return <span key={label}><small>{label}</small><strong>{Number(value.toFixed(2))}{unit}</strong>{previous !== undefined && <em className={trend}>{delta > 0 ? "+" : ""}{Number(delta.toFixed(2))}{unit}</em>}</span>;
    })}</div>
    <small>{item.weaponVariant ? weaponVariants[item.weaponVariant].label + " · " : ""}Pen {profile.stats.armorPenetration ?? 0} · Crit ×{Number((1 + profile.criticalBonus).toFixed(2))}</small>
+   {tuning && <small><strong>{tuning.name}</strong> · {upgrade >= 3 ? "Tuned +3: active" : `Unlocks at +3 (currently +${upgrade})`} · {tuning.description}{upgrade >= 6 ? " · +6 reinforced" : ""}{upgrade >= 9 ? " · +9 perfected" : ""}</small>}
    {item.specialEffect && <small>{item.specialEffect}</small>}
    <small>Field hit {tacticalStats(selected).damage} · Mastery {state.weaponClasses[item.weaponClass!]?.level ?? 1}/99. {item.iconic ? "DPS excludes conditional signatures and enemy defenses." : "DPS includes your build, before enemy defenses."}</small>
  </div>;

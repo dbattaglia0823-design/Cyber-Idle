@@ -5,6 +5,7 @@ import { renderToStaticMarkup as render } from 'react-dom/server';
 import { createInitialState, chooseStartingPath, cloneState } from '../src/systems/gameState.ts';
 import { claimFieldKit, startRpgMission, chooseMissionApproach, performTactic, tacticalStats, resolveRpgMission, enemyIntent, canUseTactic } from '../src/systems/rpgSystem.ts';
 import { calculateMaxHP } from '../src/systems/healthSystem.ts';
+import { weaponTuning } from '../src/systems/equipmentIdentity.ts';
 import { normalizeSave } from '../src/systems/saveSystem.ts';
 import { applyOfflineProgress } from '../src/systems/offlineProgress.ts';
 import { rpgMissions, rpgSideGigs } from '../src/data/rpgCampaign.ts';
@@ -50,8 +51,9 @@ test('Helix repairs are suppressed by both an interrupt and active Overheat',()=
 });
 test('Glassline shields cycle predictably and do not reduce quickhack payloads',()=>{
  const s=combat(5);const t=tacticalStats(s);
- const shielded=performTactic(s,'attack');assert.equal(s.rpg.active.enemyHp-shielded.rpg.active.enemyHp,Math.round(t.damage*1.15*.65));
- s.rpg.active.turn=2;const open=performTactic(s,'attack');assert.equal(s.rpg.active.enemyHp-open.rpg.active.enemyHp,Math.round(t.damage*1.15));
+ const calibrated = weaponTuning(s)?.traitUnlocked && weaponTuning(s)?.weaponClass==='assaultRifles' ? 1.08 : 1;
+ const shielded=performTactic(s,'attack');assert.equal(s.rpg.active.enemyHp-shielded.rpg.active.enemyHp,Math.round(t.damage*1.15*calibrated*.65));
+ s.rpg.active.turn=2;const open=performTactic(s,'attack');assert.equal(s.rpg.active.enemyHp-open.rpg.active.enemyHp,Math.round(t.damage*1.15*calibrated));
  s.rpg.active.turn=0;assert.doesNotMatch(performTactic(s,'hack').rpg.active.log.join(' '),/Shield absorbed/);
 });
 test('Redline bosses telegraph consecutive bursts; Skyline rotates previously taught counters',()=>{

@@ -1,4 +1,5 @@
 import { tacticalAbilityForAction } from "../data/tacticalAbilities";
+import { weaponTuning } from "./equipmentIdentity";
 import { activeDistrictBounty, districtBountyById, type DistrictBountyOffer } from "../data/districtBounties";
 import { iconicWeaponHit, iconicIncoming, iconicKill, resetIconicTarget, iconicNonAttack } from "./iconicCombat";
 import { addWeaponClassXp, equippedWeaponClass, weaponClassBonus } from "./weaponSystem";
@@ -220,6 +221,7 @@ export function performTactic(state: GameState, action: TacticalAction) {
   const weaponAction = action === "attack" || action === "ability:body" || action === "ability:reflexes";
   const aimedAttack = weaponAction && e.aimed;
   const weapon = getItem(next.equippedGear.weapon ?? "");
+  const tuning = weaponTuning(next);
   const signature = weapon?.weaponModel ?? next.equippedGear.weapon;
   if(e.contract){if(action==="heal")e.contract.injectors++;if(aimedAttack)e.contract.aimedHits++;}
   const wasBurning = (e.burnTurns ?? 0) > 0;
@@ -239,6 +241,27 @@ export function performTactic(state: GameState, action: TacticalAction) {
     e.aimed = false;
     if (action === "ability:body") { damage *= 1.35; stun = true; }
     if (action === "ability:reflexes") damage *= 1.55;
+    // Calibrated (+3) weapons gain class-specific combat roles. The effect
+    // uses the current target's turn counter; no free attacks or new resource.
+    if (tuning?.traitUnlocked) {
+      switch (tuning.weaponClass) {
+        case "pistols": if (e.turn === 0) damage *= 1.12; break;
+        case "smgs":
+          e.weaken = Math.max(e.weaken ?? 0, .1);
+          e.weakenTurns = Math.max(e.weakenTurns ?? 0, 1);
+          break;
+        case "shotguns": break; // Additional plating penetration below.
+        case "assaultRifles": if (!aimedAttack) damage *= 1.08; break;
+        case "sniperRifles": if (aimedAttack) damage *= 1.15; break;
+        case "blades": if (e.turn === 0) damage *= 1.18; break;
+        case "bluntWeapons": if (e.turn === 0) stun = true; break;
+        case "techWeapons": break; // Half-shield bypass below.
+        case "heavyWeapons": if (traits.charged) damage *= 1.12; break;
+        case "exoticWeapons": if (e.turn % 3 === 2) damage *= 1.16; break;
+        default: break;
+      }
+      e.log.push(`${tuning.name} tuning active.`);
+    }
   }
   const iconic = weaponAction ? iconicWeaponHit(next,e,{mode:"field",damage,maxHp,enemyHp:e.enemyHp,enemyMaxHp:e.enemyMaxHp,armored:!!traits.armor,shielded:!!traits.shield,maxRam:maxRam(next)}) : undefined;
   if(iconic){
@@ -250,6 +273,10 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if (hack) {
     e.ram -= quickhackRamCost(next, hack);
     damage = stats.hack * hack.multiplier * (e.approach === "netrunner" ? 1.35 : 1);
+    if (tuning?.traitUnlocked && (tuning.weaponClass === "smartWeapons" || tuning.weaponClass === "cyberdeckWeapons")) {
+      damage *= tuning.weaponClass === "smartWeapons" ? 1.1 : 1.12;
+      e.log.push(`${tuning.name} boosted the quickhack.`);
+    }
     stun = hack.interrupt;
     if (hack.effect === "burn") { e.burnDamage = Math.round(stats.hack * (hack.potency ?? 0) * (e.approach === "netrunner" ? 1.35 : 1)); e.burnTurns = 3 + (next.rpg.perks["persistent-code"] ? 1 : 0); }
     if (hack.effect === "weaken") { e.weaken = hack.potency; e.weakenTurns = 2 + (next.rpg.perks["persistent-code"] ? 1 : 0); }
@@ -276,8 +303,8 @@ export function performTactic(state: GameState, action: TacticalAction) {
   if (action === "overclock") { e.ram = Math.min(maxRam(next), e.ram + 3); cover = true; }
   if (e.turn <= (next.rpg.perks["ghost-protocol"] ? 1 : 0) && next.rpg.perks.ambush) damage *= 1.6;
   if (weaponAction && !(next.rpg.perks.finisher && e.enemyHp <= e.enemyMaxHp * .25)) {
-    if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - (action === "ability:body" ? 0.25 : 0) - stats.armorPenetration - (iconic?.penetration??0)/100); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
-    if (traits.shield) { damage *= 1 - traits.shield * (action === "ability:body" ? 0.5 : 1) * (1-(iconic?.shieldPierce??0)); e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
+    if (traits.armor && !aimedAttack) { damage *= 1 - Math.max(0, traits.armor - (action === "ability:body" ? 0.25 : 0) - (tuning?.traitUnlocked && tuning.weaponClass === "shotguns" ? .15 : 0) - stats.armorPenetration - (iconic?.penetration??0)/100); e.log.push("Plating reduced the shot. Aim or use a quickhack to bypass it."); }
+    if (traits.shield) { damage *= 1 - traits.shield * (action === "ability:body" ? 0.5 : 1) * (tuning?.traitUnlocked && tuning.weaponClass === "techWeapons" ? .5 : 1) * (1-(iconic?.shieldPierce??0)); e.log.push("Shield absorbed part of the shot. Quickhacks bypass shields."); }
   }
   if(weaponAction && signature===canonicalWeaponId("rpg-weapon-3") && (e.weakenTurns ?? 0)>0) {damage*=1.2;e.log.push("Sidearm exploited disabled movement.");}
   if(aimedAttack && signature===canonicalWeaponId("rpg-weapon-1") && e.ram<maxRam(next)){e.ram=Math.min(maxRam(next),e.ram+1);e.log.push("Sidearm rhythm restored 1 RAM.");}

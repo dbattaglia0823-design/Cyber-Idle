@@ -3,6 +3,7 @@ import { BossIconicPreview } from "./components/BossIconicPreview";
 import { streetBoss } from "./data/streetBosses";
 import { combatCache, estimateCombatSimKills, reserveCombatSimCaches, finishCombatSimCaches } from "./systems/combatSimulation";
 import { WeaponSummary } from "./components/WeaponSummary";
+import { ArmorSetStatus, EquipmentImpact, EquipmentUpgradeImpact, WeaponTuningStatus } from "./components/EquipmentInsights";
 import { MAX_CHARACTER_LEVEL } from "./data/characterBuild";
 import { CombatScene } from "./components/CombatScene";
 import { beginRunner } from "./systems/rpgSystem";
@@ -3538,6 +3539,8 @@ function EquipmentUpgradeButton({ state, itemId, onUpgrade }: { state: GameState
       <p className="fine">{maxed ? `Maximum upgrade +${level}` : `+${level} → +${level + 1} / ${item.maxUpgradeLevel}`}</p>
       <div className="equipment-upgrade-stats"><table><thead><tr><th>Stat</th><th>Current</th>{!maxed && <th>After upgrade</th>}</tr></thead><tbody>{Object.entries(current).map(([key, value]) => <tr key={key}><th>{titleCase(key)}</th><td>{value}</td>{!maxed && <td className={preview[key as keyof typeof preview] !== value ? "upgrade-stat-improved" : ""}>{preview[key as keyof typeof preview]}</td>}</tr>)}</tbody></table></div>
       {item.modifiers && <p className="fine">Modifiers: {formatItemModifiers(item.modifiers)}</p>}
+      {item.type === "Weapon" && <WeaponTuningStatus state={state} itemId={itemId} />}
+      {(item.type === "Armor" || item.type === "Weapon" || item.type === "Cyberware") && <EquipmentUpgradeImpact state={state} itemId={itemId} />}
       {!maxed && <div className="upgrade-cost-box"><h3>Requirements</h3><div className="equipment-upgrade-requirement"><span>Technical {requirement}</span><strong className={state.rpg.attributes.technical < requirement ? "warning" : ""}>{state.rpg.attributes.technical} / {requirement}</strong></div>{Object.entries(itemUpgradeCost(state, itemId)).map(([id, amount]) => {
         const required = id === itemId ? amount + 1 : amount;
         const owned = getOwnedCount(state, id);
@@ -3668,6 +3671,7 @@ function InventoryTab({
             <EquipmentTypeIconBadge item={item} fallbackSlot={slot.id} fallbackKind="gear" /><span>{slot.label}</span><strong>{item?.name ?? "Empty slot"}{id && state.upgradeLevels[id] ? " +" + state.upgradeLevels[id] : ""}</strong><small>{item ? "Inspect / replace" : "Find equipment"}</small>
           </button>;
         })}</div>
+        <ArmorSetStatus state={state} />
       </article>
       <TabNoticePanel
         title="Inventory Updates"
@@ -3749,6 +3753,9 @@ function InventoryTab({
             <p className="fine">Source: {selectedItem.sourceHint}</p>
             <p className="fine">Market value: {selectedItem.sellValue} / Quick sell: {selectedQuickSellValue.toLocaleString()} Credits</p>
             {selectedItem.stats && <StatComparisonLine state={state} itemId={activeId} compareItemId={selectedComparisonItemId} />}
+            {(selectedItem.type === "Armor" || selectedItem.type === "Weapon" || selectedItem.type === "Cyberware") && <EquipmentImpact state={state} itemId={activeId} />}
+            {selectedItem.type === "Armor" && <ArmorSetStatus state={state} itemId={activeId} />}
+            {selectedItem.type === "Weapon" && <WeaponTuningStatus state={state} itemId={activeId} />}
             {selectedItem.modifiers && <p className="fine">Modifiers: {formatItemModifiers(selectedItem.modifiers)}</p>}
             {selectedItem.type === "Weapon" && <WeaponDetail state={state} weaponId={activeId} onInstallAttachment={onInstallAttachment} onRemoveAttachment={onRemoveAttachment} onInstallWeaponMod={onInstallWeaponMod} onRemoveWeaponMod={onRemoveWeaponMod} />}
             {selectedItem.type === "WeaponAttachment" && <p className="fine">Attachment: {titleCase(selectedItem.attachmentCategory ?? "")} / Compatible {selectedItem.compatibleWeaponClasses?.join(", ")}</p>}

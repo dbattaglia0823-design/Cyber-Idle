@@ -1,4 +1,5 @@
 import { companions } from "../data/companions";
+import { equipmentIdentityModifiers } from "./equipmentIdentity";
 import { housingOptions } from "../data/housing";
 import { getItem } from "../data/items";
 import { vehicles } from "../data/vehicles";
@@ -289,6 +290,10 @@ function applyEquipment(state: GameState, modifiers: ActiveModifiers) {
   const weaponLoadout = state.weaponLoadouts[state.equippedGear.weapon ?? ""];
   Object.values(weaponLoadout?.attachments ?? {}).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
   (weaponLoadout?.mods ?? []).forEach((itemId) => mergeItemModifiers(modifiers, itemId));
+  for (const { label, bonuses } of equipmentIdentityModifiers(state)) {
+    mergeModifiers(modifiers, bonuses);
+    modifiers.activeSources.push(label);
+  }
   if (cyberwareLoad(state) > 0) modifiers.activeSources.push(`Cyberware load +${cyberwareLoad(state)} NI`);
 }
 
