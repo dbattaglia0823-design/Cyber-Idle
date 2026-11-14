@@ -405,7 +405,7 @@ function App() {
     }}>
     <div className="app-shell">{getSaveWarning() && <div className="save-health-warning" role="status"><span>{getSaveWarning()}</span><button className="secondary-button" onClick={() => {setTab("more");setMoreSection("settings");}}>Saves &amp; export</button>{getSaveWarning()?.startsWith("Recovered a backup") && <button className="secondary-button" onClick={dismissSaveRecoveryNotice}>Dismiss notice</button>}</div>}
       <header className="topbar">
-        {state.rpg.active ? <button className="topbar-activity-progress" onClick={() => { setTab("field"); setMainSection("journal"); }}><p className="eyebrow">Field Mission / Awaiting Your Move</p><h1>{missionById(state.rpg.active.missionId)?.title ?? "Active mission"}</h1></button> : <TopbarActivityProgress activity={active} onOpen={openCityTab} onStop={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))} />}
+        {state.rpg.active ? <button className="topbar-activity-progress" onClick={() => { setTab("field"); setMainSection("journal"); }}><p className="eyebrow">Field Mission / Awaiting Your Move</p><h1>{missionById(state.rpg.active.missionId)?.title ?? "Active mission"}</h1></button> : <TopbarActivityProgress activity={active} onOpen={openCityTab} onStop={() => setState(stopForegroundOrCraft)} />}
         <button className={`player-level-alert ${perkPointsAvailable > 0 ? "has-points" : ""}`} onClick={() => {
             setTab("field");
             setMainSection("character");
