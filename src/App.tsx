@@ -92,10 +92,9 @@ import {
   actionXpRewardWithMastery,
   startSkillAction,
   stopSkillAction,
-  processActionCompletion,
 } from "./systems/actionProcessing";
 import { canFightEnemy, getEnemy, processCombat, startCombat, stopCombat } from "./systems/combatProcessing";
-import { canCraft, processCrafting, startCraft, stopCraft } from "./systems/craftingProcessing";
+import { canCraft, startCraft, stopCraft } from "./systems/craftingProcessing";
 import { cloneState, createInitialState } from "./systems/gameState";
 import { canAttemptJob, jobRequirementDetails, processJobCompletion, startJob, stopJob } from "./systems/jobProcessing";
 import { jobs } from "./data/jobs";
@@ -226,6 +225,8 @@ import { updateWorldUnlocks } from "./systems/worldUnlocks";
 import { campaignOperations } from "./data/campaign";
 import { campaignProgress, canAssembleLegacy, assembleLegacy, highThreatUnlocked, startHighThreat, prestigeSkill, collectionPercent, claimCollectionReward } from "./systems/endgameProgress";
 import { startAutoSave } from "./systems/autoSave";
+import { IdleQueuePanel } from "./components/IdleQueuePanel";
+import { processParallelWork } from "./systems/parallelWork";
 import { getItemSources } from "./systems/itemSourceLookup";
 import type { ActiveModifiers, AttachmentCategory, BlackMarketStrategy, CombatZone, CraftingRecipe, CyberwareSlot, DistrictId, Enemy, EnemyDrop, FactionId, GameState, GearSlot, ItemDefinition, ItemRarity, ItemStats, ItemType, JobContract, OperationDefinition, OperationRoute, OperationRouteId, ResourceId, RewardBundle, RipperdocService, SkillAction, SkillId, StartingPathId, VendorDefinition, VendorItemEntry, WeaponClassId } from "./types";
 
@@ -313,7 +314,7 @@ function App() {
       applyPassiveRecovery(recovered, Math.max(0, now - current.lastSavedAt));
       unlockAutoHeal(recovered);
       recovered.lastSavedAt = now;
-      const next = updateStoryProgress(processBlackMarketListings(processOperation(processCombat(processJobCompletion(processCrafting(processActionCompletion(recovered, now), now), now), now), now), now));
+      const next = updateStoryProgress(processBlackMarketListings(processOperation(processCombat(processJobCompletion(processParallelWork(recovered, now), now), now), now), now));
       const progressState = next === current ? cloneState(current) : next;
 
       syncChallengeProgress(progressState);
@@ -419,6 +420,7 @@ function App() {
           </i>
         </button>
         <div className="topbar-right">
+          {state.activeCraft && <span className="topbar-craft-indicator" title="Crafting runs independently of your current activity">CRAFT · {recipes.find(recipe => recipe.id === state.activeCraft?.recipeId)?.name ?? "Crafting"} · {Math.round(progressPercent(now,state.activeCraft.startedAt,state.activeCraft.durationMs))}%</span>}
           {selectedStartingPath && <StartingPathBadge pathId={selectedStartingPath.id} name={selectedStartingPath.name} />}
           <div className="top-stats">
             <StatPill label="Credits" value={state.resources.credits} />
@@ -439,6 +441,8 @@ function App() {
           />
         )}
         {tab === "city" && (
+          <>
+          <IdleQueuePanel state={state} onUpdate={setState} />
           <CityTab
             state={state}
             openRequest={cityOpenRequest}
@@ -462,11 +466,12 @@ function App() {
               useHealingItem(next, id, "Manual Healing");
               return next;
             })}
-            onStopActive={() => setState((current) => stopOperation(stopCombat(stopJob(stopCraft(stopSkillAction(current))))))}
+            onStopActive={() => setState(stopForegroundOrCraft)}
             notices={cityNotices}
             onReviewNotice={markNoticeReviewed}
             onReviewAllNotices={() => markTabNoticesReviewed("city")}
           />
+          </>
         )}
         {tab === "field" && <RpgHub state={state} onUpdate={setState} onServices={openCityTab} page={mainSection} onPage={setMainSection} onCharacterTool={setCharacterSection} inventoryNoticeCount={inventoryNotices.length}>
           {mainSection === "character" && (
@@ -2292,6 +2297,15 @@ function activeActivity(state: GameState, now = Date.now()): ActiveActivity | nu
   return null;
 }
 
+function stopForegroundOrCraft(state: GameState) {
+  if (state.activeAction) return stopSkillAction(state);
+  if (state.currentCombat) return stopCombat(state);
+  if (state.activeJob) return stopJob(state);
+  if (state.activeOperation) return stopOperation(state);
+  if (state.activeCraft) return stopCraft(state);
+  return state;
+}
+
 function progressPercent(now: number, startedAt: number, durationMs: number) {
   return Math.max(0, Math.min(100, ((now - startedAt) / Math.max(1, durationMs)) * 100));
 }
@@ -3946,7 +3960,8 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
           title="Crafting"
           lines={[
             "Crafting repeats while materials are available.",
-            "Starting a new activity automatically stops the previous one.",
+            "Crafting runs in the background alongside skill work, combat, and missions.",
+            "Starting another recipe replaces only the current background recipe.",
             "Required materials can be tapped to see where to get them.",
             "Blueprints unlock higher-tier recipes.",
             "Rare items come from mission rewards, local-gig rotations, crafting, or shops.",
