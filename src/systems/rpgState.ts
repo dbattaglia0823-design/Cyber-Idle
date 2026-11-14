@@ -4,10 +4,13 @@ import { MAX_CHARACTER_LEVEL, attributePointBudget, perkPointBudget } from "../d
 import { mainJobXp, runnerXpNeeded } from "../data/campaignBalance";
 import type { RpgState } from "../rpgTypes";
 import { allRpgMissions, rpgMissions } from "../data/rpgCampaign";
+import { districtBountyById } from "../data/districtBounties";
+import { districts } from "../data/districts";
+import type { GameState } from "../types";
 
 export function createRpgState(): RpgState {
   return { campaignXpVersion: 2, attributeProgressionVersion: 3, level: 1, xp: 0, attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 },
-    attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
+    attributePoints: 7, perkPoints: 2, perks: {}, completed: {}, bountyCycles: {}, active: null, ending: null, streetCred: 0, starterClaimed: false };
 }
 
 // Shared by mission rewards, eligible activity rewards, and save normalization.
@@ -27,9 +30,9 @@ export function addRunnerXp(rpg: RpgState, amount: number) {
 
 export function cloneRpgState(state?: RpgState): RpgState {
   const base = createRpgState();
-  return { ...base, ...state, bossIconicProgress: Object.fromEntries(Object.entries(state?.bossIconicProgress ?? {}).filter(([,p])=>p&&typeof p==="object").map(([id, p])=>[id,{...p,acquired:{...p.acquired}}])), gigDryStreak: { ...state?.gigDryStreak }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
+  return { ...base, ...state, bossIconicProgress: Object.fromEntries(Object.entries(state?.bossIconicProgress ?? {}).filter(([,p])=>p&&typeof p==="object").map(([id, p])=>[id,{...p,acquired:{...p.acquired}}])), gigDryStreak: { ...state?.gigDryStreak }, bountyCycles: { ...state?.bountyCycles }, quickhackLoadouts: Object.fromEntries(Object.entries(state?.quickhackLoadouts ?? {}).filter(([, ids]) => Array.isArray(ids)).map(([id, ids]) => [id, [...new Set(ids.filter(value => typeof value === "string"))].slice(0, 6)])), attributes: { ...base.attributes, ...state?.attributes }, perks: { ...state?.perks },
     completed: Object.fromEntries(Object.entries(state?.completed ?? {}).map(([id, value]) => [id, { ...value }])),
-    active: state?.active ? { ...state.active, abilityReadyAt: { ...state.active.abilityReadyAt }, contract: state.active.contract ? { ...state.active.contract } : undefined, iconicMemory: state.active.iconicMemory ? {...state.active.iconicMemory} : undefined, log: [...(state.active.log ?? [])] } : null };
+    active: state?.active ? { ...state.active, bounty: state.active.bounty ? { ...state.active.bounty } : undefined, abilityReadyAt: { ...state.active.abilityReadyAt }, contract: state.active.contract ? { ...state.active.contract } : undefined, iconicMemory: state.active.iconicMemory ? {...state.active.iconicMemory} : undefined, log: [...(state.active.log ?? [])] } : null };
 }
 
 export function normalizeRpgState(state?: RpgState): RpgState {
@@ -44,6 +47,7 @@ export function normalizeRpgState(state?: RpgState): RpgState {
   }
   next.campaignXpVersion = 2;
   addRunnerXp(next, 0);
+  next.bountyCycles = Object.fromEntries(districts.map(({id}) => [id, integer(next.bountyCycles?.[id] ?? 0, 0, 1000000)]));
   next.gigDryStreak = Object.fromEntries(Object.entries(next.gigDryStreak ?? {}).filter(([id]) => allRpgMissions.some(m => m.sideGig && m.id === id)).map(([id,value]) => [id,integer(value,0,9)]));
   next.iconicLootSeed = Number.isFinite(next.iconicLootSeed) ? (Math.trunc(next.iconicLootSeed!)>>>0)||1 : undefined;
   next.bossIconicProgress = Object.fromEntries(Object.entries(next.bossIconicProgress ?? {}).filter(([id])=>bossIconics.some(def=>def.mission===id||def.bossEnemyId===id)).map(([id,p])=>[id,{victories:integer(p.victories,0,Number.MAX_SAFE_INTEGER),dryStreak:integer(p.dryStreak,0,9),acquired:Object.fromEntries(bossIconics.filter(def=>(def.mission===id||def.bossEnemyId===id)&&p.acquired?.[def.id]===true).map(def=>[def.id,true]))}]));
@@ -57,6 +61,16 @@ export function normalizeRpgState(state?: RpgState): RpgState {
       e.enemyIndex = integer(e.enemyIndex, 0, e.phase === "decision" ? mission.enemies.length : mission.enemies.length - 1);
       e.enemyMaxHp = integer(e.enemyMaxHp, 1, 100000); e.enemyHp = integer(e.enemyHp, 0, e.enemyMaxHp);
       e.gigVariant = integer(e.gigVariant ?? 0,0,2);
+      // The saved offer is a stable reference to one canonical board rotation.
+      // A malformed or outdated bounty is dropped without touching story progress.
+      if (e.bounty && mission.sideGig && typeof e.bounty.id === "string") {
+        const district = mission.district;
+        const cycle = next.bountyCycles?.[district] ?? 0;
+        const match = /^([a-zA-Z]+):(\\d+):([0-2])$/.exec(e.bounty.id);
+        if (match?.[1] === district && Number(match[2]) === cycle && e.bounty.cycle === cycle) {
+          e.bounty = { id: e.bounty.id, cycle };
+        } else e.bounty = undefined;
+      } else e.bounty = undefined;
       if(e.contract && ["none","clean","precision","disruption"].includes(e.contract.id)) e.contract = {id:e.contract.id,injectors:integer(e.contract.injectors,0,1000),interrupts:integer(e.contract.interrupts,0,1000),aimedHits:integer(e.contract.aimedHits,0,1000)}; else e.contract=undefined;
       e.bossReplay = Boolean(e.bossReplay && !mission.sideGig && next.completed[mission.id]);
       e.iconicMemory = normalizeIconicMemory(e.iconicMemory);
