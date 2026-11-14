@@ -76,6 +76,6 @@ test('save backups recover broken writes and remain isolated per slot',()=>{
  }finally{globalThis.localStorage=old;}
 });
 test('introductory XP bonus ends at level five',()=>{
- assert.equal(introductoryTrainingMultiplier(1),1.25);assert.equal(introductoryTrainingMultiplier(4),1.25);
+ assert.equal(introductoryTrainingMultiplier(1),1.5);assert.equal(introductoryTrainingMultiplier(4),1.5);
  assert.equal(introductoryTrainingMultiplier(5),1);assert.equal(introductoryTrainingMultiplier(100),1);
 });
