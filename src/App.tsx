@@ -406,6 +406,7 @@ function App() {
       openMissions: () => { setTab("field"); setMainSection("journal");  },
       openCharacter: section => { setCharacterSection(section); setTab("field"); setMainSection("character");  },
       openIndex: () => { setTab("more"); setMoreSection("itemIndex");  },
+      openMenu: () => { setTab("more"); },
     }}>
     <div className="app-shell">{getSaveWarning() && <div className="save-health-warning" role="status"><span>{getSaveWarning()}</span><button className="secondary-button" onClick={() => {setTab("more");setMoreSection("settings");}}>Saves &amp; export</button>{getSaveWarning()?.startsWith("Recovered a backup") && <button className="secondary-button" onClick={dismissSaveRecoveryNotice}>Dismiss notice</button>}</div>}
       <header className="topbar">
