@@ -1,4 +1,4 @@
- import { introductoryTrainingMultiplier } from "../data/progressionPacing";
+import { introductoryTrainingMultiplier } from "../data/progressionPacing";
 import { resourceNames } from "../data/resources";
 import { skillActions, skillNames } from "../data/skills";
 import { balanceConfig } from "../data/balanceConfig";
