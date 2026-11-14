@@ -126,7 +126,14 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
     activeAction: saved.activeAction ?? null,
     idleQueue: normalizeIdleQueue(saved.idleQueue),
     activeJob: null,
-    activeCraft: saved.activeCraft ?? null,
+    activeCraft: saved.activeCraft && typeof saved.activeCraft === "object" && !Array.isArray(saved.activeCraft)
+      ? { ...saved.activeCraft,
+          targetQuantity: Number.isSafeInteger(saved.activeCraft.targetQuantity) && (saved.activeCraft.targetQuantity ?? 0) >= 1 && (saved.activeCraft.targetQuantity ?? 0) <= 2000 ? saved.activeCraft.targetQuantity : undefined,
+          completedQuantity: Number.isSafeInteger(saved.activeCraft.completedQuantity) && (saved.activeCraft.completedQuantity ?? 0) >= 0
+            ? Math.min(saved.activeCraft.completedQuantity ?? 0, 2000) : 0,
+          reserveMaterials: saved.activeCraft.reserveMaterials === true,
+        }
+      : null,
     activeOperation: null,
     currentCombat: saved.currentCombat ?? null,
     health: { ...initial.health, ...saved.health },
@@ -299,6 +306,8 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
   if (!saved.rpg?.iconicLootSeed) normalized.rpg.iconicLootSeed=(Math.trunc(saved.lastSavedAt ?? initial.lastSavedAt)>>>0)||1;
   normalizeBossIconicOwnership(normalized);
   if(normalized.currentCombat) normalized.currentCombat={...normalized.currentCombat,iconicMemory:normalizeIconicMemory(normalized.currentCombat.iconicMemory)};
+  if (normalized.activeCraft && normalized.activeCraft.targetQuantity &&
+    (normalized.activeCraft.completedQuantity ?? 0) >= normalized.activeCraft.targetQuantity) normalized.activeCraft = null;
   if (normalized.activeAction && !skillActions.some(action => action.id === normalized.activeAction!.actionId)) normalized.activeAction = null;
   if (normalized.idleQueue.enabled && (
     normalized.rpg.active || normalized.currentCombat || normalized.activeJob || normalized.activeOperation ||
