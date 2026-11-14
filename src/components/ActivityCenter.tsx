@@ -29,6 +29,7 @@ export function ActivityCenter({ state, onUpdate, onMissions }: { state:GameStat
     const requested=navigation.activityRecipeId;
     if(requested && recipes.some(recipe=>recipe.id===requested)){
       setRecipeId(requested);setPlanKind("recipe");
+      if (navigation.activityRecipeQuantity && Number.isSafeInteger(navigation.activityRecipeQuantity) && navigation.activityRecipeQuantity<=MAX_CRAFT_TARGET) setQuantity(navigation.activityRecipeQuantity);
     }
   },[navigation.activityRecipeRequest]);
   const selected=recipes.find(recipe=>recipe.id===recipeId)??recipes[0];
