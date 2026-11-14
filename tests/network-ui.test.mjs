@@ -4,6 +4,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CityTab, DistrictHub, MoreTab, CharacterTab } from '../src/App.tsx';
 import { DistrictMap } from '../src/components/DistrictMap.tsx';
+import { RpgHub } from '../src/components/RpgHub.tsx';
+import { PlayerNavigation } from '../src/components/PlayerNavigation.tsx';
 import { createInitialState, chooseStartingPath } from '../src/systems/gameState.ts';
 import { districts } from '../src/data/districts.ts';
 
@@ -88,4 +90,36 @@ test('Character centralizes gear, implants, progression, recovery and presets', 
     if (section === 'health') assert.match(html, /Auto Heal/);
     if (section === 'attributes') assert.match(html, /Customize points/);
   }
+});
+
+
+test('Main begins with always-visible compact navigation, followed by Activity Center', () => {
+  const state=stateForUi();
+  const html=renderToStaticMarkup(
+    createElement(PlayerNavigation.Provider, { value: { openMenu() {}, openCrafting() {}, openIndex() {} } },
+      createElement(RpgHub, { state, page: 'home', onPage() {}, onUpdate() {}, onServices() {} })
+    )
+  );
+  const navigationAt=html.indexOf('aria-label="Main section selection"');
+  const dashboardAt=html.indexOf('aria-label="Activity Center"');
+  assert.ok(navigationAt > 0 && dashboardAt > navigationAt, 'Main navigation must appear above automation');
+  assert.match(html, /main-menu-compact/);
+  assert.match(html, /Missions/);
+  assert.match(html, /Inventory &amp; loadout/);
+  assert.match(html, /Attributes &amp; perks/);
+  assert.match(html, /Menu &amp; other sections/);
+  assert.doesNotMatch(html, /activity-center-more|Character, missions and other sections|YOUR NEXT GOAL|class="next-goal"/);
+  const nav=html.split('aria-label="Main section selection"')[1]?.split('</nav>')[0]??'';
+  assert.doesNotMatch(nav, /Field [Mm]anual|<strong>Progress</strong>/);
+  assert.equal((nav.match(/<button /g) ?? []).length, 8);
+});
+
+test('Missions and Character navigation no longer include moved Menu sections',()=>{
+  const state=stateForUi();
+  const html=renderToStaticMarkup(createElement(RpgHub, { state, page:'journal', onPage() {}, onUpdate() {}, onServices() {} }));
+  const menu=html.split('aria-label="Runner network sections"')[1]?.split('</div>')[0]??'';
+  assert.match(menu, /Missions/);
+  assert.match(menu, /Character/);
+  assert.doesNotMatch(menu, /Progress|Field manual|Field Manual/);
+  assert.doesNotMatch(html, /YOUR NEXT GOAL/);
 });
