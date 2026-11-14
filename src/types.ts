@@ -443,6 +443,24 @@ export interface PlayerCombatStats {
   armor: number;
 }
 
+export interface IdleQueueStep {
+  id: string;
+  actionId: string;
+  targetId: string;
+  targetAmount: number;
+  maxCycles: number;
+  cycles: number;
+}
+
+export interface IdleQueueState {
+  enabled: boolean;
+  steps: IdleQueueStep[];
+  index: number;
+  nextId: number;
+  heatLimit: number;
+  message: string;
+}
+
 export interface ActiveAction {
   actionId: string;
   startedAt: number;
@@ -1249,6 +1267,7 @@ export interface GameState {
   inventory: Record<string, number>;
   inventoryLocks: Record<string, boolean>;
   activeAction: ActiveAction | null;
+  idleQueue: IdleQueueState;
   activeJob: ActiveJob | null;
   activeCraft: ActiveCraft | null;
   activeOperation: ActiveOperation | null;

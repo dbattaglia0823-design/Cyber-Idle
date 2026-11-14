@@ -27,7 +27,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   const job = state.activeJob && getJob(state.activeJob.jobId);
   const enemy = state.currentCombat && getEnemy(state.currentCombat.enemyId);
   const operation = state.activeOperation && getOperation(state.activeOperation.operationId);
-  const name = state.rpg.active ? "Field mission paused" : action?.name || recipe?.name || job?.name || enemy?.name || operation?.name || "Recovery and market sales";
+  const name = (state.rpg.active ? "Field mission paused" : action?.name || job?.name || enemy?.name || operation?.name || recipe?.name || "Recovery and market sales") + (recipe && (action || enemy || state.rpg.active) ? ` + background crafting: ${recipe.name}` : "");
   // Move the capped simulation window forward without losing partial progress
   // or replaying discarded hours when the next live tick arrives.
   const shift = now - elapsed - state.lastSavedAt;
@@ -46,8 +46,35 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   let operationCompletions = 0;
   // Drain the live processors' bounded batches, preserving costs, drops, healing,
   // death, discoveries and unlocks exactly as in online play.
-  while (true) {
-    if (next.activeAction) {
+  let processedEvents = 0;
+  const MAX_OFFLINE_EVENTS = 20_000;
+  // When crafting shares materials with skill work or combat, process their
+  // scheduled boundaries in chronological order. This prevents double-spends
+  // and gives the same queue transitions online and offline.
+  while (processedEvents++ < MAX_OFFLINE_EVENTS) {
+    const skillDue = next.activeAction ? next.activeAction.startedAt + next.activeAction.durationMs : Infinity;
+    const craftDue = next.activeCraft ? next.activeCraft.startedAt + next.activeCraft.durationMs : Infinity;
+    const combat = next.currentCombat;
+    const combatDue = combat ? combat.respawnAt ?? Math.min(combat.nextPlayerAttackAt ?? combat.startedAt, combat.nextEnemyAttackAt ?? combat.startedAt) : Infinity;
+    if (next.activeCraft && (next.activeAction || combat)) {
+      const earliest = Math.min(skillDue, craftDue, combatDue);
+      if (earliest > now) break;
+      if (skillDue <= earliest) {
+        const before = next.activeAction?.startedAt;
+        next = processActionCompletion(next, earliest, 1);
+        if (next.activeAction?.startedAt === before) break;
+      } else if (craftDue <= earliest) {
+        const previous = next.activeCraft?.startedAt;
+        const countBefore = recipe ? owned(next, recipe.outputItemId) : 0;
+        next = processCrafting(next, earliest, 1);
+        if (recipe) craftCompletions += (owned(next, recipe.outputItemId) - countBefore) / recipe.outputQuantity;
+        if (next.activeCraft?.startedAt === previous) break;
+      } else {
+        const before = JSON.stringify(next.currentCombat);
+        next = processCombat(next, earliest);
+        if (JSON.stringify(next.currentCombat) === before) break;
+      }
+    } else if (next.activeAction) {
       const before = next.activeAction.startedAt;
       next = processActionCompletion(next, now);
       if (next.activeAction?.startedAt === before) break;
@@ -71,16 +98,24 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
       operationCompletions += 1;
     } else break;
   }
+  const hitEventLimit = processedEvents > MAX_OFFLINE_EVENTS;
+  if (hitEventLimit) {
+    next.activeAction = null;
+    next.activeCraft = null;
+    next.idleQueue.enabled = false;
+    next.idleQueue.message = "Safety stop: offline processing exceeded its event limit.";
+    pushCategorizedLog(next, "Warning", next.idleQueue.message);
+  }
   if (!enemy && !operation) applyPassiveRecovery(next, elapsed);
   next = processBlackMarketListings(next, now);
   updateWorldUnlocks(next);
   next = updateStoryProgress(next);
-  const completions = action
-    ? (next.marketStatistics.skillActionsCompletedBySkill[action.skillId] ?? 0) - (state.marketStatistics.skillActionsCompletedBySkill[action.skillId] ?? 0)
-    : recipe ? craftCompletions
-    : enemy ? (next.enemyLog[enemy.id]?.kills ?? 0) - (state.enemyLog[enemy.id]?.kills ?? 0)
-    : job ? (next.fixerTrust[job.fixerId]?.completedJobs ?? 0) - (state.fixerTrust[job.fixerId]?.completedJobs ?? 0)
-    : operation ? operationCompletions : next.blackMarketCompletedSales.length - state.blackMarketCompletedSales.length;
+  const skillCompletions = Object.keys(next.marketStatistics.skillActionsCompletedBySkill)
+    .reduce((sum, id) => sum + Math.max(0, (next.marketStatistics.skillActionsCompletedBySkill[id as keyof typeof next.marketStatistics.skillActionsCompletedBySkill] ?? 0) - (state.marketStatistics.skillActionsCompletedBySkill[id as keyof typeof state.marketStatistics.skillActionsCompletedBySkill] ?? 0)), 0);
+  const completions = skillCompletions + craftCompletions
+    + (enemy ? (next.enemyLog[enemy.id]?.kills ?? 0) - (state.enemyLog[enemy.id]?.kills ?? 0) : 0)
+    + (job ? (next.fixerTrust[job.fixerId]?.completedJobs ?? 0) - (state.fixerTrust[job.fixerId]?.completedJobs ?? 0) : 0)
+    + operationCompletions;
   const itemsGained = Object.fromEntries(Object.entries(next.inventory).map(([id, n]) => [id, n - (state.inventory[id] ?? 0)]).filter(([, n]) => Number(n) > 0));
   const recap: OfflineRecap = {
     resumeAction: recipe ? {kind:"craft",id:recipe.id} : action ? {kind:"skill",id:action.id} : undefined,
@@ -97,7 +132,8 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     itemsGained,
     heatGained: next.resources.heat - state.resources.heat,
     neuralInstabilityGained: 0,
-    message: next.rpg.active ? "Your field mission is waiting for your next decision. No combat turns elapsed while away."
+    message: hitEventLimit ? "Offline processing stopped at its event limit to protect the save. Restart your activities manually."
+      : next.rpg.active ? (recipe ? "Your field mission stayed paused while background crafting advanced." : "Your field mission is waiting for your next decision. No combat turns elapsed while away.")
       : next.health.lifeState === "downed" ? "You were downed. Combat stopped; free Basic Recovery is available."
       : (action || recipe || job) && !next.activeAction && !next.activeCraft && !next.activeJob ? "Activity stopped when its requirements could no longer be met."
       : `Progressed using normal gameplay rules. Offline time is capped at ${Math.round(cap / 3600000)} hours.`,

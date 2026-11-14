@@ -41,7 +41,11 @@ Main-job choices alter payouts and reputation, build community support, and are 
 
 ## Optional city activities
 
-Open **Map** or **District services** for gathering, crafting, trading, companions, and optional skill training. Only one activity runs at a time; starting idle work abandons an unfinished field mission, and starting a field mission stops idle work.
+Open **Map** or **District services** for gathering, crafting, trading, companions, and optional skill training. One **foreground** activity (skill work, street combat or field mission) runs at a time; starting another foreground activity stops or pauses the previous foreground activity. **Crafting is independent background work**: it continues while a skill trains, while street combat runs, or while a main job/local gig awaits decisions. Starting a different recipe replaces the current background recipe only; Stop Crafting never interrupts the foreground action. Crafting still consumes its normal materials per completed cycle and stops safely if materials run out.
+
+The collapsed **Idle activity queue** on the City tab lets you configure up to eight ordered skill activities. Select each action, a guaranteed output (resource or item), an **absolute stock target**, and a maximum number of repetitions. Starting the queue uses the first eligible action, moves on exactly when its target is met, skips already-satisfied targets, and finishes automatically. The queue pauses rather than bypassing locked content, insufficient input materials, or a chosen Heat safety threshold. You can reorder, remove, pause, reset, and resume steps. Manually starting combat, missions, or another skill pauses automation without cancelling your separate background craft.
+
+Both the queue and crafting progress while offline, subject to the existing offline time cap. When the two lanes share materials, completions are processed in time order so the same input cannot be spent twice. Old saves get an empty, disabled queue; existing items, equipped gear, skill levels, mission and crafting progress are preserved.
 
 Start with Scavenging for scrap and circuits, Hacking for data and credits, and Cyberware for implant parts. Each district has a guaranteed Scavenging supply route for its crafting components. These routes require the district's entry level in Scavenging; advanced routes also consume scrap. Blueprints and essential vehicle components have crafting recipes, so progression does not depend on rare drops.
 

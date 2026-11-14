@@ -4,6 +4,7 @@ import { districtEvents } from "../data/districtEvents";
 import { districts } from "../data/districts";
 import { factions } from "../data/factions";
 import { startingResources } from "../data/resources";
+import { emptyIdleQueue } from "./idleQueue";
 import { districts as districtData } from "../data/districts";
 import { vendors } from "../data/vendors";
 import { weaponClasses } from "../data/weaponClasses";
@@ -31,6 +32,7 @@ export function createInitialState(now = Date.now()): GameState {
     inventory: {},
     inventoryLocks: {},
     activeAction: null,
+    idleQueue: emptyIdleQueue(),
     activeJob: null,
     activeCraft: null,
     activeOperation: null,
@@ -225,6 +227,7 @@ export function cloneState(state: GameState): GameState {
     inventory: { ...state.inventory },
     inventoryLocks: { ...state.inventoryLocks },
     activeAction: state.activeAction ? { ...state.activeAction } : null,
+    idleQueue: { ...state.idleQueue, steps: state.idleQueue.steps.map(step => ({ ...step })) },
     activeJob: state.activeJob ? { ...state.activeJob } : null,
     activeCraft: state.activeCraft ? { ...state.activeCraft } : null,
     activeOperation: state.activeOperation ? { ...state.activeOperation } : null,

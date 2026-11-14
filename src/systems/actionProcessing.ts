@@ -18,6 +18,7 @@ import { addItem, discoverItem } from "./collectionSystem";
 import { emitRewardPopupGroup } from "./rewardPopups";
 import { clearActiveActivityForSwitch } from "./activitySwitching";
 import { meetsActionAccessRequirement } from "./actionAccess";
+import { idleQueueAfterCompletion, idleQueueAfterBlocked } from "./idleQueue";
 import type { EnemyDrop, GameState, ResourceId, RewardBundle, SkillAction, SkillId } from "../types";
 
 export function getSkillAction(actionId: string) {
@@ -65,19 +66,24 @@ export function startSkillAction(state: GameState, actionId: string, now = Date.
 }
 
 export function stopSkillAction(state: GameState) {
-  return { ...state, activeAction: null };
+  if (!state.activeAction && !state.idleQueue.enabled) return state;
+  const next = cloneState(state);
+  next.activeAction = null;
+  if (next.idleQueue.enabled) { next.idleQueue.enabled = false; next.idleQueue.message = "Queue paused manually."; }
+  return next;
 }
 
-export function processActionCompletion(state: GameState, now = Date.now()) {
+export function processActionCompletion(state: GameState, now = Date.now(), maxCompletions = 100) {
   if (!state.activeAction) return state;
   if (now - state.activeAction.startedAt < state.activeAction.durationMs) return state;
 
   const next = cloneState(state);
   let guard = 0;
 
-  while (next.activeAction && now - next.activeAction.startedAt >= next.activeAction.durationMs && guard < 100) {
+  while (next.activeAction && now - next.activeAction.startedAt >= next.activeAction.durationMs && guard < Math.max(1, Math.min(100, maxCompletions))) {
     const action = getSkillAction(next.activeAction.actionId);
     if (!action || !canStartSkillAction(next, action)) {
+      idleQueueAfterBlocked(next, next.activeAction.actionId);
       pushCategorizedLog(next, "Warning", "Action stopped because required resources ran out.");
       next.activeAction = null;
       break;
@@ -137,11 +143,13 @@ export function processActionCompletion(state: GameState, now = Date.now()) {
     applyRiskEvents(next);
     updateWorldUnlocks(next);
 
+    const boundary = next.activeAction.startedAt + next.activeAction.durationMs;
     next.activeAction = {
       ...next.activeAction,
-      startedAt: next.activeAction.startedAt + next.activeAction.durationMs,
+      startedAt: boundary,
       durationMs: adjustedActionDurationMs(next, action.durationMs, action.id, [action.skillId, ...(action.tags ?? [])]),
     };
+    idleQueueAfterCompletion(next, action.id, boundary);
     guard += 1;
   }
 
