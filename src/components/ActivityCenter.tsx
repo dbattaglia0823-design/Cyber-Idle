@@ -62,7 +62,7 @@ export function ActivityCenter({ state, onUpdate, onMissions }: { state:GameStat
            queue.steps.length>0 ? <button type="button" className="secondary-button" disabled={Boolean(state.currentCombat)} onClick={()=>onUpdate(s=>startIdleQueue(s))}><Play size={15}/> {queue.index>0&&queue.index<queue.steps.length?"Resume queue":"Start queue"}</button> : null}
           {state.activeAction&&<button type="button" className="secondary-button" onClick={()=>onUpdate(stopSkillAction)}>Stop skill</button>}
           {state.currentCombat&&<button type="button" className="secondary-button" onClick={()=>onUpdate(stopCombat)}>Stop combat</button>}
-          <button type="button" className="secondary-button" onClick={()=>navigation.openDistrict?.(state.selectedDistrict,"actions")}>Find skill work</button>
+          <button type="button" className="secondary-button" onClick={()=>navigation.openDistrict?.(state.selectedDistrict ?? "neonRow","actions")}>Find skill work</button>
         </div>
       </article>
       <article className="activity-lane">
