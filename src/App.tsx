@@ -178,7 +178,7 @@ import {
 import { ActivityCard, FactionBadge, LockedOverlay, ModifierList, NeonPanel, RequirementList, TerminalLog, ThreatMeter } from "./components/cyberpunk";
 import { DistrictMap } from "./components/DistrictMap";
 import { ProgressionGuide } from "./components/ProgressionGuide";
-import { RpgHub, BuildPanel, type MainSection } from "./components/RpgHub";
+import { RpgHub, BuildPanel, FieldManual, type MainSection } from "./components/RpgHub";
 import { rpgXpNeeded, missionById } from "./systems/rpgSystem";
 import { RewardPopupContainer } from "./components/RewardPopups";
 import { InfoButton, ScreenHelpPanel } from "./components/InfoPopover";
@@ -494,11 +494,11 @@ function App() {
               onAutoHealChange={(patch) => setState((current) => ({ ...current, autoHeal: { ...current.autoHeal, ...patch } }))}
             />
           )}
-          {mainSection === "progress" && <ProgressTab state={state} onUpdate={setState} />}
         </RpgHub>}
         {tab === "more" && (
           <MoreTab
             state={state}
+            onUpdate={setState}
             section={moreSection}
             onSection={setMoreSection}
             exported={exported}
@@ -603,7 +603,7 @@ function loadInitialGameState(slot: SaveSlotId = getActiveSaveSlot()) {
   }
 }
 
-type MoreSection = "story" | "companions" | "itemIndex" | "simCache" | "balance" | "settings";
+type MoreSection = "progress" | "fieldManual" | "story" | "companions" | "itemIndex" | "simCache" | "balance" | "settings";
 
 function tabIndicator(state: GameState, id: NoticeTabId, reviewed: Set<string>, enabled: boolean) {
   if (!enabled) return "";
@@ -4623,6 +4623,7 @@ export function MoreTab({
   state,
   section,
   onSection,
+  onUpdate,
   exported,
   importPayload,
   onGift,
@@ -4648,6 +4649,7 @@ export function MoreTab({
   state: GameState;
   section: MoreSection;
   onSection: (section: MoreSection) => void;
+  onUpdate: UpdateGame;
   exported: string;
   importPayload: string;
   onGift: (id: string) => void;
@@ -4672,20 +4674,23 @@ export function MoreTab({
 }) {
   return (
     <section className="network-shell menu-network">
-      <NetworkHeader eyebrow="PERSONAL TERMINAL / CONNECTIONS & ARCHIVE" title="Your network." description="Follow city stories, check your contacts, browse the archive and manage your save." />
+      <NetworkHeader eyebrow="PERSONAL TERMINAL / CONNECTIONS & ARCHIVE" title="Your network." description="Review progress and the field manual, explore city stories, and manage your save." />
         <MobileSectionMenu label="Menu sections" value={section} onChange={onSection} options={([
+          { id: "progress", label: "Progress" }, { id: "fieldManual", label: "Field Manual" },
           { id: "story", label: "City stories" }, { id: "companions", label: "Companions" },
           { id: "itemIndex", label: "Item index" }, { id: "simCache", label: "Simulation cache" },
           ...(isDevBuild ? [{ id: "balance", label: "Balance tools" }] : []), { id: "settings", label: "Settings & saves" },
         ] as Array<{ id: MoreSection; label: string }>)} />
         <nav className="network-tabs" aria-label="Menu sections">
-          {(["story", "companions", "itemIndex", "simCache", ...(isDevBuild ? ["balance" as MoreSection] : []), "settings"] as MoreSection[]).map((id) => (
+          {(["progress", "fieldManual", "story", "companions", "itemIndex", "simCache", ...(isDevBuild ? ["balance" as MoreSection] : []), "settings"] as MoreSection[]).map((id) => (
             <button key={id} className={section === id ? "active" : ""} onClick={() => onSection(id)}>
-              {id === "itemIndex" ? "Item Index" : titleCase(id)}
+              {id === "itemIndex" ? "Item Index" : id === "fieldManual" ? "Field Manual" : titleCase(id)}
             </button>
           ))}
         </nav>
       <div className="network-body stack">
+      {section === "progress" && <ProgressTab state={state} onUpdate={onUpdate} />}
+      {section === "fieldManual" && <div className="rpg-shell menu-field-manual"><FieldManual /></div>}
       {section === "story" && <StorySection state={state} onChoice={onStoryChoice} />}
       {section === "companions" && <CompanionsSection state={state} onGift={onGift} onSpendTime={onSpendTime} onSetCompanion={onSetCompanion} />}
       {section === "itemIndex" && <ItemIndexPanel state={state} />}
