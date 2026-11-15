@@ -314,3 +314,43 @@
   .rpg-shell[data-section="home"] .activity-center{padding:0 8px;}
   .menu-field-manual .rpg-manual{padding:12px;}
 }
+
+
+/* Sequenced background crafting, shared by Crafting and the Main dashboard. */
+.craft-recipe-queue{display:flex;flex-direction:column;gap:9px;min-width:0;padding:12px 14px;border:1px solid #3e5967;background:linear-gradient(130deg,#142631,#111c28);color:#d9e9ef}
+.craft-queue-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.craft-queue-heading .eyebrow{font-size:9px;margin:0 0 4px}
+.craft-queue-heading h3{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;margin:0;color:#eff7fa}
+.craft-queue-heading h3 svg{color:#75d9dd}
+.craft-queue-heading>small{font-size:10px;color:#9bb9c8;white-space:nowrap}
+.craft-queue-current{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;padding:8px 10px;border:1px solid #2f6569;background:#153236}
+.craft-queue-current strong{font-size:11px}
+.craft-queue-current small{font-size:10px;color:#aadbd8}
+.craft-queue-entries{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.craft-queue-entries li{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:8px 10px;border:1px solid #344c5a;background:#121e2b}
+.craft-queue-entries li>div:first-child{display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;align-items:center;min-width:0;flex:1}
+.craft-queue-entries li strong{font-size:11px;min-width:0;overflow-wrap:anywhere}
+.craft-queue-entries li small{font-size:10px;color:#a4bdcb;grid-column:2}
+.craft-queue-index{display:grid;place-items:center;grid-row:span 2;font-size:11px;color:#70dadb;background:#213e49;border:1px solid #365a63;min-height:22px}
+.craft-queue-buttons,.craft-queue-controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.craft-queue-buttons button{display:grid;place-items:center;min-width:32px;min-height:32px;padding:6px;background:#172a38;border:1px solid #506876;color:#d3e5ed;cursor:pointer;border-radius:3px}
+.craft-queue-buttons button:disabled{opacity:.4;cursor:default}
+.craft-queue-buttons button:not(:disabled):hover{border-color:#73dbdc}
+.craft-queue-controls button{display:inline-flex;align-items:center;gap:6px;min-height:35px;padding:7px 11px;font-size:11px}
+.craft-queue-warning{color:#f0d09e;font-size:11px;line-height:1.6;margin:0}
+.craft-queue-message{font-size:10px!important;margin:0;color:#a9c5d2}
+.craft-recipe-queue>.fine{font-size:10px;line-height:1.5;margin:0;color:#adc4d1}
+.craft-recipe-queue.compact{max-width:1200px;width:100%;margin:0 auto;padding:11px 14px}
+.craft-recipe-queue.compact .craft-queue-entries{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:6px}
+.craft-recipe-queue.compact .craft-queue-entries li{padding:7px 9px}
+.craft-target-options .secondary-button{min-height:35px}
+@media(max-width:600px){
+ .craft-recipe-queue{padding:10px;gap:8px}
+ .craft-queue-heading h3{font-size:14px}
+ .craft-queue-current{align-items:start;flex-direction:column}
+ .craft-queue-entries li{align-items:start;flex-wrap:wrap}
+ .craft-queue-buttons{margin-left:auto}
+ .craft-queue-buttons button{min-width:36px;min-height:36px}
+ .craft-queue-controls button{min-height:38px}
+ .craft-recipe-queue.compact{padding:9px 11px}
+}

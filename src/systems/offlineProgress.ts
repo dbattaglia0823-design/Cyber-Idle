@@ -42,7 +42,6 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
     }
   }
   unlockAutoHeal(next);
-  let craftCompletions = 0;
   let operationCompletions = 0;
   // Drain the live processors' bounded batches, preserving costs, drops, healing,
   // death, discoveries and unlocks exactly as in online play.
@@ -65,9 +64,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
         if (next.activeAction?.startedAt === before) break;
       } else if (craftDue <= earliest) {
         const previous = next.activeCraft?.startedAt;
-        const countBefore = recipe ? owned(next, recipe.outputItemId) : 0;
         next = processCrafting(next, earliest, 1);
-        if (recipe) craftCompletions += (owned(next, recipe.outputItemId) - countBefore) / recipe.outputQuantity;
         if (next.activeCraft?.startedAt === previous) break;
       } else {
         const before = JSON.stringify(next.currentCombat);
@@ -80,9 +77,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
       if (next.activeAction?.startedAt === before) break;
     } else if (next.activeCraft) {
       const before = next.activeCraft.startedAt;
-      const countBefore = recipe ? owned(next, recipe.outputItemId) : 0;
       next = processCrafting(next, now);
-      if (recipe) craftCompletions += (owned(next, recipe.outputItemId) - countBefore) / recipe.outputQuantity;
       if (next.activeCraft?.startedAt === before) break;
     } else if (next.activeJob) {
       const before = next.activeJob.startedAt;
@@ -112,6 +107,7 @@ export function applyOfflineProgress(state: GameState, now = Date.now()) {
   next = updateStoryProgress(next);
   const skillCompletions = Object.keys(next.marketStatistics.skillActionsCompletedBySkill)
     .reduce((sum, id) => sum + Math.max(0, (next.marketStatistics.skillActionsCompletedBySkill[id as keyof typeof next.marketStatistics.skillActionsCompletedBySkill] ?? 0) - (state.marketStatistics.skillActionsCompletedBySkill[id as keyof typeof state.marketStatistics.skillActionsCompletedBySkill] ?? 0)), 0);
+  const craftCompletions = Math.max(0, next.craftQueue.completedCycles - state.craftQueue.completedCycles);
   const completions = skillCompletions + craftCompletions
     + (enemy ? (next.enemyLog[enemy.id]?.kills ?? 0) - (state.enemyLog[enemy.id]?.kills ?? 0) : 0)
     + (job ? (next.fixerTrust[job.fixerId]?.completedJobs ?? 0) - (state.fixerTrust[job.fixerId]?.completedJobs ?? 0) : 0)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PauseCircle, Play, PackageCheck, Hammer, Zap, ShieldCheck, ClipboardList, AlertTriangle } from "lucide-react";
 import { IdleQueuePanel } from "./IdleQueuePanel";
+import { CraftQueuePanel } from "./CraftQueuePanel";
 import { getSkillAction, stopSkillAction } from "../systems/actionProcessing";
 import { canCraft, startCraft, stopCraft } from "../systems/craftingProcessing";
 import { craftTargetStatus, MAX_CRAFT_TARGET, ownedMaterial } from "../systems/craftAutomation";
@@ -77,6 +78,7 @@ export function ActivityCenter({ state, onUpdate, onMissions }: { state:GameStat
         </div>
       </article>
     </div>
+    <CraftQueuePanel state={state} onUpdate={onUpdate} compact />
     <div className="activity-center-tools">
       <article className="activity-center-tool">
         <div className="activity-tool-heading"><div><p className="eyebrow">CRAFTING CONTROLS</p><h2>Set a crafting target</h2></div><PackageCheck size={18}/></div>

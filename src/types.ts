@@ -486,6 +486,25 @@ export interface ActiveCraft {
   reserveMaterials?: boolean;
 }
 
+export interface CraftQueueEntry {
+  id: string;
+  recipeId: string;
+  /** Undefined means repeat until this recipe can no longer afford ingredients. */
+  targetQuantity?: number;
+  reserveMaterials: boolean;
+}
+
+export interface CraftQueueState {
+  entries: CraftQueueEntry[];
+  nextId: number;
+  paused: boolean;
+  /** Preserve a partially completed target when inputs run out or crafting is stopped. */
+  blockedCraft: ActiveCraft | null;
+  message: string;
+  /** Completed craft cycles for accurate offline reports across different queued recipes. */
+  completedCycles: number;
+}
+
 export interface ActiveOperation {
   operationId: string;
   routeId?: OperationRouteId;
@@ -1276,6 +1295,7 @@ export interface GameState {
   idleQueue: IdleQueueState;
   activeJob: ActiveJob | null;
   activeCraft: ActiveCraft | null;
+  craftQueue: CraftQueueState;
   activeOperation: ActiveOperation | null;
   currentCombat: CurrentCombat | null;
   health: PlayerHealthState;
