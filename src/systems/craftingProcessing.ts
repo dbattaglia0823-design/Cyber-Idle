@@ -151,7 +151,12 @@ export function processCrafting(state: GameState, now = Date.now(), maxCompletio
       }
       pushCategorizedLog(next, "Warning", next.craftQueue.message);
       next.activeCraft = null;
-      if (!active.targetQuantity) startNextQueuedCraft(next, boundary);
+      if (!active.targetQuantity) {
+        startNextQueuedCraft(next, boundary);
+        // A continuous craft exhausting its own ingredients is a normal
+        // queue boundary; process the next recipe in this same capped batch.
+        if (next.activeCraft) continue;
+      }
       break;
     }
     completeCraft(next, recipe);
