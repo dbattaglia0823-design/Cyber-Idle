@@ -5,6 +5,7 @@ import { MAX_CHARACTER_LEVEL, attributePointBudget, attributePointBudgetV2, perk
 import { enforceCharacterPointBudget } from "./runnerProgression";
 import { skillActions } from "../data/skills";
 import { normalizeIdleQueue } from "./idleQueue";
+import { normalizeCraftQueue } from "./craftQueue";
 import { grantStarterQuickhacks } from "./quickhackSystem";
 import { spentPerkPoints } from "./perkSystem";
 import { startingResources } from "../data/resources";
@@ -134,6 +135,7 @@ export function normalizeSave(saved: Partial<GameState>): GameState {
           reserveMaterials: saved.activeCraft.reserveMaterials === true,
         }
       : null,
+    craftQueue: normalizeCraftQueue(saved.craftQueue),
     activeOperation: null,
     currentCombat: saved.currentCombat ?? null,
     health: { ...initial.health, ...saved.health },
