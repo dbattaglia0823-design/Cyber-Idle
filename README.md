@@ -48,6 +48,14 @@ Open **Map** or **District services** for gathering, crafting, trading, companio
 Both the queue and crafting progress while offline, subject to the existing offline time cap. When the two lanes share materials, completions are processed in time order so the same input cannot be spent twice. Old saves get an empty, disabled queue; existing items, equipped gear, skill levels, mission and crafting progress are preserved.
 
 
+### Sequential background crafting queue
+
+From **Map → District services → Crafting**, choose a recipe and output quantity, then click **Start crafting**. Select another recipe and choose **Add to Queue**. Up to eight upcoming recipes are supported; each retains its own output target and ingredient-protection option. The current recipe continues uninterrupted, and the next begins automatically when its target is reached. You may also queue the same recipe multiple times or rearrange/remove upcoming recipes.
+
+**Target mode** is recommended for predictable queues. **Continuous mode** repeats until its next craft cycle lacks materials and then advances to the next queued recipe. If a target-mode recipe runs short of materials, its partial progress is saved and the queue pauses instead of silently skipping or losing it. Missing resources or locked requirements for the next recipe likewise pause the queue; obtain the missing inputs and select **Resume crafting queue**. The **Pause upcoming queue** control leaves the current craft running; manually stopping a craft preserves its partial target when upcoming recipes exist. **Clear upcoming** does not interrupt the current recipe. Queue controls are shown in Crafting and the Main Activity Center.
+
+Crafting remains a single background production lane independent of skills and missions, not a second simultaneous crafting slot. Offline progress processes recipe handoffs at the actual completion boundaries (subject to the normal offline cap), counts completions across different recipes correctly, and preserves your queue, targets and partial progress across saves.
+
 ### Target crafting, resource reserves and smart automation
 
 From **Main → Activity Center**, select a recipe, specify up to 2,000 output items and start its targeted background craft. It stops automatically when the target is produced; recipes yielding multiple items may finish just above the target. The existing **Crafting** recipe details provide the same target/continuous mode options. Continuous mode remains available for unlimited repetition until inputs run out.
