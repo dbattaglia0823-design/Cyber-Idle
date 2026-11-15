@@ -3940,7 +3940,7 @@ function itemUseSummary(itemId: string) {
   return uses.length ? uses.join(", ") : "collection, sale, or future unlocks";
 }
 
-function CraftingPanel({ state, onCraft, onStopCraft, onCraftQueueUpdate }: { state: GameState; onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void; onStopCraft: () => void; onCraftQueueUpdate: (update: (state: GameState) => GameState) => void }) {
+export function CraftingPanel({ state, onCraft, onStopCraft, onCraftQueueUpdate }: { state: GameState; onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void; onStopCraft: () => void; onCraftQueueUpdate: (update: (state: GameState) => GameState) => void }) {
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [targetCraftMode, setTargetCraftMode] = useState<"target"|"continuous">("target");
