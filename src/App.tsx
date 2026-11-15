@@ -94,7 +94,7 @@ import {
   stopSkillAction,
 } from "./systems/actionProcessing";
 import { canFightEnemy, getEnemy, processCombat, startCombat, stopCombat } from "./systems/combatProcessing";
-import { canCraft, startCraft, stopCraft } from "./systems/craftingProcessing";
+import { canCraft, enqueueCraft, startCraft, stopCraft } from "./systems/craftingProcessing";
 import { cloneState, createInitialState } from "./systems/gameState";
 import { canAttemptJob, jobRequirementDetails, processJobCompletion, startJob, stopJob } from "./systems/jobProcessing";
 import { jobs } from "./data/jobs";
@@ -179,6 +179,9 @@ import { ActivityCard, FactionBadge, LockedOverlay, ModifierList, NeonPanel, Req
 import { DistrictMap } from "./components/DistrictMap";
 import { ProgressionGuide } from "./components/ProgressionGuide";
 import { RpgHub, BuildPanel, FieldManual, type MainSection } from "./components/RpgHub";
+import { CraftQueuePanel } from "./components/CraftQueuePanel";
+import { MAX_CRAFT_QUEUE } from "./systems/craftQueue";
+import { MAX_CRAFT_TARGET } from "./systems/craftAutomation";
 import { rpgXpNeeded, missionById } from "./systems/rpgSystem";
 import { RewardPopupContainer } from "./components/RewardPopups";
 import { InfoButton, ScreenHelpPanel } from "./components/InfoPopover";
@@ -460,6 +463,7 @@ function App() {
             onListBlackMarket={(itemId, strategy) => setState((current) => listBlackMarketItem(current, itemId, strategy))}
             onCraft={(id, quantity, reserve) => setState((current) => startCraft(current, id, Date.now(), quantity, reserve))}
             onStopCraft={() => setState(stopCraft)}
+            onCraftQueueUpdate={setState}
             onBuyHousing={(id) => setState((current) => buyHousing(current, id))}
             onSetResidence={(id) => setState((current) => setActiveResidence(current, id))}
             onBuyVehicle={(id) => setState((current) => buyVehicle(current, id))}
@@ -808,6 +812,7 @@ export function CityTab({
   onListBlackMarket,
   onCraft,
   onStopCraft,
+  onCraftQueueUpdate,
   onBuyHousing,
   onSetResidence,
   onBuyVehicle,
@@ -831,6 +836,7 @@ export function CityTab({
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
   onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
+  onCraftQueueUpdate: (update: (state: GameState) => GameState) => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
   onBuyVehicle: (id: string) => void;
@@ -886,6 +892,7 @@ export function CityTab({
         onListBlackMarket={onListBlackMarket}
         onCraft={onCraft}
         onStopCraft={onStopCraft}
+        onCraftQueueUpdate={onCraftQueueUpdate}
         onBuyHousing={onBuyHousing}
         onSetResidence={onSetResidence}
         onBuyVehicle={onBuyVehicle}
@@ -919,6 +926,7 @@ export function DistrictHub({
   onListBlackMarket,
   onCraft,
   onStopCraft,
+  onCraftQueueUpdate,
   onBuyHousing,
   onSetResidence,
   onBuyVehicle,
@@ -941,6 +949,7 @@ export function DistrictHub({
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
   onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
+  onCraftQueueUpdate: (update: (state: GameState) => GameState) => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
   onBuyVehicle: (id: string) => void;
@@ -1002,6 +1011,7 @@ export function DistrictHub({
           onListBlackMarket={onListBlackMarket}
           onCraft={onCraft}
           onStopCraft={onStopCraft}
+          onCraftQueueUpdate={onCraftQueueUpdate}
           onBuyHousing={onBuyHousing}
           onSetResidence={onSetResidence}
           onBuyVehicle={onBuyVehicle}
@@ -1448,6 +1458,7 @@ function DistrictActivityMenu({
   onListBlackMarket,
   onCraft,
   onStopCraft,
+  onCraftQueueUpdate,
   onBuyHousing,
   onSetResidence,
   onBuyVehicle,
@@ -1468,6 +1479,7 @@ function DistrictActivityMenu({
   onListBlackMarket: (itemId: string, strategy: "quickSale" | "standard" | "highBid" | "privateBuyer") => void;
   onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void;
   onStopCraft: () => void;
+  onCraftQueueUpdate: (update: (state: GameState) => GameState) => void;
   onBuyHousing: (id: string) => void;
   onSetResidence: (id: string) => void;
   onBuyVehicle: (id: string) => void;
@@ -1509,7 +1521,7 @@ function DistrictActivityMenu({
     );
   }
   if (category === "crafting") {
-    return <FocusedPanel title="Crafting"><CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} /></FocusedPanel>;
+    return <FocusedPanel title="Crafting"><CraftingPanel state={state} onCraft={onCraft} onStopCraft={onStopCraft} onCraftQueueUpdate={onCraftQueueUpdate} /></FocusedPanel>;
   }
   if (category === "ripperdoc") {
     return (
@@ -3928,7 +3940,7 @@ function itemUseSummary(itemId: string) {
   return uses.length ? uses.join(", ") : "collection, sale, or future unlocks";
 }
 
-function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void; onStopCraft: () => void }) {
+function CraftingPanel({ state, onCraft, onStopCraft, onCraftQueueUpdate }: { state: GameState; onCraft: (id: string, targetQuantity?: number, reserveMaterials?: boolean) => void; onStopCraft: () => void; onCraftQueueUpdate: (update: (state: GameState) => GameState) => void }) {
   const [sourceItem, setSourceItem] = useState<{ itemId: string; usedAmount: number } | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [targetCraftMode, setTargetCraftMode] = useState<"target"|"continuous">("target");
@@ -3968,7 +3980,9 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
           lines={[
             "Crafting repeats while materials are available.",
             "Crafting runs in the background alongside skill work, combat, and missions.",
-            "Starting another recipe replaces only the current background recipe.",
+            "Use Add to Queue to schedule a recipe after this one; Start crafting replaces the current recipe.",
+            "Targeted crafts advance when finished. Continuous crafts advance when ingredients run out.",
+            "Missing materials pause queued crafting without discarding unfinished targets.",
             "Required materials can be tapped to see where to get them.",
             "Blueprints unlock higher-tier recipes.",
             "Rare items come from mission rewards, local-gig rotations, crafting, or shops.",
@@ -3977,6 +3991,7 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
         />
       )}
       {sourceItem && <ItemSourcePopover state={state} itemId={sourceItem.itemId} usedAmount={sourceItem.usedAmount} onClose={() => setSourceItem(null)} />}
+      <CraftQueuePanel state={state} onUpdate={onCraftQueueUpdate} />
       <div className="crafting-workbench-layout">
         <CraftingRecipeBrowser state={state} selected={selectedRecipe?.id} requested={navigation.recipeId} requestToken={navigation.recipeRequest} icon={item => <EquipmentTypeIconBadge item={item} />} onSelect={id => {setSelectedRecipeId(id);setDetailOpen(true);}} />
         <CraftingDetailSheet key={selectedRecipe?.id} open={detailOpen} onClose={() => setDetailOpen(false)} className={`crafting-detail-panel inventory-detail rarity-${(selectedOutput?.rarity ?? "Common").toLowerCase()}`}>
@@ -4028,6 +4043,9 @@ function CraftingPanel({ state, onCraft, onStopCraft }: { state: GameState; onCr
                 {targetCraftMode === "target" && <label>Items to produce<input aria-label="Craft output target" type="number" min={1} max={2000} step={1} value={craftTargetCount} onChange={e=>setCraftTargetCount(Number(e.target.value))}/></label>}
                 <label className="craft-protect-option"><input type="checkbox" checked={protectIngredients} onChange={e=>setProtectIngredients(e.target.checked)}/> Protect ingredients from automated skill spending</label>
                 <p className="fine">{targetCraftMode === "target" ? "Stops automatically once the requested number of output items is produced." : "Repeats until recipe requirements can no longer be met."} Crafting remains independent of skill work.</p>
+                <button type="button" className="secondary-button" disabled={state.craftQueue.entries.length >= MAX_CRAFT_QUEUE || (targetCraftMode === "target" && (!Number.isSafeInteger(craftTargetCount) || craftTargetCount < 1 || craftTargetCount > MAX_CRAFT_TARGET))} onClick={() => onCraftQueueUpdate(current => enqueueCraft(current, selectedRecipe.id, targetCraftMode === "target" ? craftTargetCount : undefined, protectIngredients))}>
+                  Add to Queue {state.craftQueue.entries.length > 0 ? "(" + state.craftQueue.entries.length + " waiting)" : ""}
+                </button>
                 <button type="button" className="secondary-button" onClick={()=>navigation.openActivityCenter?.(selectedRecipe.id,targetCraftMode === "target" ? craftTargetCount : undefined)}>Gather missing materials in Activity Center</button>
               </section>
               <CardActionFooter
