@@ -5,6 +5,7 @@ import { districts } from "../data/districts";
 import { factions } from "../data/factions";
 import { startingResources } from "../data/resources";
 import { emptyIdleQueue } from "./idleQueue";
+import { emptyCraftQueue } from "./craftQueue";
 import { districts as districtData } from "../data/districts";
 import { vendors } from "../data/vendors";
 import { weaponClasses } from "../data/weaponClasses";
@@ -35,6 +36,7 @@ export function createInitialState(now = Date.now()): GameState {
     idleQueue: emptyIdleQueue(),
     activeJob: null,
     activeCraft: null,
+    craftQueue: emptyCraftQueue(),
     activeOperation: null,
     currentCombat: null,
     health: {
@@ -230,6 +232,7 @@ export function cloneState(state: GameState): GameState {
     idleQueue: { ...state.idleQueue, steps: state.idleQueue.steps.map(step => ({ ...step })) },
     activeJob: state.activeJob ? { ...state.activeJob } : null,
     activeCraft: state.activeCraft ? { ...state.activeCraft } : null,
+    craftQueue: { ...state.craftQueue, entries: state.craftQueue.entries.map(entry => ({ ...entry })), blockedCraft: state.craftQueue.blockedCraft ? { ...state.craftQueue.blockedCraft } : null },
     activeOperation: state.activeOperation ? { ...state.activeOperation } : null,
     currentCombat: state.currentCombat ? { ...state.currentCombat, iconicMemory: state.currentCombat.iconicMemory ? {...state.currentCombat.iconicMemory} : undefined } : null,
     health: { ...state.health },
