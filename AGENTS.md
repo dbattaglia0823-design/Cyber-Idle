@@ -19,3 +19,7 @@ This repository is an **existing React + TypeScript + Vite game**, not an empty 
 - Keep React components as UI, and domain rules in existing `src/systems/` and `src/data/` ownership boundaries. Preserve responsive mobile behavior.
 - Make narrow changes on reviewable branches, add regression tests, and update only verified project notes plus [docs/HANDOFF.md](docs/HANDOFF.md).
 - Do not install unknown Obsidian/MCP plugins, copy third-party code without license review or commit secrets/private notes.
+
+## Locally installed skills
+
+Use the specific skill under `.agents/skills/` only when relevant. See [docs/SHARED_SKILLS.md](docs/SHARED_SKILLS.md) for source/version and update instructions. These are optional snapshots; do not load all of them by default.
